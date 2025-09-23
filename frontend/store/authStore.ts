@@ -1,19 +1,18 @@
-import { create } from "zustand";
-import { supabase } from "@/lib/supabaseClient";
-import toast from "react-hot-toast";
+// store/useAuthStore.ts
+import { create } from "zustand"
+import { supabase } from "@/lib/supabaseClient"
+import toast from "react-hot-toast"
+import { User } from "@supabase/supabase-js"
 
-type AuthUser = {
-	id: string
-	email: string | null
-}
-
+// type for login / signup data
 type AuthData = {
 	email: string
 	password: string
 }
 
+// store type
 type AuthStore = {
-	authUser: AuthUser | null
+	authUser: User | null
 	isSigningUp: boolean
 	isLoggingIn: boolean
 	isCheckingAuth: boolean
@@ -29,26 +28,28 @@ export const useAuthStore = create<AuthStore>((set) => ({
 	isLoggingIn: false,
 	isCheckingAuth: true,
 
+	// check if user is already logged in
 	checkAuth: async () => {
 		set({ isCheckingAuth: true })
 		try {
 			const { data: { session }, error } = await supabase.auth.getSession()
 			if (error) throw error
-			set({ AuthUser: session?.user ?? null })
+			set({ authUser: session?.user ?? null })
 		} catch (err) {
-			console.log(err)
+			console.log("Error checking auth:", err)
 			set({ authUser: null })
 		} finally {
 			set({ isCheckingAuth: false })
 		}
 	},
 
-	signUp: async ({ email, password }) => {
+	// signup
+	signUp: async ({ email, password }: AuthData) => {
 		set({ isSigningUp: true })
 		try {
 			const { data, error } = await supabase.auth.signUp({ email, password })
 			if (error) throw error
-			toast.success("Check your email for confirmation!")
+			toast.success("Signed up successfully!")
 			set({ authUser: data.user ?? null })
 		} catch (err: any) {
 			toast.error(err.message)
@@ -57,7 +58,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		}
 	},
 
-	login: async ({ email, password }) => {
+	// login
+	login: async ({ email, password }: AuthData) => {
 		set({ isLoggingIn: true })
 		try {
 			const { data, error } = await supabase.auth.signInWithPassword({ email, password })
@@ -71,6 +73,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		}
 	},
 
+	// logout
 	logout: async () => {
 		try {
 			await supabase.auth.signOut()

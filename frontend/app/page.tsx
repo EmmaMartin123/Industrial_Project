@@ -8,9 +8,6 @@ import Footer from "../components/Footer";
 export default function Home() {
 	return (
 		<div className="min-h-screen bg-base-100 text-base-content">
-			{/* navbar */}
-			<Navbar />
-
 			{/* Hero */}
 			<section className="hero min-h-[70vh] bg-base-100">
 				<div className="hero-content text-center">
@@ -65,8 +62,6 @@ export default function Home() {
 					</div>
 				</div>
 			</section>
-
-			<Footer />
 		</div>
 	);
 }
