@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
+import { supabase } from "@/lib/supabaseClient"
+import axios from "axios"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -22,12 +24,31 @@ export default function LoginPage() {
 		if (authUser) router.push("/dashboard")
 	}, [authUser, router])
 
-	const handleLogin = () => {
+	const handleLogin = async () => {
 		if (!email || !password) {
-			return window.alert("Please enter both email and password") // could put this inside the store itself?
+			return window.alert("Please enter both email and password")
 		}
 
-		login({ email, password })
+		// login via auth store
+		await login({ email, password })
+
+		// after login get the jwt and send it to the backend
+		const { data: sessionData } = await supabase.auth.getSession()
+		const token = sessionData?.session?.access_token
+		console.log("Token:", token)
+
+		if (token) {
+			// just send it and ignore the response as it doesn't send any yet
+			axios.get("http://localhost:8080/api/testroute", {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}).catch((err) => {
+				console.warn("Token sent, ignoring backend response:", err.message)
+			})
+		} else {
+			console.warn("No JWT found after login")
+		}
 	}
 
 	if (isCheckingAuth && !authUser) return (
