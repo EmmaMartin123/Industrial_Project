@@ -13,7 +13,7 @@ export default function SignupPage() {
 	const handleSignup = async () => {
 		const { error } = await supabase.auth.signUp({ email, password })
 		if (error) toast.error(error.message)
-		else toast.success("Check your email for confirmation!")
+		else toast.success("Signed up successfully!")
 	}
 
 	return (
@@ -36,7 +36,7 @@ export default function SignupPage() {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 					<div className="flex justify-between">
-						<button className="btn btn-success" onClick={handleSignup}>
+						<button className="btn btn-success rounded-md" onClick={handleSignup}>
 							Sign Up
 						</button>
 					</div>

@@ -11,9 +11,19 @@ export default function LoginPage() {
 	const router = useRouter()
 
 	const handleLogin = async () => {
+		if (!email || !password) {
+			toast.error("Please enter both email and password")
+			return
+		}
+
 		const { error } = await supabase.auth.signInWithPassword({ email, password })
-		if (error) toast.error(error.message)
-		else router.push("/dashboard")
+
+		if (error) {
+			toast.error(error.message)
+		} else {
+			toast.success("Logged in successfully!")
+			router.push("/dashboard")
+		}
 	}
 
 	return (
@@ -36,7 +46,7 @@ export default function LoginPage() {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 					<div className="flex justify-between">
-						<button className="btn btn-primary" onClick={handleLogin}>
+						<button className="btn btn-primary rounded-md" onClick={handleLogin}>
 							Login
 						</button>
 					</div>
