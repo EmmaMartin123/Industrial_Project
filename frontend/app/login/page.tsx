@@ -36,6 +36,8 @@ export default function LoginPage() {
 		</div>
 	);
 
+	console.log(authUser)
+
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
 			<div className="card w-full max-w-sm shadow-xl bg-base-100">

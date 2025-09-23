@@ -4,6 +4,7 @@ import { Rocket, Users, Coins } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
 	return (

@@ -17,7 +17,7 @@ type AuthStore = {
 	isLoggingIn: boolean
 	isCheckingAuth: boolean
 	checkAuth: () => Promise<void>
-	signUp: (data: AuthData) => Promise<void>
+	signup: (data: AuthData) => Promise<void>
 	login: (data: AuthData) => Promise<void>
 	logout: () => Promise<void>
 }
@@ -44,7 +44,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 	},
 
 	// signup
-	signUp: async ({ email, password }: AuthData) => {
+	signup: async ({ email, password }: AuthData) => {
 		set({ isSigningUp: true })
 		try {
 			const { data, error } = await supabase.auth.signUp({ email, password })
