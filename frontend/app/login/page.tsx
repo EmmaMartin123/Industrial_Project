@@ -36,13 +36,11 @@ export default function LoginPage() {
 		</div>
 	);
 
-	console.log(authUser)
-
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
 			<div className="card w-full max-w-sm shadow-xl bg-base-100">
 				<div className="card-body">
-					<h2 className="card-title text-center mb-4">Login / Sign Up</h2>
+					<h2 className="card-title text-center mb-4">Login</h2>
 
 					<input
 						type="email"
