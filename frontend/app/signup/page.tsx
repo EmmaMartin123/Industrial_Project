@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase_client"
+import { supabase } from "@/lib/supabaseClient"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 
