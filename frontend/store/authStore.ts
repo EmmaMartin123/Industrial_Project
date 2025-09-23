@@ -2,6 +2,11 @@ import { create } from "zustand";
 import { supabase } from "@/lib/supabaseClient";
 import toast from "react-hot-toast";
 
+type AuthData = {
+  email: string
+  password: string
+}
+
 export const useAuthStore = create((set) => ({
 	authUser: null,
 	isSigningUp: false,
@@ -24,7 +29,7 @@ export const useAuthStore = create((set) => ({
 	},
 
 	// signup
-	signUp: async ({ email, password }) => {
+	signUp: async ({ email, password }: AuthData) => {
 		set({ isSigningUp: true });
 		try {
 			const { data, error } = await supabase.auth.signUp({ email, password });
@@ -39,7 +44,7 @@ export const useAuthStore = create((set) => ({
 	},
 
 	// login
-	login: async ({ email, password }) => {
+	login: async ({ email, password }: AuthData) => {
 		set({ isLoggingIn: true });
 		try {
 			const { data, error } = await supabase.auth.signInWithPassword({ email, password });
