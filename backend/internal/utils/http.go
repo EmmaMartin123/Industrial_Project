@@ -4,8 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 )
+
+func CORSAllowlist() map[string]bool {
+	allowlist := make(map[string]bool)
+	if origins := os.Getenv("CORS_ALLOWLIST"); origins != "" {
+		for origin := range strings.SplitSeq(origins, ",") {
+			allowlist[strings.TrimSpace(origin)] = true
+		}
+	}
+	return allowlist
+}
 
 func WriteError(w http.ResponseWriter, err error, code int) {
 	w.Header().Set("Content-Type", "application/json")

@@ -9,17 +9,20 @@ import (
 )
 
 func SetupRouter() http.Handler {
-	protected := auth.NewChain(
+	base := auth.NewChain(
 		auth.LoggingMiddleware,
+		auth.CORSMiddleware,
+	)
+
+	protected := auth.NewChain(
 		auth.AuthMiddleWare,
 	)
 
 	mux := http.NewServeMux()
-
 	mux.Handle("/api/testroute", protected.Then(http.HandlerFunc(testroute)))
 
 	fmt.Println("Router setup complete")
-	return mux
+	return base.Then(mux)
 }
 
 func testroute(w http.ResponseWriter, r *http.Request) {
