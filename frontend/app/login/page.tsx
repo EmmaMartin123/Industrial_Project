@@ -14,7 +14,7 @@ export default function LoginPage() {
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
-	// heck if user is already logged in on mount
+	// check if user is already logged in on mount
 	useEffect(() => {
 		checkAuth()
 	}, [checkAuth])
