@@ -4,6 +4,7 @@ type InvestmentTier struct {
 	Name       string  `json:"name"`
 	MinAmount  uint64  `json:"min_amount"`
 	Multiplier float64 `json:"multiplier"`
+	PitchID    int64   `json:"pitch_id"`
 }
 
 type NewPitch struct {
@@ -39,4 +40,8 @@ func NewPitchToDatabasePitch(np NewPitch, userID string) DatabasePitch {
 		ProfitSharePercent:  np.ProfitSharePercent,
 		UserID:              userID,
 	}
+}
+
+type ID struct {
+	ID int64 `json:"id"`
 }

@@ -13,20 +13,20 @@ type TestData struct {
 	ID string `json:"id"`
 }
 
-func InsertData(data interface{}, table string) error {
+func InsertData(data interface{}, table string) (error, string) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
-	SUPABASE_KEY := os.Getenv("SUPABASE_KEY")
+	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 	url := SUPABASE_URL + "/rest/v1/" + table
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return err, ""
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return err, ""
 	}
 
 	req.Header.Set("apikey", SUPABASE_KEY)
@@ -37,14 +37,14 @@ func InsertData(data interface{}, table string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return err, ""
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to insert: status %d, body: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("failed to insert: status %d, body: %s", resp.StatusCode, string(body)), ""
 	}
 
-	return nil
+	return nil, string(body)
 }

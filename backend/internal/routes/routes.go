@@ -65,15 +65,35 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	db_pitch := types.NewPitchToDatabasePitch(pitch, uid)
 
-	err := utils.InsertData(db_pitch, "pitch")
+	err, result := utils.InsertData(db_pitch, "pitch")
 
 	if err != nil {
 		fmt.Println("Error inserting data:", err)
 	} else {
 		fmt.Println("Inserted successfully!")
+		//TODO: return error
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	var ids []types.ID
+
+	err = json.Unmarshal([]byte(result), &ids)
+	if err != nil {
+		panic(err)
+	}
+
+	pitch_id := ids[0].ID
+
+	for _, tier := range pitch.InvestmentTiers {
+		tier.PitchID = pitch_id
+		invest_err, _ := utils.InsertData(tier, "investment_tier")
+		if invest_err != nil {
+			fmt.Println("Error inserting data:", err)
+		} else {
+			fmt.Println("Inserted successfully!")
+			//TODO: return error
+		}
+	}
+
 	json.NewEncoder(w).Encode(db_pitch)
 
 }
