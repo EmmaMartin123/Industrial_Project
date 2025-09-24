@@ -51,7 +51,7 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 }
 
 func create_pitch_route(w http.ResponseWriter, r *http.Request) {
-	var pitch types.Pitch
+	var pitch types.NewPitch
 	if err := json.NewDecoder(r.Body).Decode(&pitch); err != nil {
 		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
 		return
@@ -60,6 +60,22 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(pitch)
+
+	uid, _ := utils.UserIDFromCtx(r.Context())
+
+	db_pitch := types.NewPitchToDatabasePitch(pitch, uid)
+
+	err := utils.InsertData(db_pitch, "pitch")
+
+	if err != nil {
+		fmt.Println("Error inserting data:", err)
+	} else {
+		fmt.Println("Inserted successfully!")
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(db_pitch)
+
 }
 
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
