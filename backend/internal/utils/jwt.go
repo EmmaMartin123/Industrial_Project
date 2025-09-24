@@ -15,6 +15,7 @@ var (
 
 // InitJWTHS256 sets up issuer and HMAC secret; fail if no secret.
 func InitJWTHS256(issuerURL string) error {
+
 	issuer = issuerURL
 	secret := os.Getenv("SUPABASE_JWT_SECRET")
 	if secret == "" {

@@ -3,3 +3,5 @@
 *.sh
 .DS_Store
 **/.DS_Store
+*.txt
+*.py
