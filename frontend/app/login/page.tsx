@@ -59,7 +59,7 @@ export default function LoginPage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
-			<div className="card w-full max-w-sm shadow-xl bg-base-100">
+			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
 				<div className="card-body">
 					<h2 className="card-title text-center mb-4">Login</h2>
 
@@ -87,6 +87,18 @@ export default function LoginPage() {
 						>
 							{isLoggingIn ? "Logging in..." : "Login"}
 						</button>
+					</div>
+
+					<div className="text-center mt-4">
+						<p className="text-center text-sm">
+							Don't have an account?{" "}
+							<a
+								className="link link-primary"
+								onClick={() => router.push("/signup")}
+							>
+								Sign up
+							</a>
+						</p>
 					</div>
 				</div>
 			</div>
