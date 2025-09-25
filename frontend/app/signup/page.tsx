@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
-import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
+
+import { useAuthStore } from "@/store/authStore"
 import Button from "@/components/Button"
+import axios from "@/lib/axios"
 
 export default function SignupPage() {
 	const router = useRouter()

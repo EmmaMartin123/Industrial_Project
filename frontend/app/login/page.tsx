@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
-import { supabase } from "@/lib/supabaseClient"
 import axios from "axios"
+
+import { useAuthStore } from "@/store/authStore"
+import { supabase } from "@/lib/supabaseClient"
 import Button from "@/components/Button"
 
 export default function LoginPage() {
