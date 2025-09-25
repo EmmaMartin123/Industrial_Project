@@ -1,12 +1,14 @@
 "use client"
 
 import { useAuthStore } from "@/store/authStore"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import ThemeToggle from "@/components/ThemeToggle"
+import Button from "@/components/Button"
 
 export default function Navbar() {
 	const router = useRouter()
+	const pathname = usePathname()
 	const { authUser, logout, checkAuth } = useAuthStore()
 
 	const handleLogout = async () => {
@@ -14,11 +16,9 @@ export default function Navbar() {
 		router.push("/login")
 	}
 
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
-
-	console.log(authUser)
+	useEffect(() => {
+		checkAuth()
+	}, [checkAuth])
 
 	return (
 		<nav className="navbar bg-base-200 shadow px-4">
@@ -49,12 +49,12 @@ export default function Navbar() {
 					</>
 				) : (
 					<>
-						<button
-							className="btn bg-teal-500 hover:bg-teal-600 text-white rounded-full shadow-xl"
-							onClick={() => router.push("/login")}
-						>
-							Log in
-						</button>
+						{/* only show if we're NOT on the login page */}
+						{pathname !== "/login" && (
+							<Button onClick={() => router.push("/login")}>
+								Log in
+							</Button>
+						)}
 					</>
 				)}
 

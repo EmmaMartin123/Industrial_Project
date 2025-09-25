@@ -1,15 +1,35 @@
 "use client";
 
-import { Rocket, Users, Coins } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import toast from "react-hot-toast";
+
+import { Rocket, Users, Coins } from "lucide-react";
+import Button from "@/components/Button";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
+	const router = useRouter()
+	const pathname = usePathname()
+	const { authUser, checkAuth } = useAuthStore()
+
+	// check if user is already logged in
+	useEffect(() => {
+		checkAuth()
+	}, [checkAuth])
+
+	const handleGetStarted = () => {
+		if (authUser) {
+			router.push("/browse");
+		} else {
+			router.push("/login");
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-base-100 text-base-content">
-			{/* Hero */}
 			<section className="hero min-h-[70vh] bg-base-100">
 				<div className="hero-content text-center">
 					<div className="max-w-2xl">
@@ -20,16 +40,13 @@ export default function Home() {
 							short sentence about what elevare is
 						</p>
 						<div className="flex justify-center gap-4">
-							<button className="btn btn-primary rounded-md">
-								Get Started
-							</button>
-							<button className="btn btn-outline rounded-md">Learn More</button>
+							<Button onClick={handleGetStarted}>Get Started</Button>
+							<Button className="btn-outline rounded-md" onClick={() => router.push("/learn")}>Learn More</Button>
 						</div>
 					</div>
 				</div>
 			</section>
 
-			{/* Features */}
 			<section className="py-16 bg-base-200">
 				<div className="max-w-5xl mx-auto px-4 text-center">
 					<h2 className="text-3xl font-bold mb-10">Why Elevare?</h2>
