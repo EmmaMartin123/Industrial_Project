@@ -3,6 +3,7 @@
 import { useAuthStore } from "@/store/authStore"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import ThemeToggle from "@/lib/ThemeToggle"
 
 export default function Navbar() {
 	const router = useRouter()
@@ -60,6 +61,8 @@ export default function Navbar() {
 						</button>
 					</>
 				)}
+
+				<ThemeToggle />
 			</div>
 		</nav>
 	)
