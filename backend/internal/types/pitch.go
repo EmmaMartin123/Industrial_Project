@@ -19,6 +19,7 @@ type NewPitch struct {
 }
 
 type DatabasePitch struct {
+	PitchID             *int    `json:"id,omitempty"`
 	ProductTitle        string  `json:"title"`
 	ElevatorPitch       string  `json:"elevator_pitch"`
 	DetailedPitch       string  `json:"detailed_pitch"`
@@ -31,6 +32,7 @@ type DatabasePitch struct {
 
 func NewPitchToDatabasePitch(np NewPitch, userID string) DatabasePitch {
 	return DatabasePitch{
+		PitchID:             nil,
 		ProductTitle:        np.ProductTitle,
 		ElevatorPitch:       np.ElevatorPitch,
 		DetailedPitch:       np.DetailedPitch,

@@ -45,6 +45,8 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		create_pitch_route(w, r)
+	case http.MethodGet:
+		get_pitch_route(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -99,5 +101,44 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 }
 
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
-	not_implemented_route(w)
+	pitchID := r.URL.Query().Get("pitch_id")
+
+	if pitchID == "" {
+		result, err := utils.GetAllData("pitch")
+		if err != nil {
+			http.Error(w, "Error fetching pitches", http.StatusInternalServerError)
+			return
+		}
+
+		var pitches []types.DatabasePitch
+		if err := json.Unmarshal([]byte(result), &pitches); err != nil {
+			http.Error(w, "Error decoding pitches", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(pitches)
+		return
+	}
+
+	result, err := utils.GetDataByID("pitch", pitchID)
+	if err != nil {
+		http.Error(w, "Pitch not found", http.StatusNotFound)
+		return
+	}
+
+	var pitch []types.DatabasePitch
+	if err := json.Unmarshal([]byte(result), &pitch); err != nil {
+		http.Error(w, "Error decoding pitch", http.StatusInternalServerError)
+		fmt.Println("Body: ", string(result))
+		return
+	}
+
+	if len(pitch) != 1 {
+		http.Error(w, "Pitch not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(pitch[0])
 }
