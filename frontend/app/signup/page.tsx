@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
+import Button from "@/components/Button"
 
 export default function SignupPage() {
 	const router = useRouter()
@@ -26,8 +27,8 @@ export default function SignupPage() {
 	}, [authUser, router])
 
 	const handleSignup = () => {
-		if (!email || !password) {
-			return window.alert("Please enter both email and password") // could put this inside the store itself?
+		if (!name || !email || !password) {
+			return toast.error("Please enter all fields")
 		}
 
 		signup({ email, password })
@@ -71,13 +72,13 @@ export default function SignupPage() {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 					<div className="flex justify-between">
-						<button
-							className="btn btn-primary rounded-md"
+						<Button
 							onClick={handleSignup}
-							disabled={isSigningUp}
+							isLoading={isSigningUp}
+							loadingText="Logging in..."
 						>
-							{isSigningUp ? "Signing up..." : "Sign up"}
-						</button>
+							Sign up
+						</Button>
 					</div>
 
 					<div className="text-center mt-4">
