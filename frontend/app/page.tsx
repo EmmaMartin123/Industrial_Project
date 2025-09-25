@@ -14,7 +14,7 @@ export default function Home() {
 				<div className="hero-content text-center">
 					<div className="max-w-2xl">
 						<h1 className="text-5xl font-bold">
-							Slogan
+							lorem ipsum
 						</h1>
 						<p className="py-6 text-lg">
 							short sentence about what elevare is

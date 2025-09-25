@@ -53,13 +53,13 @@ export default function Navbar() {
 				) : (
 					<>
 						<button
-							className="btn btn-primary rounded-md"
+							className="btn bg-teal-500 hover:bg-teal-600 text-white rounded-full shadow-xl"
 							onClick={() => router.push("/login")}
 						>
 							Sign In
 						</button>
 						<button
-							className="btn btn-secondary rounded-md"
+							className="btn btn-ghost rounded-full"
 							onClick={() => router.push("/signup")}
 						>
 							Sign Up

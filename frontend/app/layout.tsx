@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast"
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Fugaz_One } from "next/font/google";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
-	subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
-	subsets: ["latin"],
+const fugazOne = Fugaz_One({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-fugaz-one",
 });
 
 export const metadata: Metadata = {
@@ -26,10 +22,8 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
-			<body
-				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-			>
+		<html lang="en" className={fugazOne.variable}>
+			<body className="font-fugaz" >
 				<Navbar />
 				{children}
 				<Toaster position="top-right" reverseOrder={false} />
