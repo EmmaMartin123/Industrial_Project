@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuthStore } from "@/store/authStore";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
 
+import { useAuthStore } from "@/lib/store/authStore";
 import { Rocket, Users, Coins } from "lucide-react";
 import Button from "@/components/Button";
 import Navbar from "@/components/Navbar";

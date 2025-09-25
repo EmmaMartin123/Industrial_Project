@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import { Loader } from "lucide-react"
 
-import { useAuthStore } from "@/store/authStore"
+import { useAuthStore } from "@/lib/store/authStore"
 import Button from "@/components/Button"
 import axios from "@/lib/axios"
 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader } from "lucide-react"
 import axios from "axios"
 
-import { useAuthStore } from "@/store/authStore"
+import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
 import Button from "@/components/Button"
 
