@@ -3,7 +3,7 @@
 import { useAuthStore } from "@/store/authStore"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import ThemeToggle from "@/lib/ThemeToggle"
+import ThemeToggle from "@/components/ThemeToggle"
 
 export default function Navbar() {
 	const router = useRouter()
@@ -32,10 +32,6 @@ export default function Navbar() {
 			</div>
 
 			<div className="flex-none hidden md:flex space-x-2">
-				<a className="btn btn-ghost" onClick={() => router.push("/browse")}>
-					Browse Pitches
-				</a>
-
 				{authUser ? (
 					<>
 						<a
