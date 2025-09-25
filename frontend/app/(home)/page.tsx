@@ -7,8 +7,8 @@ import toast from "react-hot-toast";
 
 import { Rocket, Users, Coins } from "lucide-react";
 import Button from "@/components/Button";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export default function Home() {
 	const router = useRouter()
