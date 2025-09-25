@@ -3,7 +3,7 @@
 import { useAuthStore } from "@/lib/store/authStore"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
-import ThemeToggle from "@/components/ThemeToggle"
+import ThemeToggler from "@/components/ThemeToggler"
 import Button from "@/components/Button"
 
 export default function Navbar() {
@@ -58,7 +58,7 @@ export default function Navbar() {
 					</>
 				)}
 
-				<ThemeToggle />
+				<ThemeToggler />
 			</div>
 		</nav>
 	)

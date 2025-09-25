@@ -33,11 +33,11 @@ export default function Home() {
 			<section className="hero min-h-[70vh] bg-base-100">
 				<div className="hero-content text-center">
 					<div className="max-w-2xl">
-						<h1 className="text-5xl font-bold">
-							lorem ipsum
+						<h1 className="text-5xl font-bold font-fugaz-one">
+							Every Seed Deserves the Sun, Every Investor Deserves the Sky.
 						</h1>
 						<p className="py-6 text-lg">
-							short sentence about what elevare is
+							Empowering small businesses to grow and everyday investors to make an impact.
 						</p>
 						<div className="flex justify-center gap-4">
 							<Button onClick={handleGetStarted}>Get Started</Button>
