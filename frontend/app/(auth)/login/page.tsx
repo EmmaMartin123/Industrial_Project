@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
-import { supabase } from "@/lib/supabaseClient"
 import axios from "axios"
+
+import { useAuthStore } from "@/lib/store/authStore"
+import { supabase } from "@/lib/supabaseClient"
+import Button from "@/components/Button"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -59,9 +61,9 @@ export default function LoginPage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
-			<div className="card w-full max-w-sm shadow-xl bg-base-100">
+			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
 				<div className="card-body">
-					<h2 className="card-title text-center mb-4">Login</h2>
+					<h2 className="card-title text-center text-2xl mb-4">Login</h2>
 
 					<input
 						type="email"
@@ -80,13 +82,25 @@ export default function LoginPage() {
 					/>
 
 					<div className="flex justify-between">
-						<button
-							className="btn btn-primary rounded-md"
+						<Button
 							onClick={handleLogin}
-							disabled={isLoggingIn}
+							isLoading={isLoggingIn}
+							loadingText="Logging in..."
 						>
-							{isLoggingIn ? "Logging in..." : "Login"}
-						</button>
+							Log in
+						</Button>
+					</div>
+
+					<div className="text-center mt-4">
+						<p className="text-center text-sm">
+							Don't have an account?{" "}
+							<a
+								className="link link-primary"
+								onClick={() => router.push("/signup")}
+							>
+								Sign up
+							</a>
+						</p>
 					</div>
 				</div>
 			</div>

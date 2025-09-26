@@ -1,16 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
-import { useAuthStore } from "@/store/authStore"
 import { Loader } from "lucide-react"
+
+import { useAuthStore } from "@/lib/store/authStore"
+import Button from "@/components/Button"
+import axios from "@/lib/axios"
 
 export default function SignupPage() {
 	const router = useRouter()
 	const { signup, authUser, checkAuth, isSigningUp, isCheckingAuth } = useAuthStore()
 
+	const [name, setName] = useState("")
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
@@ -25,8 +28,8 @@ export default function SignupPage() {
 	}, [authUser, router])
 
 	const handleSignup = () => {
-		if (!email || !password) {
-			return window.alert("Please enter both email and password") // could put this inside the store itself?
+		if (!name || !email || !password) {
+			return toast.error("Please enter all fields")
 		}
 
 		signup({ email, password })
@@ -40,16 +43,28 @@ export default function SignupPage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
-			<div className="card w-full max-w-sm shadow-xl bg-base-100">
+			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
 				<div className="card-body">
-					<h2 className="card-title text-center mb-4">Sign Up</h2>
+					<h2 className="card-title text-center text-2xl mb-4">Sign Up</h2>
+					Display name
+					<input
+						type="text"
+						placeholder="e.g. Ben Houghton"
+						className="input input-bordered w-full mb-3"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+					/>
+
+					Email
 					<input
 						type="email"
-						placeholder="Email"
+						placeholder="e.g. ben@example.com"
 						className="input input-bordered w-full mb-3"
 						value={email}
 						onChange={(e) => setEmail(e.target.value)}
 					/>
+
+					Password
 					<input
 						type="password"
 						placeholder="Password"
@@ -58,13 +73,25 @@ export default function SignupPage() {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 					<div className="flex justify-between">
-						<button
-							className="btn btn-primary rounded-md"
+						<Button
 							onClick={handleSignup}
-							disabled={isSigningUp}
+							isLoading={isSigningUp}
+							loadingText="Logging in..."
 						>
-							{isSigningUp ? "Signing up..." : "Sign up"}
-						</button>
+							Sign up
+						</Button>
+					</div>
+
+					<div className="text-center mt-4">
+						<p className="text-center text-sm">
+							Already have an account?{" "}
+							<a
+								className="link link-primary"
+								onClick={() => router.push("/login")}
+							>
+								Log in
+							</a>
+						</p>
 					</div>
 				</div>
 			</div>

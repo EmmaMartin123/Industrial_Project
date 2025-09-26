@@ -1,11 +1,14 @@
 "use client"
 
-import { useAuthStore } from "@/store/authStore"
-import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/lib/store/authStore"
+import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
+import ThemeToggler from "@/components/ThemeToggler"
+import Button from "@/components/Button"
 
 export default function Navbar() {
 	const router = useRouter()
+	const pathname = usePathname()
 	const { authUser, logout, checkAuth } = useAuthStore()
 
 	const handleLogout = async () => {
@@ -13,11 +16,9 @@ export default function Navbar() {
 		router.push("/login")
 	}
 
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
-
-	console.log(authUser)
+	useEffect(() => {
+		checkAuth()
+	}, [checkAuth])
 
 	return (
 		<nav className="navbar bg-base-200 shadow px-4">
@@ -31,10 +32,6 @@ export default function Navbar() {
 			</div>
 
 			<div className="flex-none hidden md:flex space-x-2">
-				<a className="btn btn-ghost" onClick={() => router.push("/browse")}>
-					Browse Pitches
-				</a>
-
 				{authUser ? (
 					<>
 						<a
@@ -52,20 +49,16 @@ export default function Navbar() {
 					</>
 				) : (
 					<>
-						<button
-							className="btn btn-primary rounded-md"
-							onClick={() => router.push("/login")}
-						>
-							Sign In
-						</button>
-						<button
-							className="btn btn-secondary rounded-md"
-							onClick={() => router.push("/signup")}
-						>
-							Sign Up
-						</button>
+						{/* only show if we're NOT on the login page */}
+						{pathname !== "/login" && (
+							<Button onClick={() => router.push("/login")}>
+								Log in
+							</Button>
+						)}
 					</>
 				)}
+
+				<ThemeToggler />
 			</div>
 		</nav>
 	)
