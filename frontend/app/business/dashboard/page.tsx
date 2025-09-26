@@ -113,23 +113,23 @@ export default function BusinessDashboard() {
 									</span>
 								</td>
 								<td className="space-x-2">
-									<button
+									<Button
 										onClick={() =>
-											router.push(`/(business)/pitches/${pitch.id}`)
+											router.push(`/business/pitches/${pitch.id}`)
 										}
-										className="btn btn-sm btn-outline"
+										className=""
 									>
 										View
-									</button>
+									</Button>
 									{pitch.status === "Active" && (
-										<button
+										<Button
 											onClick={() =>
-												router.push(`/(business)/pitches/${pitch.id}/profit`)
+												router.push(`/business/pitches/${pitch.id}/profit`)
 											}
-											className="btn btn-sm btn-secondary"
+											className=""
 										>
 											Distribute Profit
-										</button>
+										</Button>
 									)}
 								</td>
 							</tr>
