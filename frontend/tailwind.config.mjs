@@ -6,7 +6,6 @@ const config = {
 		"./app/**/*.{js,ts,jsx,tsx}",
 		"./components/**/*.{js,ts,jsx,tsx}",
 	],
-	darkMode: "class", // class based dark mode
 	theme: {
 		extend: {},
 	},

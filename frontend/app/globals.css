@@ -3,7 +3,38 @@
 @tailwind utilities;
 
 @import "tailwindcss";
-@plugin 'daisyui';
+
+@plugin "daisyui";
+
+@plugin "daisyui/theme" {
+  name: "light";
+  --color-primary: #2563eb;
+  --color-secondary: #6b7280;
+  --color-accent: #3b82f6;
+  --color-neutral: #f3f4f6;
+  --color-base-100: #ffffff;
+  --color-base-200: #f9fafb;
+  --color-base-300: #e5e7eb;
+  --color-info: #3abff8;
+  --color-success: #36d399;
+  --color-warning: #fbbd23;
+  --color-error: #f87272;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  --color-primary: #3b82f6;
+  --color-secondary: #9ca3af;
+  --color-accent: #2563eb;
+  --color-neutral: #1f2937;
+  --color-base-100: #111827;
+  --color-base-200: #1e293b;
+  --color-base-300: #374151;
+  --color-info: #3abff8;
+  --color-success: #36d399;
+  --color-warning: #fbbd23;
+  --color-error: #f87272;
+}
 
 .font-fugaz-one {
 	font-family: "Fugaz One", sans-serif;
@@ -11,4 +42,6 @@
 
 body {
 	font-family: "Lato", sans-serif;
+  background-color: var(--bg);
+  color: var(--fg);
 }
