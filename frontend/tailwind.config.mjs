@@ -7,12 +7,15 @@ const config = {
 		"./components/**/*.{js,ts,jsx,tsx}",
 	],
 	theme: {
-		extend: {},
+		extend: {
+			colors: {
+				extBg: 'var(--ext-bg)',
+				extFg: 'var(--ext-fg)',
+				extPrimary: 'var(--ext-primary)',
+			}
+		},
 	},
 	plugins: [daisyui],
-	daisyui: {
-		themes: ["light", "dark"],
-	},
 }
 
 export default config
