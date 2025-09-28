@@ -36,7 +36,7 @@ export default function Navbar() {
 					<>
 						<a
 							className="btn btn-ghost"
-							onClick={() => router.push("/dashboard")}
+							onClick={() => router.push("/investor/dashboard")}
 						>
 							My Portfolio
 						</a>
