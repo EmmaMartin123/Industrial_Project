@@ -1,143 +1,100 @@
 "use client";
 
-import { PlusCircle, BarChart3, Coins, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
 import Button from "@/components/Button";
+import toast from "react-hot-toast";
+import { Pencil, Eye, DollarSign } from "lucide-react";
 
-export default function BusinessDashboard() {
+const mockPitches = [
+	{
+		id: 1,
+		title: "pitch 1",
+		status: "Active",
+		raised: 4500,
+		target: 10000,
+		profitShare: 20,
+	},
+	{
+		id: 2,
+		title: "pitch 2",
+		status: "Funded",
+		raised: 12000,
+		target: 12000,
+		profitShare: 15,
+	},
+	{
+		id: 3,
+		title: "pitch 3",
+		status: "Draft",
+		raised: 0,
+		target: 8000,
+		profitShare: 25,
+	},
+];
+
+export default function ManagePitchesPage() {
 	const router = useRouter();
+	const [pitches, setPitches] = useState(mockPitches);
 
-	const pitches = [
-		{
-			id: 1,
-			title: "pitch 1",
-			target: 20000,
-			raised: 12500,
-			investors: 48,
-			status: "Active",
-		},
-		{
-			id: 2,
-			title: "ptch 2",
-			target: 15000,
-			raised: 15000,
-			investors: 60,
-			status: "Funded",
-		},
-		{
-			id: 3,
-			title: "pitch 3",
-			target: 30000,
-			raised: 8000,
-			investors: 20,
-			status: "Draft",
-		},
-	];
+	const handleEdit = (pitchId: number) => {
+		// Only allow editing if status is Draft or Active
+		const pitch = pitches.find((p) => p.id === pitchId);
+		if (pitch?.status === "Funded") {
+			toast.error("Cannot edit a funded pitch");
+			return;
+		}
+		router.push(`/business/manage-pitches/${pitchId}/edit`);
+	};
+
+	const handleView = (pitchId: number) => {
+		router.push(`/business/manage-pitches/${pitchId}`);
+	};
+
+	const handleProfit = (pitchId: number) => {
+		router.push(`/business/profit-distribution/${pitchId}`);
+	};
 
 	return (
-		<div className="min-h-screen bg-base-100 p-8">
-			{/* Header */}
-			<div className="flex justify-between items-center mb-8">
-				<div>
-					<h1 className="text-3xl font-bold">Business Dashboard</h1>
-					<p className="text-base-content/60">
-						Manage your pitches, track funding, and distribute profits.
-					</p>
-				</div>
-				<Button
-					onClick={() => router.push("/business/pitches/new")}
-					className=""
-				>
-					<PlusCircle className="w-5 h-5" />
-					New Pitch
-				</Button>
-			</div>
+		<div className="min-h-screen bg-base-100 p-6">
+			<h1 className="text-3xl font-bold mb-6">Manage Pitches</h1>
 
-			{/* Stats */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<BarChart3 className="w-8 h-8 text-primary" />
-					<div>
-						<p className="text-sm text-base-content/60">Active Pitches</p>
-						<h3 className="text-xl font-bold text-center mt-4">2</h3>
+			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				{pitches.map((pitch) => (
+					<div key={pitch.id} className="card shadow-lg bg-base-100 p-6 flex flex-col justify-between">
+						<div>
+							<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
+							<p className="opacity-70 mb-1">Status: {pitch.status}</p>
+							<p className="opacity-70 mb-1">
+								Raised: £{pitch.raised} / £{pitch.target}
+							</p>
+							<p className="opacity-70">Profit Share: {pitch.profitShare}%</p>
+						</div>
+						<div className="mt-4 flex flex-wrap gap-2">
+							<Button
+								className="flex items-center gap-1 btn-sm"
+								onClick={() => handleEdit(pitch.id)}
+							>
+								<Pencil /> Edit
+							</Button>
+							<Button
+								className="flex items-center gap-1 btn-outline btn-sm"
+								onClick={() => handleView(pitch.id)}
+							>
+								<Eye /> View
+							</Button>
+							{pitch.status === "Funded" && (
+								<Button
+									className="flex items-center gap-1 btn-success btn-sm"
+									onClick={() => handleProfit(pitch.id)}
+								>
+									<DollarSign /> Distribute Profit
+								</Button>
+							)}
+						</div>
 					</div>
-				</div>
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<Coins className="w-8 h-8 text-secondary" />
-					<div>
-						<p className="text-sm text-base-content/60">Total Raised</p>
-						<h3 className="text-xl font-bold text-center mt-4">£27,500</h3>
-					</div>
-				</div>
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<Users className="w-8 h-8 text-accent" />
-					<div>
-						<p className="text-sm text-base-content/60">Total Investors</p>
-						<h3 className="text-xl font-bold text-center mt-4">128</h3>
-					</div>
-				</div>
-			</div>
-
-			{/* Pitch List */}
-			<h2 className="text-2xl font-semibold mb-4">Your Pitches</h2>
-			<div className="overflow-x-auto">
-				<table className="table w-full">
-					<thead>
-						<tr>
-							<th>Title</th>
-							<th>Funding</th>
-							<th>Investors</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						{pitches.map((pitch) => (
-							<tr key={pitch.id}>
-								<td className="font-medium">{pitch.title}</td>
-								<td>
-									£{pitch.raised.toLocaleString()} / £
-									{pitch.target.toLocaleString()}
-								</td>
-								<td>{pitch.investors}</td>
-								<td>
-									<span
-										className={`badge ${pitch.status === "Funded"
-											? "badge-success"
-											: pitch.status === "Active"
-												? "badge-primary"
-												: "badge-ghost"
-											}`}
-									>
-										{pitch.status}
-									</span>
-								</td>
-								<td className="space-x-2">
-									<Button
-										onClick={() =>
-											router.push(`/business/pitches/${pitch.id}`)
-										}
-										className=""
-									>
-										View
-									</Button>
-									{pitch.status === "Active" && (
-										<Button
-											onClick={() =>
-												router.push(`/business/pitches/${pitch.id}/profit`)
-											}
-											className=""
-										>
-											Distribute Profit
-										</Button>
-									)}
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+				))}
 			</div>
 		</div>
 	);
 }
-
