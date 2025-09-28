@@ -40,6 +40,14 @@ export default function Navbar() {
 						>
 							My Portfolio
 						</a>
+
+						<a
+							className="btn btn-ghost"
+							onClick={() => router.push("/business/dashboard")}
+						>
+							My dashboard
+						</a>
+
 						<button
 							className="btn btn-error rounded-md"
 							onClick={handleLogout}
