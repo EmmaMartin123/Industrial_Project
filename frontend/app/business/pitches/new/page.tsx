@@ -6,7 +6,12 @@ import { Plus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 
+import axiosInstance from "@/lib/axios";
+import { useAuthStore } from "@/lib/store/authStore";
+
 export default function NewPitchPage() {
+	const { authUser } = useAuthStore();
+
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [description, setDescription] = useState("");
@@ -36,45 +41,42 @@ export default function NewPitchPage() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
+		if (!authUser) {
+			toast.error("You must be logged in to submit a pitch");
+			return;
+		}
+
 		try {
+			// get the JWT token
 			const token = (await supabase.auth.getSession()).data.session?.access_token;
 			if (!token) {
 				toast.error("Not authenticated");
 				return;
 			}
 
-			const res = await fetch("http://90.194.170.67:25560/api/pitch/", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"Authorization": `Bearer ${token}`,
-				},
-				body: JSON.stringify({
-					title,
-					elevator_pitch: elevator,
-					detailed_pitch: description,
-					target_amount: Number(targetAmount),
-					profit_share_percent: Number(profitShare),
-					investment_start_date: new Date().toISOString(),
-					investment_end_date: "2025-12-31T23:59:59",
-					investment_tiers: tiers.map(t => ({
-						name: t.name,
-						min_amount: Number(t.min),
-						multiplier: Number(t.multiplier),
-					}))
-				}),
+			const payload = {
+				title,
+				elevator_pitch: elevator,
+				detailed_pitch: description,
+				target_amount: Number(targetAmount),
+				investment_start_date: new Date().toISOString(),
+				investment_end_date: new Date(endDate).toISOString(),
+				profit_share_percent: Number(profitShare),
+				investment_tiers: tiers.map((t) => ({
+					name: t.name,
+					min_amount: Number(t.min),
+					multiplier: Number(t.multiplier),
+				})),
+			};
+
+			const res = await axiosInstance.post("/pitch", payload, {
+				headers: { Authorization: `Bearer ${token}` },
 			});
 
-			if (!res.ok) {
-				const error = await res.text();
-				toast.error(`Failed: ${res.status} - ${error}`);
-				return;
-			}
-
 			toast.success("Pitch submitted successfully!");
-		} catch (err) {
+		} catch (err: any) {
 			console.error(err);
-			toast.error("Something went wrong");
+			toast.error(err.response?.data || "Something went wrong");
 		}
 	};
 
@@ -82,7 +84,6 @@ export default function NewPitchPage() {
 		<div className="min-h-screen bg-base-100 p-6">
 			<h1 className="text-3xl font-bold mb-6">Create New Pitch</h1>
 			<form onSubmit={handleSubmit} className="space-y-6">
-				{/* Title */}
 				<div>
 					<label className="label">Product Title</label>
 					<input
@@ -94,7 +95,6 @@ export default function NewPitchPage() {
 					/>
 				</div>
 
-				{/* Elevator Pitch */}
 				<div>
 					<label className="label">Elevator Pitch</label>
 					<textarea

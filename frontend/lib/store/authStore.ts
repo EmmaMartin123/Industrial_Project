@@ -83,4 +83,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
 			toast.error(err.message)
 		}
 	},
+
+	// get the JWT token
+	getToken: async () => {
+		const { data, error } = await supabase.auth.getSession()
+		if (error) throw error
+		return data.session?.access_token
+	},
 }))
