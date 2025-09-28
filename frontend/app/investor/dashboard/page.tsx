@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
-import { Wallet, CreditCard, PieChart } from "lucide-react";
+import { Wallet, CreditCard, PieChart, Loader } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
@@ -11,16 +11,29 @@ export default function InvestorDashboardPage() {
 	const router = useRouter();
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
+	// check auth on mount
 	useEffect(() => {
-		checkAuth();
+		const verifyAuth = async () => {
+			await checkAuth();
+		};
+		verifyAuth();
 	}, [checkAuth]);
 
-	// only redirect if we are done checking and there is no user
+	// redirect if not logged in
 	useEffect(() => {
 		if (!isCheckingAuth && !authUser) {
 			router.push("/login");
 		}
-	}, [isCheckingAuth, authUser, router]);
+	}, [authUser, isCheckingAuth, router]);
+
+	// show loader while checking auth
+	if (isCheckingAuth || !authUser) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<Loader className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}
 
 	const handlePortfolio = () => {
 		router.push("/investor/portfolio");

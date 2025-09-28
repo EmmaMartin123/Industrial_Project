@@ -17,14 +17,20 @@ export default function LoginPage() {
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
-	// Ensure user is logged in
+	// check auth on mount
 	useEffect(() => {
-		checkAuth().then(() => {
-			if (authUser) {
-				router.push("/investor/dashboard");
-			}
-		});
-	}, [authUser, checkAuth, router]);
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/investor/dashboard")
+		}
+	}, [authUser, router])
 
 	const handleLogin = async () => {
 		if (!email || !password) {
