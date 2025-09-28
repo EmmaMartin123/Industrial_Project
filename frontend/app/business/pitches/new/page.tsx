@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Button from "@/components/Button";
-import { Plus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { Plus, Trash } from "lucide-react";
 
+import Button from "@/components/Button";
 import axiosInstance from "@/lib/axios";
 import { useAuthStore } from "@/lib/store/authStore";
+import { InvestmentTier } from "@/lib/types/pitch";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function NewPitchPage() {
 	const { authUser } = useAuthStore();
@@ -15,37 +16,29 @@ export default function NewPitchPage() {
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [description, setDescription] = useState("");
-	const [targetAmount, setTargetAmount] = useState("");
-	const [profitShare, setProfitShare] = useState("");
+	const [targetAmount, setTargetAmount] = useState<number | "">("");
+	const [profitShare, setProfitShare] = useState<number | "">("");
 	const [endDate, setEndDate] = useState("");
-	const [tiers, setTiers] = useState([
-		{ name: "", min: "", multiplier: "" },
+	const [tiers, setTiers] = useState<Partial<InvestmentTier>[]>([
+		{ name: "", min_amount: 0, multiplier: 1 },
 	]);
 	const [loading, setLoading] = useState(false);
 
-	const handleAddTier = () => {
-		setTiers([...tiers, { name: "", min: "", multiplier: "" }]);
-	};
-
-	const handleRemoveTier = (index: number) => {
-		const newTiers = tiers.filter((_, i) => i !== index);
-		setTiers(newTiers);
-	};
-
-	const handleTierChange = (index: number, field: string, value: string) => {
+	// Tier handlers
+	const handleAddTier = () => setTiers([...tiers, { name: "", min_amount: 0, multiplier: 1 }]);
+	const handleRemoveTier = (index: number) => setTiers(tiers.filter((_, i) => i !== index));
+	const handleTierChange = (index: number, field: keyof Partial<InvestmentTier>, value: string | number) => {
 		const newTiers = [...tiers];
-		newTiers[index][field as keyof typeof newTiers[0]] = value;
+		newTiers[index][field] = value as any;
 		setTiers(newTiers);
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		if (!authUser) return toast.error("You must be logged in to submit a pitch");
+		if (!endDate) return toast.error("Investment end date is required");
 
-		if (!authUser) {
-			toast.error("You must be logged in to submit a pitch");
-			return;
-		}
-
+		setLoading(true);
 		try {
 			// get the JWT token
 			const token = (await supabase.auth.getSession()).data.session?.access_token;
@@ -63,20 +56,30 @@ export default function NewPitchPage() {
 				investment_end_date: new Date(endDate).toISOString(),
 				profit_share_percent: Number(profitShare),
 				investment_tiers: tiers.map((t) => ({
-					name: t.name,
-					min_amount: Number(t.min),
+					name: t.name!,
+					min_amount: Number(t.min_amount),
 					multiplier: Number(t.multiplier),
 				})),
 			};
 
-			const res = await axiosInstance.post("/pitch", payload, {
+			await axiosInstance.post("/pitch", payload, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
 			toast.success("Pitch submitted successfully!");
+			// Reset form
+			setTitle("");
+			setElevator("");
+			setDescription("");
+			setTargetAmount("");
+			setProfitShare("");
+			setEndDate("");
+			setTiers([{ name: "", min_amount: 0, multiplier: 1 }]);
 		} catch (err: any) {
 			console.error(err);
 			toast.error(err.response?.data || "Something went wrong");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -84,6 +87,7 @@ export default function NewPitchPage() {
 		<div className="min-h-screen bg-base-100 p-6">
 			<h1 className="text-3xl font-bold mb-6">Create New Pitch</h1>
 			<form onSubmit={handleSubmit} className="space-y-6">
+				{/* Title */}
 				<div>
 					<label className="label">Product Title</label>
 					<input
@@ -95,6 +99,7 @@ export default function NewPitchPage() {
 					/>
 				</div>
 
+				{/* Elevator Pitch */}
 				<div>
 					<label className="label">Elevator Pitch</label>
 					<textarea
@@ -105,6 +110,7 @@ export default function NewPitchPage() {
 					/>
 				</div>
 
+				{/* Detailed Pitch */}
 				<div>
 					<label className="label">Detailed Pitch</label>
 					<textarea
@@ -115,6 +121,7 @@ export default function NewPitchPage() {
 					/>
 				</div>
 
+				{/* Target & Profit Share */}
 				<div className="grid md:grid-cols-2 gap-4">
 					<div>
 						<label className="label">Target Investment (£)</label>
@@ -122,23 +129,26 @@ export default function NewPitchPage() {
 							type="number"
 							className="input input-bordered w-full"
 							value={targetAmount}
-							onChange={(e) => setTargetAmount(e.target.value)}
+							onChange={(e) => setTargetAmount(Number(e.target.value))}
 							required
+							min={0}
 						/>
 					</div>
-
 					<div>
 						<label className="label">Investor Profit Share (%)</label>
 						<input
 							type="number"
 							className="input input-bordered w-full"
 							value={profitShare}
-							onChange={(e) => setProfitShare(e.target.value)}
+							onChange={(e) => setProfitShare(Number(e.target.value))}
 							required
+							min={0}
+							max={100}
 						/>
 					</div>
 				</div>
 
+				{/* Investment End Date */}
 				<div>
 					<label className="label">Investment End Date</label>
 					<input
@@ -150,6 +160,7 @@ export default function NewPitchPage() {
 					/>
 				</div>
 
+				{/* Investment Tiers */}
 				<div className="space-y-4">
 					<h2 className="text-xl font-semibold">Investment Tiers</h2>
 					{tiers.map((tier, index) => (
@@ -158,7 +169,7 @@ export default function NewPitchPage() {
 								type="text"
 								placeholder="Tier Name"
 								className="input input-bordered"
-								value={tier.name}
+								value={tier.name || ""}
 								onChange={(e) => handleTierChange(index, "name", e.target.value)}
 								required
 							/>
@@ -166,18 +177,20 @@ export default function NewPitchPage() {
 								type="number"
 								placeholder="Min £"
 								className="input input-bordered"
-								value={tier.min}
-								onChange={(e) => handleTierChange(index, "min", e.target.value)}
+								value={tier.min_amount || ""}
+								onChange={(e) => handleTierChange(index, "min_amount", Number(e.target.value))}
 								required
+								min={0}
 							/>
 							<input
 								type="number"
 								step="0.1"
 								placeholder="Multiplier"
 								className="input input-bordered"
-								value={tier.multiplier}
-								onChange={(e) => handleTierChange(index, "multiplier", e.target.value)}
+								value={tier.multiplier || 1}
+								onChange={(e) => handleTierChange(index, "multiplier", Number(e.target.value))}
 								required
+								min={0}
 							/>
 							<button
 								type="button"
@@ -194,6 +207,7 @@ export default function NewPitchPage() {
 					</Button>
 				</div>
 
+				{/* Submit */}
 				<Button type="submit" className="mt-4" disabled={loading}>
 					{loading ? "Submitting..." : "Submit Pitch"}
 				</Button>
