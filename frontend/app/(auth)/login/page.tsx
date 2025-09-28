@@ -23,7 +23,7 @@ export default function LoginPage() {
 
 	// redirect to dashboard if already logged in
 	useEffect(() => {
-		if (authUser) router.push("/dashboard")
+		if (authUser) router.push("/business/dashboard")
 	}, [authUser, router])
 
 	const handleLogin = async () => {

@@ -1,10 +1,8 @@
-"use client"
+"use client";
 
-export default function SettingsPage() {
+export default function page() {
   return (
-    <div>
-			Settings
-		</div>
+    <div></div>
   )
 }
 
