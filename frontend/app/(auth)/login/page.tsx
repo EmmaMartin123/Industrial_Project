@@ -8,6 +8,7 @@ import axios from "axios"
 import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
 import Button from "@/components/Button"
+import toast from "react-hot-toast"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -16,15 +17,14 @@ export default function LoginPage() {
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
-	// heck if user is already logged in on mount
+	// Ensure user is logged in
 	useEffect(() => {
-		checkAuth()
-	}, [checkAuth])
-
-	// redirect to dashboard if already logged in
-	useEffect(() => {
-		if (authUser) router.push("/business/dashboard")
-	}, [authUser, router])
+		checkAuth().then(() => {
+			if (authUser) {
+				router.push("/investor/dashboard");
+			}
+		});
+	}, [authUser, checkAuth, router]);
 
 	const handleLogin = async () => {
 		if (!email || !password) {
