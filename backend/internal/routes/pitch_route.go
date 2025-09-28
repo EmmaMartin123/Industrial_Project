@@ -38,13 +38,13 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
 
-	err, result := utils.InsertData(db_pitch, "pitch")
+	result, err := utils.InsertData(db_pitch, "pitch")
 
 	if err != nil {
 		fmt.Println("Error inserting data:", err)
 	} else {
 		fmt.Println("Inserted successfully!")
-		//TODO: return error
+		// TODO: return error
 	}
 
 	var ids []model.ID
@@ -58,24 +58,22 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	for _, tier := range pitch.InvestmentTiers {
 		tier.PitchID = pitch_id
-		invest_err, _ := utils.InsertData(tier, "investment_tier")
+		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
 			fmt.Println("Error inserting data:", err)
 		} else {
 			fmt.Println("Inserted successfully!")
-			//TODO: return error
+			// TODO: return error
 		}
 	}
 
 	json.NewEncoder(w).Encode(db_pitch)
-
 }
 
 func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, error) {
 	var investment_tiers []model.InvestmentTier
 	query := fmt.Sprintf("pitch_id=eq.%d", *db_pitch.PitchID)
 	body, err := utils.GetDataByQuery("investment_tier", query)
-
 	if err != nil {
 		fmt.Printf("error fetching data from Supabase: %v\n", err)
 		return nil, err
@@ -151,4 +149,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pitch_to_send)
+}
+
+func update_pitch_route(w http.ResponseWriter, r http.Request) {
 }

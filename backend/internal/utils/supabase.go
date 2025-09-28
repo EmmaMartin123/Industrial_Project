@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-func InsertData(data interface{}, table string) (error, string) {
+func InsertData(data any, table string) (string, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
@@ -17,12 +17,12 @@ func InsertData(data interface{}, table string) (error, string) {
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	req.Header.Set("apikey", SUPABASE_KEY)
@@ -33,16 +33,16 @@ func InsertData(data interface{}, table string) (error, string) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to insert: status %d, body: %s", resp.StatusCode, string(body)), ""
+		return "", fmt.Errorf("failed to insert: status %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	return nil, string(body)
+	return string(body), err
 }
 
 func GetAllData(table string) ([]byte, error) {
@@ -79,7 +79,7 @@ func GetDataByID(table string, id string) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-	url := fmt.Sprintf("%s/rest/v1/%s?id=eq.%s", SUPABASE_URL, table, id) //SUPABASE_URL/rest/v1/table?id=eq.id
+	url := fmt.Sprintf("%s/rest/v1/%s?id=eq.%s", SUPABASE_URL, table, id) // SUPABASE_URL/rest/v1/table?id=eq.id
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -109,7 +109,7 @@ func GetDataByQuery(table string, query string) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-	url := fmt.Sprintf("%s/rest/v1/%s?%s", SUPABASE_URL, table, query) //SUPABASE_URL/rest/v1/table?query
+	url := fmt.Sprintf("%s/rest/v1/%s?%s", SUPABASE_URL, table, query) // SUPABASE_URL/rest/v1/table?query
 	fmt.Println("URL: ", url)
 
 	req, err := http.NewRequest("GET", url, nil)

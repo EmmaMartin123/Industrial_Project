@@ -20,7 +20,6 @@ func SetupRouter() http.Handler {
 	)
 
 	mux := http.NewServeMux()
-	mux.Handle("/api/testroute", protected.Then(http.HandlerFunc(testroute)))
 	mux.Handle("/api/pitch", protected.Then(http.HandlerFunc(pitch_route)))
 
 	fmt.Println("Router setup complete")
@@ -32,9 +31,4 @@ func not_implemented_route(w http.ResponseWriter) {
 		errors.New("route not implemented"),
 		http.StatusNotImplemented,
 	)
-}
-
-func testroute(w http.ResponseWriter, r *http.Request) {
-	uid, _ := utils.UserIDFromCtx(r.Context())
-	fmt.Fprintf(w, "Hello %s", uid)
 }
