@@ -46,14 +46,7 @@ export default function LoginPage() {
 		console.log("Token:", token)
 
 		if (token) {
-			// just send it and ignore the response as it doesn't send any yet
-			axios.get("http://localhost:8080/api/testroute", {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			}).catch((err) => {
-				console.warn("Token sent, ignoring backend response:", err.message)
-			})
+			localStorage.setItem("token", token);
 		} else {
 			console.warn("No JWT found after login")
 		}

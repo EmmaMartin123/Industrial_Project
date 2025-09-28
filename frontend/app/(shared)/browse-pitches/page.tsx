@@ -5,18 +5,18 @@ import Button from "@/components/Button";
 import toast from "react-hot-toast";
 import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { mockPitches } from "@/lib/mockPitches"; // Replace with backend fetch later
+import axiosInstance from "@/lib/axios";
+import { Pitch } from "@/lib/types/pitch"; // adjust path if needed
 
 import { useAuthStore } from "@/lib/store/authStore";
 
 export default function BusinessPitchesPage() {
 	const router = useRouter();
-	const [pitches, setPitches] = useState(mockPitches);
+	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 
 	const { authUser, checkAuth } = useAuthStore();
 
-	// check if user is already logged in and redirect if not
 	useEffect(() => {
 		checkAuth().then(() => {
 			if (!authUser) {
@@ -26,8 +26,19 @@ export default function BusinessPitchesPage() {
 	}, [authUser, checkAuth, router]);
 
 	useEffect(() => {
-		// TODO: Replace with actual fetch from backend
-		setTimeout(() => setLoading(false), 500);
+		const fetchPitches = async () => {
+			try {
+				const res = await axiosInstance.get<Pitch[]>("/pitch");
+				setPitches(res.data);
+			} catch (err: any) {
+				console.error(err);
+				toast.error("Failed to load pitches");
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchPitches();
 	}, []);
 
 	const handleView = (pitchId: number) => {
@@ -44,9 +55,9 @@ export default function BusinessPitchesPage() {
 				<p>No pitches available.</p>
 			) : (
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{pitches.map((pitch) => (
+					{pitches.map((pitch, index) => (
 						<div
-							key={pitch.pitch_id}
+							key={pitch.pitch_id ?? `pitch-${index}`}
 							className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between"
 						>
 							<div>
@@ -55,7 +66,9 @@ export default function BusinessPitchesPage() {
 								<p className="opacity-70 mb-1">
 									Raised: £{pitch.raised_amount} / £{pitch.target_amount}
 								</p>
-								<p className="opacity-70">Profit Share: {pitch.profit_share_percent}%</p>
+								<p className="opacity-70">
+									Profit Share: {pitch.profit_share_percent}%
+								</p>
 							</div>
 							<div className="mt-4 flex justify-end">
 								<Button
@@ -72,4 +85,3 @@ export default function BusinessPitchesPage() {
 		</div>
 	);
 }
-
