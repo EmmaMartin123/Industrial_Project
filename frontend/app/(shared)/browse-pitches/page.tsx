@@ -7,10 +7,23 @@ import { Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { mockPitches } from "@/lib/mockPitches"; // Replace with backend fetch later
 
+import { useAuthStore } from "@/lib/store/authStore";
+
 export default function BusinessPitchesPage() {
 	const router = useRouter();
 	const [pitches, setPitches] = useState(mockPitches);
 	const [loading, setLoading] = useState(true);
+
+	const { authUser, checkAuth } = useAuthStore();
+
+	// check if user is already logged in and redirect if not
+	useEffect(() => {
+		checkAuth().then(() => {
+			if (!authUser) {
+				router.push("/login");
+			}
+		});
+	}, [authUser, checkAuth, router]);
 
 	useEffect(() => {
 		// TODO: Replace with actual fetch from backend
@@ -18,7 +31,7 @@ export default function BusinessPitchesPage() {
 	}, []);
 
 	const handleView = (pitchId: number) => {
-		router.push(`/business/dashboard/pitches/${pitchId}`);
+		router.push(`/view-pitch?id=${pitchId}`);
 	};
 
 	if (loading) return <div className="p-6">Loading pitches...</div>;
