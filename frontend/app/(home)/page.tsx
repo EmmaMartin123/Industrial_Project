@@ -22,7 +22,7 @@ export default function Home() {
 
 	const handleGetStarted = () => {
 		if (authUser) {
-			router.push("/browse");
+			router.push("/browse-pitches");
 		} else {
 			router.push("/login");
 		}
