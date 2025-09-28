@@ -11,6 +11,7 @@ export default function InvestorDashboardPage() {
 	const router = useRouter();
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
+	// TODO: use this everywhere
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
