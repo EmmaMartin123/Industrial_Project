@@ -1,141 +1,81 @@
 "use client";
 
-import { PlusCircle, BarChart3, Coins, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import Button from "@/components/Button";
+import { PieChart, Users, Coins, PlusCircle } from "lucide-react";
 
 export default function BusinessDashboard() {
 	const router = useRouter();
 
-	const pitches = [
-		{
-			id: 1,
-			title: "pitch 1",
-			target: 20000,
-			raised: 12500,
-			investors: 48,
-			status: "Active",
-		},
-		{
-			id: 2,
-			title: "ptch 2",
-			target: 15000,
-			raised: 15000,
-			investors: 60,
-			status: "Funded",
-		},
-		{
-			id: 3,
-			title: "pitch 3",
-			target: 30000,
-			raised: 8000,
-			investors: 20,
-			status: "Draft",
-		},
-	];
+	// Mocked dashboard data
+	const [dashboardData, setDashboardData] = useState({
+		totalPitches: 3,
+		totalRaised: 12500,
+		pendingProfits: 2,
+		latestPitches: [
+			{ id: 1, title: "EcoBottle", status: "Active" },
+			{ id: 2, title: "Smart Wallet", status: "Funded" },
+			{ id: 3, title: "AI Tutor", status: "Draft" },
+		],
+	});
 
 	return (
-		<div className="min-h-screen bg-base-100 p-8">
-			{/* Header */}
-			<div className="flex justify-between items-center mb-8">
-				<div>
-					<h1 className="text-3xl font-bold">Business Dashboard</h1>
-					<p className="text-base-content/60">
-						Manage your pitches, track funding, and distribute profits.
-					</p>
-				</div>
+		<div className="min-h-screen bg-base-100 p-6">
+			<h1 className="text-4xl font-bold mb-6">Business Dashboard</h1>
+
+			{/* Quick action buttons */}
+			<div className="flex flex-wrap gap-4 mb-10">
 				<Button
+					className="flex items-center gap-2"
 					onClick={() => router.push("/business/pitches/new")}
-					className=""
 				>
-					<PlusCircle className="w-5 h-5" />
-					New Pitch
+					<PlusCircle /> New Pitch
+				</Button>
+				<Button
+					className="flex items-center gap-2 btn-outline"
+					onClick={() => router.push("/business/pitches/manage")}
+				>
+					<Users /> Manage Pitches
+				</Button>
+				<Button
+					className="flex items-center gap-2 btn-outline"
+					onClick={() => router.push("/business/profit-distribution")}
+				>
+					<Coins /> Profit Distribution
 				</Button>
 			</div>
 
-			{/* Stats */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<BarChart3 className="w-8 h-8 text-primary" />
-					<div>
-						<p className="text-sm text-base-content/60">Active Pitches</p>
-						<h3 className="text-xl font-bold text-center mt-4">2</h3>
-					</div>
+			{/* Dashboard stats */}
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+				<div className="card p-6 shadow-lg bg-base-100 flex flex-col items-center">
+					<Users className="w-10 h-10 text-primary mb-2" />
+					<h2 className="text-2xl font-semibold">{dashboardData.totalPitches}</h2>
+					<p className="opacity-70">Total Pitches</p>
 				</div>
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<Coins className="w-8 h-8 text-secondary" />
-					<div>
-						<p className="text-sm text-base-content/60">Total Raised</p>
-						<h3 className="text-xl font-bold text-center mt-4">£27,500</h3>
-					</div>
+				<div className="card p-6 shadow-lg bg-base-100 flex flex-col items-center">
+					<Coins className="w-10 h-10 text-primary mb-2" />
+					<h2 className="text-2xl font-semibold">£{dashboardData.totalRaised}</h2>
+					<p className="opacity-70">Total Raised</p>
 				</div>
-				<div className="card bg-base-200 shadow-md p-6 flex items-center gap-4">
-					<Users className="w-8 h-8 text-accent" />
-					<div>
-						<p className="text-sm text-base-content/60">Total Investors</p>
-						<h3 className="text-xl font-bold text-center mt-4">128</h3>
-					</div>
+				<div className="card p-6 shadow-lg bg-base-100 flex flex-col items-center">
+					<PieChart className="w-10 h-10 text-primary mb-2" />
+					<h2 className="text-2xl font-semibold">{dashboardData.pendingProfits}</h2>
+					<p className="opacity-70">Pending Profit Distributions</p>
 				</div>
 			</div>
 
-			{/* Pitch List */}
-			<h2 className="text-2xl font-semibold mb-4">Your Pitches</h2>
-			<div className="overflow-x-auto">
-				<table className="table w-full">
-					<thead>
-						<tr>
-							<th>Title</th>
-							<th>Funding</th>
-							<th>Investors</th>
-							<th>Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						{pitches.map((pitch) => (
-							<tr key={pitch.id}>
-								<td className="font-medium">{pitch.title}</td>
-								<td>
-									£{pitch.raised.toLocaleString()} / £
-									{pitch.target.toLocaleString()}
-								</td>
-								<td>{pitch.investors}</td>
-								<td>
-									<span
-										className={`badge ${pitch.status === "Funded"
-												? "badge-success"
-												: pitch.status === "Active"
-													? "badge-primary"
-													: "badge-ghost"
-											}`}
-									>
-										{pitch.status}
-									</span>
-								</td>
-								<td className="space-x-2">
-									<Button
-										onClick={() =>
-											router.push(`/business/pitches/${pitch.id}`)
-										}
-										className=""
-									>
-										View
-									</Button>
-									{pitch.status === "Active" && (
-										<Button
-											onClick={() =>
-												router.push(`/business/pitches/${pitch.id}/profit`)
-											}
-											className=""
-										>
-											Distribute Profit
-										</Button>
-									)}
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
+			{/* Recent pitches */}
+			<div className="card p-6 shadow-lg bg-base-100">
+				<h2 className="text-xl font-bold mb-4">Latest Pitches</h2>
+				<ul className="divide-y divide-base-200">
+					{dashboardData.latestPitches.map((pitch) => (
+						<li key={pitch.id} className="py-3 flex justify-between">
+							<span>{pitch.title}</span>
+							<span className="opacity-70">{pitch.status}</span>
+						</li>
+					))}
+				</ul>
 			</div>
 		</div>
 	);

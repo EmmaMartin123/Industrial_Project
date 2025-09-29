@@ -29,7 +29,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" className={lato.variable}>
+		<html lang="en" className={lato.variable} data-theme="light">
 			<body className="font-lato" >
 				<Navbar />
 

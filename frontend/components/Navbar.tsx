@@ -36,10 +36,18 @@ export default function Navbar() {
 					<>
 						<a
 							className="btn btn-ghost"
-							onClick={() => router.push("/dashboard")}
+							onClick={() => router.push("/investor/dashboard")}
 						>
 							My Portfolio
 						</a>
+
+						<a
+							className="btn btn-ghost"
+							onClick={() => router.push("/business/dashboard")}
+						>
+							My dashboard
+						</a>
+
 						<button
 							className="btn btn-error rounded-md"
 							onClick={handleLogout}

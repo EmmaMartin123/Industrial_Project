@@ -6,14 +6,16 @@ const config = {
 		"./app/**/*.{js,ts,jsx,tsx}",
 		"./components/**/*.{js,ts,jsx,tsx}",
 	],
-	darkMode: "class", // class based dark mode
 	theme: {
-		extend: {},
+		extend: {
+			colors: {
+				extBg: 'var(--ext-bg)',
+				extFg: 'var(--ext-fg)',
+				extPrimary: 'var(--ext-primary)',
+			}
+		},
 	},
 	plugins: [daisyui],
-	daisyui: {
-		themes: ["light", "dark"],
-	},
 }
 
 export default config
