@@ -1,17 +1,21 @@
+// app/business/pitches/edit/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import { Plus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { mockPitches } from "@/lib/mockPitches";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 
-export default function EditPitchPage() {
+export default function EditPitchPage({
+	searchParams,
+}: {
+	searchParams: { [key: string]: string | string[] | undefined };
+}) {
 	const router = useRouter();
-	const searchParams = useSearchParams();
-	const pitchId = Number(searchParams.get("id"));
+	const pitchId = Number(searchParams.id);
 
 	const [pitch, setPitch] = useState<Pitch | null>(null);
 	const [tiers, setTiers] = useState<InvestmentTier[]>([]);
@@ -31,7 +35,15 @@ export default function EditPitchPage() {
 	const handleAddTier = () => {
 		setTiers([
 			...tiers,
-			{ tier_id: 0, pitch_id: pitch.pitch_id, name: "", min_amount: 0, max_amount: 0, multiplier: 1, created_at: new Date() },
+			{
+				tier_id: 0,
+				pitch_id: pitch.pitch_id,
+				name: "",
+				min_amount: 0,
+				max_amount: 0,
+				multiplier: 1,
+				created_at: new Date(),
+			},
 		]);
 	};
 
@@ -39,7 +51,11 @@ export default function EditPitchPage() {
 		setTiers(tiers.filter((_, i) => i !== index));
 	};
 
-	const handleTierChange = (index: number, field: keyof InvestmentTier, value: string | number) => {
+	const handleTierChange = (
+		index: number,
+		field: keyof InvestmentTier,
+		value: string | number
+	) => {
 		const newTiers = [...tiers];
 		(newTiers[index] as any)[field] = value;
 		setTiers(newTiers);
@@ -74,7 +90,9 @@ export default function EditPitchPage() {
 					<textarea
 						className="textarea textarea-bordered w-full"
 						value={pitch.elevator_pitch}
-						onChange={(e) => setPitch({ ...pitch, elevator_pitch: e.target.value })}
+						onChange={(e) =>
+							setPitch({ ...pitch, elevator_pitch: e.target.value })
+						}
 					/>
 				</div>
 
@@ -83,7 +101,9 @@ export default function EditPitchPage() {
 					<textarea
 						className="textarea textarea-bordered w-full h-32"
 						value={pitch.detailed_pitch}
-						onChange={(e) => setPitch({ ...pitch, detailed_pitch: e.target.value })}
+						onChange={(e) =>
+							setPitch({ ...pitch, detailed_pitch: e.target.value })
+						}
 					/>
 				</div>
 
@@ -94,7 +114,9 @@ export default function EditPitchPage() {
 							type="number"
 							className="input input-bordered w-full"
 							value={pitch.target_amount}
-							onChange={(e) => setPitch({ ...pitch, target_amount: Number(e.target.value) })}
+							onChange={(e) =>
+								setPitch({ ...pitch, target_amount: Number(e.target.value) })
+							}
 						/>
 					</div>
 
@@ -104,7 +126,12 @@ export default function EditPitchPage() {
 							type="number"
 							className="input input-bordered w-full"
 							value={pitch.profit_share_percent}
-							onChange={(e) => setPitch({ ...pitch, profit_share_percent: Number(e.target.value) })}
+							onChange={(e) =>
+								setPitch({
+									...pitch,
+									profit_share_percent: Number(e.target.value),
+								})
+							}
 						/>
 					</div>
 				</div>
@@ -125,14 +152,18 @@ export default function EditPitchPage() {
 								placeholder="Min £"
 								className="input input-bordered"
 								value={tier.min_amount}
-								onChange={(e) => handleTierChange(index, "min_amount", Number(e.target.value))}
+								onChange={(e) =>
+									handleTierChange(index, "min_amount", Number(e.target.value))
+								}
 							/>
 							<input
 								type="number"
 								placeholder="Max £"
 								className="input input-bordered"
 								value={tier.max_amount || ""}
-								onChange={(e) => handleTierChange(index, "max_amount", Number(e.target.value))}
+								onChange={(e) =>
+									handleTierChange(index, "max_amount", Number(e.target.value))
+								}
 							/>
 							<input
 								type="number"
@@ -140,7 +171,9 @@ export default function EditPitchPage() {
 								placeholder="Multiplier"
 								className="input input-bordered"
 								value={tier.multiplier}
-								onChange={(e) => handleTierChange(index, "multiplier", Number(e.target.value))}
+								onChange={(e) =>
+									handleTierChange(index, "multiplier", Number(e.target.value))
+								}
 							/>
 							<button
 								type="button"

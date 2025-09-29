@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Button from "@/components/Button";
 import { mockPitches } from "@/lib/mockPitches";
 
-export default function ProfitDistributionPage() {
+export default function ProfitDistributionPage({
+	searchParams,
+}: {
+	searchParams: { [key: string]: string | string[] | undefined };
+}) {
 	const router = useRouter();
-	const searchParams = useSearchParams();
-	const pitchIdParam = searchParams.get("pitchId");
+	const pitchIdParam = searchParams.pitchId;
 	const pitchId = pitchIdParam ? Number(pitchIdParam) : null;
 
 	// Find pitch from mock data
@@ -39,7 +42,8 @@ export default function ProfitDistributionPage() {
 
 		// Mock profit distribution
 		setTimeout(() => {
-			const distributableProfit = (profitAmount * pitch.profit_share_percent) / 100;
+			const distributableProfit =
+				(profitAmount * pitch.profit_share_percent) / 100;
 			toast.success(
 				`£${distributableProfit.toLocaleString()} distributed to investors of "${pitch.title}"`
 			);
@@ -58,7 +62,9 @@ export default function ProfitDistributionPage() {
 				<p className="opacity-70 mb-1">
 					Raised: £{pitch.raised_amount} / £{pitch.target_amount}
 				</p>
-				<p className="opacity-70 mb-1">Profit Share: {pitch.profit_share_percent}%</p>
+				<p className="opacity-70 mb-1">
+					Profit Share: {pitch.profit_share_percent}%
+				</p>
 			</div>
 
 			<div className="card p-6 bg-base-100 shadow-lg">
