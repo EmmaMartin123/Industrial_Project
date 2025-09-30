@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import { Wallet, CreditCard, PieChart, Loader } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
+import * as Button from "@/components/Button";
 
 export default function InvestorDashboardPage() {
 	const router = useRouter();
@@ -56,7 +56,12 @@ export default function InvestorDashboardPage() {
 						<p className="text-center opacity-70">View all your current investments and performance.</p>
 					</div>
 					<div className="mt-4 flex justify-center">
-						<Button onClick={handlePortfolio}>Go to Portfolio</Button>
+						<button
+							className={`${Button.buttonClassName}`}
+							onClick={handlePortfolio}
+						>
+							Go to Portfolio
+						</button>
 					</div>
 				</div>
 
@@ -67,7 +72,12 @@ export default function InvestorDashboardPage() {
 						<p className="text-center opacity-70">Transfer your earnings from the platform to your bank account.</p>
 					</div>
 					<div className="mt-4 flex justify-center">
-						<Button onClick={handleWithdraw}>Withdraw</Button>
+						<button
+							className={`${Button.buttonClassName}`}
+							onClick={handleWithdraw}
+						>
+							Withdraw
+						</button>
 					</div>
 				</div>
 
@@ -78,7 +88,9 @@ export default function InvestorDashboardPage() {
 						<p className="text-center opacity-70">Browse new investment opportunities and grow your portfolio.</p>
 					</div>
 					<div className="mt-4 flex justify-center">
-						<Button onClick={() => router.push("/browse-pitches")}>Browse Pitches</Button>
+						<button
+							className={`${Button.buttonClassName}`}
+							onClick={() => router.push("/browse-pitches")}>Browse Pitches</button>
 					</div>
 				</div>
 			</div>

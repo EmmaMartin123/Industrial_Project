@@ -8,32 +8,32 @@
 
 @plugin "daisyui/theme" {
   name: "light";
-  --color-primary: #896C6C;  
-  --color-secondary: #E5BEB5; 
-  --color-accent: #EEE6CA;   
-  --color-neutral: #E5BEB5; 
-  --color-base-100: #F5FAE1; 
-  --color-base-200: #EEE6CA;
-  --color-base-300: #E5BEB5;
-  --color-info: #896C6C; 
-  --color-success: #9bb58c; 
-  --color-warning: #e6c27a;  
-  --color-error: #b76c6c;  
+  --color-primary: #0B3D91;  /* Deep Blue */
+  --color-secondary: #145DA0; /* Medium Blue */
+  --color-accent: #00A8CC;    /* Aqua */
+  --color-neutral: #2C3E50;   /* Dark Slate */
+  --color-base-100: #FFFFFF;  /* White */
+  --color-base-200: #F1F5F8;  /* Light Gray */
+  --color-base-300: #E1E8F0;  /* Soft Gray */
+  --color-info: #5BC0EB;      /* Sky Blue */
+  --color-success: #2ECC71;   /* Green */
+  --color-warning: #F1C40F;   /* Gold */
+  --color-error: #E74C3C;     /* Red */
 }
 
 @plugin "daisyui/theme" {
   name: "dark";
-  --color-primary: #B89C9C; 
-  --color-secondary: #A88F87;
-  --color-accent: #D4C9A8;
-  --color-neutral: #2a1f1f;  
-  --color-base-100: #1a1414; 
-  --color-base-200: #231a1a;
-  --color-base-300: #3a2c2c;
-  --color-info: #B89C9C;
-  --color-success: #8fa77b;
-  --color-warning: #d2a85a;
-  --color-error: #9c5252;
+  --color-primary: #4CAF50;  /* Lighter Pine Green */
+  --color-secondary: #DAA520; /* Soft Gold */
+  --color-accent: #64B5F6;   /* Muted Teal */
+  --color-neutral: #E5E7EB;  /* Light Gray (Text) */
+  --color-base-100: #1F2937; /* Deep Charcoal (Background) */
+  --color-base-200: #374151; /* Lighter Charcoal (Card Background) */
+  --color-base-300: #4B5563; /* Dark Slate (Borders) */
+  --color-info: #60A5FA;     /* Sky Blue */
+  --color-success: #81C784;  /* Soft Lime Green */
+  --color-warning: #FFD54F;  /* Soft Yellow/Amber */
+  --color-error: #EF9A9A;    /* Soft Red */
 }
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));

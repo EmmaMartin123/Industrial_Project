@@ -7,8 +7,8 @@ import axios from "axios"
 
 import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
-import Button from "@/components/Button"
 import toast from "react-hot-toast"
+import * as Button from "@/components/Button"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -81,13 +81,13 @@ export default function LoginPage() {
 					/>
 
 					<div className="flex justify-between">
-						<Button
+						<button
+							className={`${Button.buttonClassName}`}
 							onClick={handleLogin}
-							isLoading={isLoggingIn}
-							loadingText="Logging in..."
+							disabled={isLoggingIn}
 						>
-							Log in
-						</Button>
+							{isLoggingIn ? "Logging in..." : "Log in"}
+						</button>
 					</div>
 
 					<div className="text-center mt-4">

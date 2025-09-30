@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import { PieChart, Users, Coins, PlusCircle } from "lucide-react";
+import * as Button from "@/components/Button";
 
 export default function BusinessDashboard() {
 	const router = useRouter();
@@ -26,24 +26,24 @@ export default function BusinessDashboard() {
 
 			{/* Quick action buttons */}
 			<div className="flex flex-wrap gap-4 mb-10">
-				<Button
-					className="flex items-center gap-2"
+				<button
+					className={`${Button.buttonClassName}`}
 					onClick={() => router.push("/business/pitches/new")}
 				>
 					<PlusCircle /> New Pitch
-				</Button>
-				<Button
-					className="flex items-center gap-2 btn-outline"
+				</button>
+				<button
+					className={`${Button.buttonOutlineClassName}`}
 					onClick={() => router.push("/business/pitches/manage")}
 				>
 					<Users /> Manage Pitches
-				</Button>
-				<Button
-					className="flex items-center gap-2 btn-outline"
+				</button>
+				<button
+					className={`${Button.buttonOutlineClassName}`}
 					onClick={() => router.push("/business/profit-distribution")}
 				>
 					<Coins /> Profit Distribution
-				</Button>
+				</button>
 			</div>
 
 			{/* Dashboard stats */}

@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 import { useAuthStore } from "@/lib/store/authStore";
 import { Rocket, Users, Coins } from "lucide-react";
-import Button from "@/components/Button";
+import * as Button from "@/components/Button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -40,8 +40,8 @@ export default function Home() {
 							Empowering small businesses to grow and everyday investors to make an impact.
 						</p>
 						<div className="flex justify-center gap-4">
-							<Button onClick={handleGetStarted}>Get Started</Button>
-							<Button className="btn-outline rounded-md" onClick={() => router.push("/learn")}>Learn More</Button>
+							<button className={`${Button.buttonClassName}`} onClick={handleGetStarted}>Get Started</button>
+							<button className={Button.buttonOutlineClassName} onClick={() => router.push("/learn")}>Learn More</button>
 						</div>
 					</div>
 				</div>

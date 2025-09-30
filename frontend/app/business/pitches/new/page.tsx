@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, ChangeEvent, KeyboardEvent } from "react"; // Added types for events
+import { useState, ChangeEvent, KeyboardEvent, memo } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash, X, Tag, Layers, Image as ImageIcon, Briefcase, DollarSign, Calendar, Clapperboard } from "lucide-react"; // Changed Image to Clapperboard for 'Add Media'
+import { Plus, Trash, X, Tag, Layers, Briefcase, DollarSign, Calendar, Clapperboard } from "lucide-react";
 
-import Button from "@/components/Button";
 import axiosInstance from "@/lib/axios";
 import { useAuthStore } from "@/lib/store/authStore";
 import { InvestmentTier } from "@/lib/types/pitch";
 import { supabase } from "@/lib/supabaseClient";
+import * as Button from "@/components/Button";
 
 interface InvestmentTierInputProps {
 	tier: Partial<InvestmentTier>;
@@ -17,62 +17,68 @@ interface InvestmentTierInputProps {
 	onRemove: (index: number) => void;
 }
 
-// component for a single investment tier input row
-const InvestmentTierInput: React.FC<InvestmentTierInputProps> = ({ tier, index, onChange, onRemove }) => {
-	return (
-		<div
-			className="grid md:grid-cols-4 gap-4 items-end bg-base-100 p-4 rounded-xl border border-base-300 transition duration-200 hover:shadow-md"
-		>
-			<div className="form-control">
-				<label className="label label-text text-xs font-semibold">Tier Name</label>
-				<input
-					type="text"
-					placeholder="e.g., Early Bird"
-					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
-					value={tier.name || ""}
-					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "name", e.target.value)}
-					required
-				/>
+// Reusable input style class
+const inputStyle = "input input-bordered rounded-lg w-full bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200";
+const textareaStyle = "textarea textarea-bordered w-full h-24 bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200 rounded-lg";
+
+
+// The InvestmentTierInput component still needs to be memoized because it's in a list.
+const InvestmentTierInput: React.FC<InvestmentTierInputProps> = memo(
+	({ tier, index, onChange, onRemove }) => {
+		return (
+			<div
+				className="grid md:grid-cols-4 gap-4 items-end bg-base-100 p-4 rounded-xl border border-base-300 transition duration-200 hover:shadow-md"
+			>
+				<div className="form-control">
+					<label className="label label-text text-xs font-semibold">Tier Name</label>
+					<input
+						type="text"
+						placeholder="e.g., Early Bird"
+						className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
+						value={tier.name || ""}
+						onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "name", e.target.value)}
+						required
+					/>
+				</div>
+				<div className="form-control">
+					<label className="label label-text text-xs font-semibold">Min Amount (£)</label>
+					<input
+						type="number"
+						placeholder="Min £"
+						className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
+						value={tier.min_amount || ""}
+						onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "min_amount", Number(e.target.value))}
+						required
+						min={0}
+					/>
+				</div>
+				<div className="form-control">
+					<label className="label label-text text-xs font-semibold">Multiplier (x)</label>
+					<input
+						type="number"
+						step="0.1"
+						placeholder="Multiplier"
+						className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
+						value={tier.multiplier || 1}
+						onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "multiplier", Number(e.target.value))}
+						required
+						min={0}
+					/>
+				</div>
+				<div className="flex justify-end">
+					{index > 0 && (
+						<button
+							type="button"
+							className={`${Button.buttonOutlineClassName} btn-error btn-sm h-full`}
+							onClick={() => onRemove(index)}
+						>
+							<Trash className="w-4 h-4" />
+						</button>
+					)}
+				</div>
 			</div>
-			<div className="form-control">
-				<label className="label label-text text-xs font-semibold">Min Amount (£)</label>
-				<input
-					type="number"
-					placeholder="Min £"
-					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
-					value={tier.min_amount || ""}
-					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "min_amount", Number(e.target.value))}
-					required
-					min={0}
-				/>
-			</div>
-			<div className="form-control">
-				<label className="label label-text text-xs font-semibold">Multiplier (x)</label>
-				<input
-					type="number"
-					step="0.1"
-					placeholder="Multiplier"
-					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
-					value={tier.multiplier || 1}
-					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "multiplier", Number(e.target.value))}
-					required
-					min={0}
-				/>
-			</div>
-			<div className="flex justify-end">
-				{index > 0 && (
-					<button
-						type="button"
-						className="btn btn-error btn-sm h-full"
-						onClick={() => onRemove(index)}
-					>
-						<Trash className="w-4 h-4" />
-					</button>
-				)}
-			</div>
-		</div>
-	);
-};
+		);
+	});
 
 
 export default function NewPitchPage() {
@@ -91,11 +97,10 @@ export default function NewPitchPage() {
 	const [tagInput, setTagInput] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	// Max length for the elevator pitch
 	const ELEVATOR_MAX_LENGTH = 150;
 
 	const handleImageUpload = () => {
-
+		// Implementation for image upload
 	};
 
 	// tier handlers
@@ -193,79 +198,65 @@ export default function NewPitchPage() {
 		}
 	};
 
-	// reusable Input Wrapper component to apply the style everywhere
-	const InputWrapper: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode; description: string }> = ({ title, icon: Icon, children, description }) => (
-		<div className="space-y-4">
-			<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
-				{Icon && <Icon className="w-6 h-6" />}
-				{title}
-			</h2>
-			{description && <p className="text-sm text-gray-500">{description}</p>}
-			<div className="space-y-6">
-				{children}
-			</div>
-		</div>
-	);
-
-	// style classes for reuse
-	const inputStyle = "input input-bordered w-full bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200";
-	const textareaStyle = "textarea textarea-bordered w-full h-24 bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200";
 	const richEditorBoxStyle = "border border-base-300 rounded-lg p-2 bg-base-100 shadow-inner transition duration-200 hover:border-primary/50";
 
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 p-6 flex justify-center">
 			<div className="w-full max-w-3xl space-y-12">
-				<h1 className="text-4xl font-extrabold text-center mb-6">Create New Pitch</h1>
+				<h1 className="text-4xl font-extrabold text-center mb-10 mt-6">Create New Pitch</h1>
 
 				<form onSubmit={handleSubmit} className="space-y-12">
 
-					{/* general info */}
-					<InputWrapper
-						title="General Information"
-						icon={Briefcase}
-						description="Tell investors what your product is about. This section is key to capturing initial interest."
-					>
-						<div className="form-control">
-							<label className="label font-medium">Product Title</label>
-							<input
-								type="text"
-								className={inputStyle}
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-								required
-							/>
-						</div>
+					{/* General Information Section - Simplified by removing InputWrapper */}
+					<div className="space-y-4">
+						<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
+							<Briefcase className="w-6 h-6" />
+							General Information
+						</h2>
+						<p className="text-gray-500">Tell investors what your product is about. This section is key to capturing initial interest.</p>
+						<div className="space-y-6">
+							<div className="form-control">
+								<label className="label pb-2">Product Title</label>
+								<input
+									type="text"
+									className={inputStyle}
+									value={title}
+									onChange={(e) => setTitle(e.target.value)}
+									required
+								/>
+							</div>
 
-						{/* elevator pitch with character counter */}
-						<div className="form-control">
-							<label className="label font-medium">Elevator Pitch</label>
-							<textarea
-								className={textareaStyle}
-								placeholder={`A concise, captivating summary (up to ${ELEVATOR_MAX_LENGTH} characters)`}
-								value={elevator}
-								onChange={handleElevatorChange}
-								required
-							/>
-							<label className="label pt-1 pb-0">
-								<span className={`label-text-alt text-sm ${elevator.length > ELEVATOR_MAX_LENGTH - 20 ? 'text-warning' : 'text-gray-500'}`}>
-									{elevator.length}/{ELEVATOR_MAX_LENGTH} characters
-								</span>
-							</label>
-						</div>
+							{/* elevator pitch with character counter */}
+							<div className="form-control">
+								<label className="label pb-2">Elevator Pitch</label>
+								<textarea
+									className={textareaStyle}
+									placeholder={`A concise, captivating summary (up to ${ELEVATOR_MAX_LENGTH} characters)`}
+									value={elevator}
+									onChange={handleElevatorChange}
+									required
+								/>
+								<label className="label pt-1 pb-0">
+									<span className={`label-text-alt ${elevator.length > ELEVATOR_MAX_LENGTH - 20 ? 'text-warning' : 'text-gray-500'}`}>
+										{elevator.length}/{ELEVATOR_MAX_LENGTH} characters
+									</span>
+								</label>
+							</div>
 
-						{/* detailed pitch / rich text editor placeholder */}
-						<div className="form-control space-y-2">
-							<label className="label font-medium">Detailed Pitch</label>
+							{/* detailed pitch / rich text editor placeholder */}
+							<div className="form-control space-y-2">
+								{/* 1. Combine Label and Button into one row with flexbox */}
+								<div className="flex justify-between items-center">
+									<label className="label pb-2">
+										{/* The 'label' class ensures proper DaisyUI label styling */}
+										<span className="label-text">Detailed Pitch</span>
+									</label>
 
-							<div className={richEditorBoxStyle}>
-								{/* Toolbar Area */}
-								<div className="flex justify-between items-center p-2 border-b border-base-300">
-									<span className="text-sm text-gray-500">Rich Content Area:</span>
-
+									{/* The 'Add Media' button is now aligned to the end of the same row */}
 									<button
 										type="button"
-										className="btn btn-sm btn-ghost text-primary hover:bg-primary/10"
+										className={`btn btn-ghost btn-sm text-gray-500 hover:text-primary ${Button.buttonClassName}`}
 										onClick={handleImageUpload}
 									>
 										<Clapperboard className="w-5 h-5" />
@@ -273,154 +264,165 @@ export default function NewPitchPage() {
 									</button>
 								</div>
 
-								{/* Content Area */}
+								{/* 2. Content Area: The textarea is now directly below the label/button row.
+        Removed the richEditorBoxStyle div and its internal toolbar. */}
 								<textarea
-									className="textarea w-full h-32 focus:ring-0 resize-y border-none bg-transparent p-2"
+									className={textareaStyle}
 									placeholder="Provide a comprehensive pitch, use formatting and images to tell your story..."
 									value={detailedPitchContent}
 									onChange={(e) => setDetailedPitchContent(e.target.value)}
 									required
 								/>
+
+								<p className="text-xs text-gray-500 pt-1">This is the heart of your pitch. Make it detailed, clear, and visually engaging!</p>
 							</div>
-							<p className="text-xs text-gray-500 pt-1">This is the heart of your pitch. Make it detailed, clear, and visually engaging!</p>
 						</div>
-					</InputWrapper>
+					</div>
+
 
 					<div className="border-t border-base-300" />
 
-					{/* investment details section */}
-					<InputWrapper
-						title="Investment Details"
-						icon={DollarSign}
-						description="Define your funding goals and the percentage of profit investors will receive."
-					>
-						<div className="grid md:grid-cols-2 gap-6">
-							<div className="form-control">
-								<label className="label font-medium">Target Investment (£)</label>
-								<input
-									type="number"
-									className={inputStyle}
-									value={targetAmount}
-									onChange={(e) => setTargetAmount(Number(e.target.value))}
-									required
-									min={0}
-								/>
-							</div>
-							<div className="form-control">
-								<label className="label font-medium">Investor Profit Share (%)</label>
-								<input
-									type="number"
-									className={inputStyle}
-									value={profitShare}
-									onChange={(e) => setProfitShare(Number(e.target.value))}
-									required
-									min={0}
-									max={100}
-								/>
-							</div>
-						</div>
-
-						<div className="form-control">
-							<label className="label font-medium flex items-center gap-2">
-								<Calendar className="w-4 h-4 text-gray-500" /> Investment End Date
-							</label>
-							<input
-								type="date"
-								className={inputStyle}
-								value={endDate}
-								onChange={(e) => setEndDate(e.target.value)}
-								required
-							/>
-						</div>
-					</InputWrapper>
-
-					<div className="border-t border-base-300" />
-
-					{/* investment tiers section */}
-					<InputWrapper
-						title="Investment Tiers"
-						icon={Layers}
-						description="Offer different levels of investment opportunities with corresponding multipliers."
-					>
-						<div className="space-y-4">
-							{tiers.map((tier, index) => (
-								<InvestmentTierInput
-									key={index}
-									tier={tier}
-									index={index}
-									onChange={handleTierChange}
-									onRemove={handleRemoveTier}
-								/>
-							))}
-						</div>
-
-						<Button type="button" onClick={handleAddTier} className="mt-4">
-							<Plus /> Add Tier
-						</Button>
-					</InputWrapper>
-
-					<div className="border-t border-base-300" />
-
-					{/* Tags Section */}
-					<InputWrapper
-						title="Tags"
-						icon={Tag}
-						description="Add tags to help investors discover your pitch by category."
-					>
-						<div className="form-control">
-							<label className="label label-text font-medium">Add Tag (Press Enter or Comma)</label>
-
-							<div className="flex gap-2">
-								<input
-									type="text"
-									className={inputStyle}
-									placeholder="e.g., SaaS, FinTech, B2B"
-									value={tagInput}
-									onChange={(e) => setTagInput(e.target.value)}
-									onKeyDown={handleTagKeyDown}
-								/>
-								<Button type="button" onClick={handleAddTag}>
-									Add
-								</Button>
-							</div>
-						</div>
-
-						{tags.length > 0 && (
-							<div className="pt-2">
-								<label className="label label-text font-medium pb-2">Current Tags:</label>
-								<div className="flex flex-wrap gap-2 p-3 bg-base-100 rounded-xl border border-base-300">
-									{tags.map((tag) => (
-										<span
-											key={tag}
-											className="px-3 py-1 bg-primary/10 text-primary rounded-full flex items-center gap-1 text-sm font-medium transition duration-150 ease-in-out"
-										>
-											{tag}
-											<button
-												type="button"
-												className="ml-1 hover:text-red-500 transition duration-150"
-												onClick={() => handleRemoveTag(tag)}
-											>
-												<X size={14} />
-											</button>
-										</span>
-									))}
+					{/* Investment Details Section - Simplified by removing InputWrapper */}
+					<div className="space-y-4">
+						<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
+							<DollarSign className="w-6 h-6" />
+							Investment Details
+						</h2>
+						<p className="text-gray-500">Define your funding goals and the percentage of profit investors will receive.</p>
+						<div className="space-y-6">
+							<div className="grid md:grid-cols-2 gap-6">
+								<div className="form-control">
+									<label className="label">Target Investment (£)</label>
+									<input
+										type="number"
+										className={inputStyle}
+										value={targetAmount}
+										onChange={(e) => setTargetAmount(Number(e.target.value))}
+										required
+										min={0}
+									/>
+								</div>
+								<div className="form-control">
+									<label className="label">Investor Profit Share (%)</label>
+									<input
+										type="number"
+										className={inputStyle}
+										value={profitShare}
+										onChange={(e) => setProfitShare(Number(e.target.value))}
+										required
+										min={0}
+										max={100}
+									/>
 								</div>
 							</div>
-						)}
 
-					</InputWrapper>
+							<div className="form-control">
+								<label className="label flex items-center gap-2">
+									<Calendar className="w-4 h-4 text-gray-500" /> Investment End Date
+								</label>
+								<input
+									type="date"
+									className={inputStyle}
+									value={endDate}
+									onChange={(e) => setEndDate(e.target.value)}
+									required
+								/>
+							</div>
+						</div>
+					</div>
+
+					<div className="border-t border-base-300" />
+
+					<div className="space-y-4">
+						<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
+							<Layers className="w-6 h-6" />
+							Investment Tiers
+						</h2>
+						<p className="text-gray-500">Offer different levels of investment opportunities with corresponding multipliers.</p>
+						<div className="space-y-6">
+							<div className="space-y-4">
+								{tiers.map((tier, index) => (
+									<InvestmentTierInput
+										key={index}
+										tier={tier}
+										index={index}
+										onChange={handleTierChange}
+										onRemove={handleRemoveTier}
+									/>
+								))}
+							</div>
+
+							<button type="button" onClick={handleAddTier} className={`${Button.buttonClassName}`}>
+								<Plus /> Add Tier
+							</button>
+						</div>
+					</div>
+
+					<div className="border-t border-base-300" />
+
+					<div className="space-y-4">
+						<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
+							<Tag className="w-6 h-6" />
+							Tags
+						</h2>
+						<p className="text-gray-500">Add tags to help investors discover your pitch by category.</p>
+						<div className="space-y-6">
+							<div className="form-control">
+								<label className="label label-text">Add Tag (Press Enter or Comma)</label>
+
+								<div className="flex gap-2">
+									<input
+										type="text"
+										className={inputStyle}
+										placeholder="e.g., SaaS, FinTech, B2B"
+										value={tagInput}
+										onChange={(e) => setTagInput(e.target.value)}
+										onKeyDown={handleTagKeyDown}
+									/>
+									<button type="button" onClick={handleAddTag}
+										className={`${Button.buttonClassName}`}
+									>
+										Add
+									</button>
+								</div>
+							</div>
+
+							{tags.length > 0 && (
+								<div className="pt-2">
+									<label className="label label-text pb-2">Current Tags:</label>
+									<div className="flex flex-wrap gap-2 p-3 bg-base-100 rounded-xl border border-base-300">
+										{tags.map((tag) => (
+											<span
+												key={tag}
+												className="px-3 py-1 bg-primary/10 text-primary rounded-full flex items-center gap-1 transition duration-150 ease-in-out"
+											>
+												{tag}
+												<button
+													type="button"
+													className="ml-1 hover:text-red-500 transition duration-150"
+													onClick={() => handleRemoveTag(tag)}
+												>
+													<X size={14} />
+												</button>
+											</span>
+										))}
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
 
 					<div className="border-t border-base-300" />
 
 					{/* Submit */}
 					<div className="text-center py-4">
-						<Button
+						<button
 							type="submit"
-							className="px-8 py-4 rounded-xl text-xl font-bold shadow-2xl transition duration-300 transform hover:scale-[1.02]"
+							className={`${Button.buttonClassName}`}
 							disabled={loading}
 						>
-							{loading ? "Submitting..." : "🚀 Submit Pitch"}
-						</Button>
+							{loading ? "Submitting..." : "Submit Pitch"}
+						</button>
 					</div>
 				</form>
 			</div>
