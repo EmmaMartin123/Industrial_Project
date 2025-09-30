@@ -9,7 +9,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -174,10 +173,16 @@ func TestPitchCRUD(t *testing.T) {
 	pitch_id := int(pitch_id_float)
 
 	defer func() {
-		if err := utils.DeleteByID("pitch", strconv.Itoa(pitch_id)); err != nil {
-			t.Logf("Warning: failed to clean up pitch %d: %v", pitch_id, err)
+		delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)
+		resp, err := make_request(client, "DELETE", delete_url, nil, access_token)
+		if err != nil {
+			t.Logf("Warning: failed to send DELETE request for cleanup: %v", err)
+		} else if resp.StatusCode != http.StatusNoContent {
+			body, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			t.Logf("Warning: DELETE cleanup failed with status %d: %s", resp.StatusCode, string(body))
 		} else {
-			t.Logf("Cleaned up pitch %d", pitch_id)
+			t.Logf("Cleaned up pitch %d via DELETE route", pitch_id)
 		}
 	}()
 

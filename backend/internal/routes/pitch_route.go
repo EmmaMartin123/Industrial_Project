@@ -21,9 +21,65 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 		get_pitch_route(w, r)
 	case http.MethodPatch:
 		update_pitch_route(w, r)
+	case http.MethodDelete:
+		delete_pitch_route(w, r)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
+	pitch_id_str := r.URL.Query().Get("id")
+	if pitch_id_str == "" {
+		http.Error(w, "Pitch ID is required", http.StatusBadRequest)
+		return
+	}
+
+	result, err := utils.GetDataByID("pitch", pitch_id_str)
+	if err != nil {
+		http.Error(w, "Pitch not found", http.StatusNotFound)
+		return
+	}
+
+	var pitches []database.Pitch
+	if err := json.Unmarshal([]byte(result), &pitches); err != nil {
+		http.Error(w, "Error decoding pitch", http.StatusInternalServerError)
+		return
+	}
+
+	if len(pitches) != 1 {
+		http.Error(w, "Pitch not found", http.StatusNotFound)
+		return
+	}
+
+	pitch := pitches[0]
+	userID, ok := utils.UserIDFromCtx(r.Context())
+	if !ok || userID != pitch.UserID {
+		http.Error(w, "Unauthorised", http.StatusUnauthorized)
+		return
+	}
+
+	investmentTiers, err := get_investment_tiers(pitch)
+	if err != nil {
+		http.Error(w, "Failed to fetch investment tiers", http.StatusInternalServerError)
+		return
+	}
+
+	for _, tier := range investmentTiers {
+		if tier.ID == nil {
+			continue
+		}
+		if err := utils.DeleteByID("investment_tier", strconv.Itoa(*tier.ID)); err != nil {
+			fmt.Printf("Warning: failed to delete investment tier %d: %v\n", *tier.ID, err)
+		}
+	}
+
+	if err := utils.DeleteByID("pitch", pitch_id_str); err != nil {
+		http.Error(w, "Failed to delete pitch", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func create_pitch_route(w http.ResponseWriter, r *http.Request) {
