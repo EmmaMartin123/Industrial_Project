@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ChangeEvent, KeyboardEvent } from "react"; // Added types for events
 import toast from "react-hot-toast";
-import { Plus, Trash, X, Tag, Layers, Image as ImageIcon, Briefcase, DollarSign, Calendar } from "lucide-react";
+import { Plus, Trash, X, Tag, Layers, Image as ImageIcon, Briefcase, DollarSign, Calendar, Clapperboard } from "lucide-react"; // Changed Image to Clapperboard for 'Add Media'
 
 import Button from "@/components/Button";
 import axiosInstance from "@/lib/axios";
@@ -10,8 +10,15 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { InvestmentTier } from "@/lib/types/pitch";
 import { supabase } from "@/lib/supabaseClient";
 
+interface InvestmentTierInputProps {
+	tier: Partial<InvestmentTier>;
+	index: number;
+	onChange: (index: number, field: keyof Partial<InvestmentTier>, value: string | number) => void;
+	onRemove: (index: number) => void;
+}
+
 // component for a single investment tier input row
-const InvestmentTierInput = ({ tier, index, onChange, onRemove }) => {
+const InvestmentTierInput: React.FC<InvestmentTierInputProps> = ({ tier, index, onChange, onRemove }) => {
 	return (
 		<div
 			className="grid md:grid-cols-4 gap-4 items-end bg-base-100 p-4 rounded-xl border border-base-300 transition duration-200 hover:shadow-md"
@@ -23,7 +30,7 @@ const InvestmentTierInput = ({ tier, index, onChange, onRemove }) => {
 					placeholder="e.g., Early Bird"
 					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
 					value={tier.name || ""}
-					onChange={(e) => onChange(index, "name", e.target.value)}
+					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "name", e.target.value)}
 					required
 				/>
 			</div>
@@ -34,7 +41,7 @@ const InvestmentTierInput = ({ tier, index, onChange, onRemove }) => {
 					placeholder="Min £"
 					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
 					value={tier.min_amount || ""}
-					onChange={(e) => onChange(index, "min_amount", Number(e.target.value))}
+					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "min_amount", Number(e.target.value))}
 					required
 					min={0}
 				/>
@@ -47,7 +54,7 @@ const InvestmentTierInput = ({ tier, index, onChange, onRemove }) => {
 					placeholder="Multiplier"
 					className="input input-sm input-bordered w-full focus:border-primary/50 focus:ring-primary/50"
 					value={tier.multiplier || 1}
-					onChange={(e) => onChange(index, "multiplier", Number(e.target.value))}
+					onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(index, "multiplier", Number(e.target.value))}
 					required
 					min={0}
 				/>
@@ -84,9 +91,11 @@ export default function NewPitchPage() {
 	const [tagInput, setTagInput] = useState("");
 	const [loading, setLoading] = useState(false);
 
-	// TODO: send image to backend
+	// Max length for the elevator pitch
+	const ELEVATOR_MAX_LENGTH = 150;
+
 	const handleImageUpload = () => {
-		
+
 	};
 
 	// tier handlers
@@ -115,10 +124,18 @@ export default function NewPitchPage() {
 	const handleRemoveTag = (tag: string) => {
 		setTags(tags.filter((t) => t !== tag));
 	};
-	const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+	const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter" || e.key === ",") {
 			e.preventDefault();
 			handleAddTag();
+		}
+	};
+
+	// elevator pitch handler with character limit
+	const handleElevatorChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+		const value = e.target.value;
+		if (value.length <= ELEVATOR_MAX_LENGTH) {
+			setElevator(value);
 		}
 	};
 
@@ -159,7 +176,7 @@ export default function NewPitchPage() {
 			});
 
 			toast.success("Pitch submitted successfully!");
-			// Reset all states on success
+			// reset all states on success
 			setTitle("");
 			setElevator("");
 			setDetailedPitchContent("");
@@ -177,7 +194,7 @@ export default function NewPitchPage() {
 	};
 
 	// reusable Input Wrapper component to apply the style everywhere
-	const InputWrapper = ({ title, icon: Icon, children, description }) => (
+	const InputWrapper: React.FC<{ title: string; icon: React.FC<any>; children: React.ReactNode; description: string }> = ({ title, icon: Icon, children, description }) => (
 		<div className="space-y-4">
 			<h2 className="text-2xl font-bold flex items-center gap-3 text-primary">
 				{Icon && <Icon className="w-6 h-6" />}
@@ -203,7 +220,7 @@ export default function NewPitchPage() {
 
 				<form onSubmit={handleSubmit} className="space-y-12">
 
-					{/* feneral info */}
+					{/* general info */}
 					<InputWrapper
 						title="General Information"
 						icon={Briefcase}
@@ -220,37 +237,43 @@ export default function NewPitchPage() {
 							/>
 						</div>
 
+						{/* elevator pitch with character counter */}
 						<div className="form-control">
 							<label className="label font-medium">Elevator Pitch</label>
 							<textarea
 								className={textareaStyle}
-								placeholder="A concise, captivating summary (1-2 sentences)"
+								placeholder={`A concise, captivating summary (up to ${ELEVATOR_MAX_LENGTH} characters)`}
 								value={elevator}
-								onChange={(e) => setElevator(e.target.value)}
+								onChange={handleElevatorChange}
 								required
 							/>
+							<label className="label pt-1 pb-0">
+								<span className={`label-text-alt text-sm ${elevator.length > ELEVATOR_MAX_LENGTH - 20 ? 'text-warning' : 'text-gray-500'}`}>
+									{elevator.length}/{ELEVATOR_MAX_LENGTH} characters
+								</span>
+							</label>
 						</div>
 
-						{/* detailed Pitch / rich Text editor placeholder */}
+						{/* detailed pitch / rich text editor placeholder */}
 						<div className="form-control space-y-2">
 							<label className="label font-medium">Detailed Pitch</label>
 
 							<div className={richEditorBoxStyle}>
-								{/* toolbar Area */}
+								{/* Toolbar Area */}
 								<div className="flex justify-between items-center p-2 border-b border-base-300">
 									<span className="text-sm text-gray-500">Rich Content Area:</span>
-									{/* image upload button */}
+
 									<button
 										type="button"
 										className="btn btn-sm btn-ghost text-primary hover:bg-primary/10"
 										onClick={handleImageUpload}
 									>
-										<ImageIcon className="w-5 h-5" />
-										Add Image
+										<Clapperboard className="w-5 h-5" />
+										Add Media
 									</button>
 								</div>
 
-								{/* content area */}
+								{/* Content Area */}
 								<textarea
 									className="textarea w-full h-32 focus:ring-0 resize-y border-none bg-transparent p-2"
 									placeholder="Provide a comprehensive pitch, use formatting and images to tell your story..."
@@ -263,7 +286,6 @@ export default function NewPitchPage() {
 						</div>
 					</InputWrapper>
 
-					{/* --- remember this please i need this for later --- */}
 					<div className="border-t border-base-300" />
 
 					{/* investment details section */}
@@ -337,11 +359,13 @@ export default function NewPitchPage() {
 						</Button>
 					</InputWrapper>
 
-					{/* tags section */}
+					<div className="border-t border-base-300" />
+
+					{/* Tags Section */}
 					<InputWrapper
 						title="Tags"
 						icon={Tag}
-						description="Add tags to help investors discover your pitch by category (e.g., Tech, Food, Real Estate)."
+						description="Add tags to help investors discover your pitch by category."
 					>
 						<div className="form-control">
 							<label className="label label-text font-medium">Add Tag (Press Enter or Comma)</label>
@@ -388,7 +412,7 @@ export default function NewPitchPage() {
 
 					<div className="border-t border-base-300" />
 
-					{/* submit */}
+					{/* Submit */}
 					<div className="text-center py-4">
 						<Button
 							type="submit"
