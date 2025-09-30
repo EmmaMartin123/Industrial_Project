@@ -105,15 +105,15 @@ func GetDataByID(table string, id string) ([]byte, error) {
 	return body, nil
 }
 
-func DeleteByID(table string, id string) ([]byte, error) {
+func DeleteByID(table string, id string) error {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-	url := fmt.Sprintf("%s/rest/v1/%s?id=eq.%s", SUPABASE_URL, table, id) // SUPABASE_URL/rest/v1/table?id=eq.id
+	url := fmt.Sprintf("%s/rest/v1/%s?id=eq.%s", SUPABASE_URL, table, id)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req.Header.Set("apikey", SUPABASE_KEY)
@@ -123,16 +123,16 @@ func DeleteByID(table string, id string) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch by ID: status %d, body: %s", resp.StatusCode, string(body))
+	if resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to delete: status %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	return body, nil
+	return nil
 }
 
 func GetDataByQuery(table string, query string) ([]byte, error) {

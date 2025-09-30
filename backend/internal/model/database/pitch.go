@@ -10,4 +10,5 @@ type Pitch struct {
 	InvestmentStartDate string  `json:"investment_start_date"`
 	ProfitSharePercent  float64 `json:"profit_share_percent"`
 	UserID              string  `json:"user_id"`
+	RaisedAmount        int     `json:"raised_amount"`
 }

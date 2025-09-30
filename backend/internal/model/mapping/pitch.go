@@ -7,6 +7,11 @@ import (
 )
 
 func Pitch_ToDatabase(p frontend.Pitch, userID string) database.Pitch {
+	raised_amount := 0
+	if p.RaisedAmount != nil {
+		raised_amount = *p.RaisedAmount
+	}
+
 	return database.Pitch{
 		PitchID:             nil,
 		ProductTitle:        p.ProductTitle,
@@ -17,6 +22,7 @@ func Pitch_ToDatabase(p frontend.Pitch, userID string) database.Pitch {
 		InvestmentStartDate: p.InvestmentStartDate,
 		ProfitSharePercent:  p.ProfitSharePercent,
 		UserID:              userID,
+		RaisedAmount:        raised_amount,
 	}
 }
 
@@ -32,5 +38,6 @@ func Pitch_ToFrontend(p database.Pitch, investmentTiers []model.InvestmentTier) 
 		ProfitSharePercent:  p.ProfitSharePercent,
 		UserID:              &p.UserID,
 		InvestmentTiers:     investmentTiers,
+		RaisedAmount:        &p.RaisedAmount,
 	}
 }

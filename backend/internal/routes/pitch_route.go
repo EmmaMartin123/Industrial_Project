@@ -34,9 +34,6 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(pitch)
-
 	uid, _ := utils.UserIDFromCtx(r.Context())
 
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
@@ -63,14 +60,18 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		tier.PitchID = pitch_id
 		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
-			fmt.Println("Error inserting data:", err)
+			fmt.Println("Error inserting data:", invest_err)
 		} else {
 			fmt.Println("Inserted successfully!")
 			// TODO: return error
 		}
 	}
 
-	json.NewEncoder(w).Encode(db_pitch)
+	pitch.PitchID = &pitch_id
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(pitch)
 }
 
 func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, error) {
@@ -200,7 +201,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	for _, tier := range old_investment_tiers {
 		id := tier.ID
-		_, invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(*id))
+		invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(*id))
 		if invest_err != nil {
 			fmt.Println("Error deleting data:", err)
 		} else {
@@ -213,7 +214,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		tier.PitchID = *old_pitch.PitchID
 		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
-			fmt.Println("Error inserting data:", err)
+			fmt.Println("Error inserting data:", invest_err)
 		} else {
 			fmt.Println("Inserted successfully!")
 			// TODO: return error
@@ -230,5 +231,5 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		// TODO: return error
 	}
 
-	json.NewEncoder(w).Encode(to_db_pitch)
+	json.NewEncoder(w).Encode(mapping.Pitch_ToFrontend(to_db_pitch, new_pitch.InvestmentTiers))
 }
