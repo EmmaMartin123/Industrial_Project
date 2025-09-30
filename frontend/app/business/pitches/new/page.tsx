@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, X } from "lucide-react";
 
 import Button from "@/components/Button";
 import axiosInstance from "@/lib/axios";
@@ -22,6 +22,8 @@ export default function NewPitchPage() {
 	const [tiers, setTiers] = useState<Partial<InvestmentTier>[]>([
 		{ name: "", min_amount: 0, multiplier: 1 },
 	]);
+	const [tags, setTags] = useState<string[]>([]);
+	const [tagInput, setTagInput] = useState("");
 	const [loading, setLoading] = useState(false);
 
 	// Tier handlers
@@ -31,6 +33,25 @@ export default function NewPitchPage() {
 		const newTiers = [...tiers];
 		newTiers[index][field] = value as any;
 		setTiers(newTiers);
+	};
+
+	const handleAddTag = () => {
+		const newTag = tagInput.trim();
+		if (newTag && !tags.includes(newTag)) {
+			setTags([...tags, newTag]);
+		}
+		setTagInput("");
+	};
+
+	const handleRemoveTag = (tag: string) => {
+		setTags(tags.filter((t) => t !== tag));
+	};
+
+	const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter" || e.key === ",") {
+			e.preventDefault();
+			handleAddTag();
+		}
 	};
 
 	const handleSubmit = async (e: React.FormEvent) => {
@@ -60,6 +81,7 @@ export default function NewPitchPage() {
 					min_amount: Number(t.min_amount),
 					multiplier: Number(t.multiplier),
 				})),
+				tags, // send tags as array
 			};
 
 			await axiosInstance.post("/pitch", payload, {
@@ -75,6 +97,7 @@ export default function NewPitchPage() {
 			setProfitShare("");
 			setEndDate("");
 			setTiers([{ name: "", min_amount: 0, multiplier: 1 }]);
+			setTags([]);
 		} catch (err: any) {
 			console.error(err);
 			toast.error(err.response?.data || "Something went wrong");
@@ -84,134 +107,171 @@ export default function NewPitchPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6">
-			<h1 className="text-3xl font-bold mb-6">Create New Pitch</h1>
-			<form onSubmit={handleSubmit} className="space-y-6">
-				{/* Title */}
-				<div>
-					<label className="label">Product Title</label>
-					<input
-						type="text"
-						className="input input-bordered w-full"
-						value={title}
-						onChange={(e) => setTitle(e.target.value)}
-						required
-					/>
-				</div>
-
-				{/* Elevator Pitch */}
-				<div>
-					<label className="label">Elevator Pitch</label>
-					<textarea
-						className="textarea textarea-bordered w-full"
-						value={elevator}
-						onChange={(e) => setElevator(e.target.value)}
-						required
-					/>
-				</div>
-
-				{/* Detailed Pitch */}
-				<div>
-					<label className="label">Detailed Pitch</label>
-					<textarea
-						className="textarea textarea-bordered w-full h-32"
-						value={description}
-						onChange={(e) => setDescription(e.target.value)}
-						required
-					/>
-				</div>
-
-				{/* Target & Profit Share */}
-				<div className="grid md:grid-cols-2 gap-4">
+		<div className="min-h-screen bg-base-100 p-6 flex justify-center">
+			<div className="w-full max-w-3xl">
+				<h1 className="text-3xl font-bold mb-6">Create New Pitch</h1>
+				<form onSubmit={handleSubmit} className="space-y-6">
+					{/* Title */}
 					<div>
-						<label className="label">Target Investment (£)</label>
+						<label className="label">Product Title</label>
 						<input
-							type="number"
+							type="text"
 							className="input input-bordered w-full"
-							value={targetAmount}
-							onChange={(e) => setTargetAmount(Number(e.target.value))}
+							value={title}
+							onChange={(e) => setTitle(e.target.value)}
 							required
-							min={0}
 						/>
 					</div>
+
+					{/* Elevator Pitch */}
 					<div>
-						<label className="label">Investor Profit Share (%)</label>
-						<input
-							type="number"
-							className="input input-bordered w-full"
-							value={profitShare}
-							onChange={(e) => setProfitShare(Number(e.target.value))}
+						<label className="label">Elevator Pitch</label>
+						<textarea
+							className="textarea textarea-bordered w-full"
+							value={elevator}
+							onChange={(e) => setElevator(e.target.value)}
 							required
-							min={0}
-							max={100}
 						/>
 					</div>
-				</div>
 
-				{/* Investment End Date */}
-				<div>
-					<label className="label">Investment End Date</label>
-					<input
-						type="date"
-						className="input input-bordered w-full"
-						value={endDate}
-						onChange={(e) => setEndDate(e.target.value)}
-						required
-					/>
-				</div>
+					{/* Detailed Pitch */}
+					<div>
+						<label className="label">Detailed Pitch</label>
+						<textarea
+							className="textarea textarea-bordered w-full h-32"
+							value={description}
+							onChange={(e) => setDescription(e.target.value)}
+							required
+						/>
+					</div>
 
-				{/* Investment Tiers */}
-				<div className="space-y-4">
-					<h2 className="text-xl font-semibold">Investment Tiers</h2>
-					{tiers.map((tier, index) => (
-						<div key={index} className="grid md:grid-cols-4 gap-2 items-end">
+					{/* Target & Profit Share */}
+					<div className="grid md:grid-cols-2 gap-4">
+						<div>
+							<label className="label">Target Investment (£)</label>
+							<input
+								type="number"
+								className="input input-bordered w-full"
+								value={targetAmount}
+								onChange={(e) => setTargetAmount(Number(e.target.value))}
+								required
+								min={0}
+							/>
+						</div>
+						<div>
+							<label className="label">Investor Profit Share (%)</label>
+							<input
+								type="number"
+								className="input input-bordered w-full"
+								value={profitShare}
+								onChange={(e) => setProfitShare(Number(e.target.value))}
+								required
+								min={0}
+								max={100}
+							/>
+						</div>
+					</div>
+
+					{/* Investment End Date */}
+					<div>
+						<label className="label">Investment End Date</label>
+						<input
+							type="date"
+							className="input input-bordered w-full"
+							value={endDate}
+							onChange={(e) => setEndDate(e.target.value)}
+							required
+						/>
+					</div>
+
+					{/* Investment Tiers */}
+					<div className="space-y-4">
+						<h2 className="text-xl font-semibold">Investment Tiers</h2>
+						{tiers.map((tier, index) => (
+							<div key={index} className="grid md:grid-cols-4 gap-2 items-end">
+								<input
+									type="text"
+									placeholder="Tier Name"
+									className="input input-bordered"
+									value={tier.name || ""}
+									onChange={(e) => handleTierChange(index, "name", e.target.value)}
+									required
+								/>
+								<input
+									type="number"
+									placeholder="Min £"
+									className="input input-bordered"
+									value={tier.min_amount || ""}
+									onChange={(e) => handleTierChange(index, "min_amount", Number(e.target.value))}
+									required
+									min={0}
+								/>
+								<input
+									type="number"
+									step="0.1"
+									placeholder="Multiplier"
+									className="input input-bordered"
+									value={tier.multiplier || 1}
+									onChange={(e) => handleTierChange(index, "multiplier", Number(e.target.value))}
+									required
+									min={0}
+								/>
+								<button
+									type="button"
+									className="btn btn-error"
+									onClick={() => handleRemoveTier(index)}
+								>
+									<Trash />
+								</button>
+							</div>
+						))}
+
+						<Button type="button" onClick={handleAddTier} className="mt-2">
+							<Plus /> Add Tier
+						</Button>
+					</div>
+
+					{/* Tags */}
+					<div>
+						<h2 className="text-xl font-semibold mb-2">Tags</h2>
+						<div className="flex gap-2 mb-2">
 							<input
 								type="text"
-								placeholder="Tier Name"
-								className="input input-bordered"
-								value={tier.name || ""}
-								onChange={(e) => handleTierChange(index, "name", e.target.value)}
-								required
+								className="input input-bordered flex-1"
+								placeholder="Type a tag and press Enter"
+								value={tagInput}
+								onChange={(e) => setTagInput(e.target.value)}
+								onKeyDown={handleTagKeyDown}
 							/>
-							<input
-								type="number"
-								placeholder="Min £"
-								className="input input-bordered"
-								value={tier.min_amount || ""}
-								onChange={(e) => handleTierChange(index, "min_amount", Number(e.target.value))}
-								required
-								min={0}
-							/>
-							<input
-								type="number"
-								step="0.1"
-								placeholder="Multiplier"
-								className="input input-bordered"
-								value={tier.multiplier || 1}
-								onChange={(e) => handleTierChange(index, "multiplier", Number(e.target.value))}
-								required
-								min={0}
-							/>
-							<button
-								type="button"
-								className="btn btn-error"
-								onClick={() => handleRemoveTier(index)}
-							>
-								<Trash />
-							</button>
+							<Button type="button" onClick={handleAddTag}>
+								Add
+							</Button>
 						</div>
-					))}
+						<div className="flex flex-wrap gap-2">
+							{tags.map((tag) => (
+								<span
+									key={tag}
+									className="badge badge-outline flex items-center gap-1 px-3 py-1"
+								>
+									{tag}
+									<button
+										type="button"
+										className="ml-1"
+										onClick={() => handleRemoveTag(tag)}
+									>
+										<X size={14} />
+									</button>
+								</span>
+							))}
+						</div>
+					</div>
 
-					<Button type="button" onClick={handleAddTier} className="mt-2">
-						<Plus /> Add Tier
+					{/* Submit */}
+					<Button type="submit" className="mt-4" disabled={loading}>
+						{loading ? "Submitting..." : "Submit Pitch"}
 					</Button>
-				</div>
-
-				{/* Submit */}
-				<Button type="submit" className="mt-4" disabled={loading}>
-					{loading ? "Submitting..." : "Submit Pitch"}
-				</Button>
-			</form>
+				</form>
+			</div>
 		</div>
 	);
 }
