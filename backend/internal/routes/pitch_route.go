@@ -97,7 +97,6 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	result, err := utils.InsertData(db_pitch, "pitch")
 
 	if err != nil {
-		// TODO: return error
 		fmt.Println("Error inserting data:", err)
 	} else {
 		fmt.Println("Inserted successfully!")
@@ -107,7 +106,8 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	err = json.Unmarshal([]byte(result), &ids)
 	if err != nil {
-		panic(err)
+		http.Error(w, "Error decoding IDs", http.StatusInternalServerError)
+		return
 	}
 
 	pitch_id := ids[0].ID
@@ -119,7 +119,6 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error inserting data:", invest_err)
 		} else {
 			fmt.Println("Inserted successfully!")
-			// TODO: return error
 		}
 	}
 
@@ -262,7 +261,6 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error deleting data:", err)
 		} else {
 			fmt.Println("Deleted successfully!")
-			// TODO: return error
 		}
 	}
 
@@ -273,7 +271,6 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error inserting data:", invest_err)
 		} else {
 			fmt.Println("Inserted successfully!")
-			// TODO: return error
 		}
 	}
 
@@ -284,7 +281,6 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error deleting data:", err)
 	} else {
 		fmt.Println("Deleted successfully!")
-		// TODO: return error
 	}
 
 	json.NewEncoder(w).Encode(mapping.Pitch_ToFrontend(to_db_pitch, new_pitch.InvestmentTiers))
