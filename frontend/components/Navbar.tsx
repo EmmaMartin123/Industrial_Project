@@ -38,14 +38,14 @@ export default function Navbar() {
 							className={`${Button.buttonClassName}`}
 							onClick={() => router.push("/investor/dashboard")}
 						>
-							My Portfolio
+							Investor dashboard
 						</a>
 
 						<a
 							className={`${Button.buttonClassName}`}
 							onClick={() => router.push("/business/dashboard")}
 						>
-							My dashboard
+							Business dashboard
 						</a>
 
 						<ThemeToggler />

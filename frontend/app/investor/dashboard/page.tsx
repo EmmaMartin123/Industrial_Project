@@ -7,11 +7,14 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import * as Button from "@/components/Button";
 
+// Reusable style for the content cards
+const dashboardCardStyle = "card bg-base-100 shadow-xl p-8 flex flex-col justify-between border border-base-300 transition duration-300 hover:shadow-2xl hover:border-primary/50";
+const dashboardIconStyle = "w-12 h-12 text-primary mb-4 transition duration-300 group-hover:scale-105";
+
 export default function InvestorDashboardPage() {
 	const router = useRouter();
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-	// TODO: use this everywhere
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
@@ -23,15 +26,20 @@ export default function InvestorDashboardPage() {
 	// redirect if not logged in
 	useEffect(() => {
 		if (!isCheckingAuth && !authUser) {
-			router.push("/login");
+			// Use a timeout to ensure the state update is processed before redirecting
+			// and avoid flashing unauthorized content.
+			const timer = setTimeout(() => {
+				router.push("/login");
+			}, 100);
+			return () => clearTimeout(timer);
 		}
 	}, [authUser, isCheckingAuth, router]);
 
 	// show loader while checking auth
 	if (isCheckingAuth || !authUser) {
 		return (
-			<div className="flex items-center justify-center h-screen">
-				<Loader className="w-10 h-10 animate-spin" />
+			<div className="flex items-center justify-center h-screen bg-base-200">
+				<Loader className="w-10 h-10 text-primary animate-spin" />
 			</div>
 		);
 	}
@@ -45,52 +53,69 @@ export default function InvestorDashboardPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6">
-			<h1 className="text-3xl font-bold mb-6">Investor Dashboard</h1>
+		<div className="min-h-screen bg-gradient-to-br from-base-200 to-base-100 p-6 flex justify-center">
+			<div className="w-full max-w-5xl space-y-12 mt-10">
+				<h1 className="text-4xl font-extrabold text-center text-gray-800">Your Investor Hub</h1>
+				<p className="text-center text-lg text-gray-500 max-w-2xl mx-auto">
+					Manage your capital, track your growth, and discover new opportunities.
+				</p>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<PieChart className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Portfolio</h2>
-						<p className="text-center opacity-70">View all your current investments and performance.</p>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+					{/* Portfolio Card */}
+					<div className={`${dashboardCardStyle} group`}>
+						<div className="flex flex-col items-center">
+							<PieChart className={dashboardIconStyle} />
+							<h2 className="text-2xl font-bold mb-2 text-gray-700">Portfolio</h2>
+							<p className="text-center text-sm opacity-70 mb-6">
+								View all your current investments and performance metrics at a glance.
+							</p>
+						</div>
+						<div className="flex justify-center">
+							<button
+								className={`${Button.buttonClassName} w-full`}
+								onClick={handlePortfolio}
+							>
+								Track Investments
+							</button>
+						</div>
 					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handlePortfolio}
-						>
-							Go to Portfolio
-						</button>
-					</div>
-				</div>
 
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<CreditCard className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Withdraw Funds</h2>
-						<p className="text-center opacity-70">Transfer your earnings from the platform to your bank account.</p>
+					{/* Withdraw Funds Card */}
+					<div className={`${dashboardCardStyle} group`}>
+						<div className="flex flex-col items-center">
+							<CreditCard className={dashboardIconStyle} />
+							<h2 className="text-2xl font-bold mb-2 text-gray-700">Withdraw Funds</h2>
+							<p className="text-center text-sm opacity-70 mb-6">
+								Transfer your earnings from successful pitches to your bank account securely.
+							</p>
+						</div>
+						<div className="flex justify-center">
+							<button
+								className={`${Button.buttonClassName} btn-outline w-full`}
+								onClick={handleWithdraw}
+							>
+								Withdraw
+							</button>
+						</div>
 					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handleWithdraw}
-						>
-							Withdraw
-						</button>
-					</div>
-				</div>
 
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<Wallet className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Invest</h2>
-						<p className="text-center opacity-70">Browse new investment opportunities and grow your portfolio.</p>
-					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={() => router.push("/browse-pitches")}>Browse Pitches</button>
+					{/* Invest Card */}
+					<div className={`${dashboardCardStyle} group`}>
+						<div className="flex flex-col items-center">
+							<Wallet className={dashboardIconStyle} />
+							<h2 className="text-2xl font-bold mb-2 text-gray-700">Invest</h2>
+							<p className="text-center text-sm opacity-70 mb-6">
+								Browse new investment opportunities and find the next big idea to back.
+							</p>
+						</div>
+						<div className="flex justify-center">
+							<button
+								className={`${Button.buttonClassName} w-full`}
+								onClick={() => router.push("/browse-pitches")}
+							>
+								Browse Pitches
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
