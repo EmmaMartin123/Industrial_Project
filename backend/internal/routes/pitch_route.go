@@ -30,6 +30,8 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+const SOFT_MAX_MEDIA_RAM = 50 << 20 // 50 MB limit for storing parsed media in ram, >500MB store using temp files
+
 func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitch_id_str := r.URL.Query().Get("id")
 	if pitch_id_str == "" {
@@ -108,7 +110,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB max
+		if err := r.ParseMultipartForm(SOFT_MAX_MEDIA_RAM); err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
@@ -369,7 +371,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	var new_pitch frontend.Pitch
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB max
+		if err := r.ParseMultipartForm(SOFT_MAX_MEDIA_RAM); err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
