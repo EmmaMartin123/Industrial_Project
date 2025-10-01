@@ -3,3 +3,7 @@
 *.sh
 .DS_Store
 **/.DS_Store
+*.txt
+*.py
+payload.json
+update.json

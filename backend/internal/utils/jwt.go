@@ -13,8 +13,8 @@ var (
 	hmacKey []byte
 )
 
-// InitJWTHS256 sets up issuer and HMAC secret; fail if no secret.
 func InitJWTHS256(issuerURL string) error {
+
 	issuer = issuerURL
 	secret := os.Getenv("SUPABASE_JWT_SECRET")
 	if secret == "" {
@@ -24,7 +24,6 @@ func InitJWTHS256(issuerURL string) error {
 	return nil
 }
 
-// VerifyJWTHS256 validates an HS256-signed Supabase JWT and returns the subject.
 func VerifyJWTHS256(tokenStr string) (string, error) {
 	if hmacKey == nil {
 		return "", errors.New("JWT secret not configured")
