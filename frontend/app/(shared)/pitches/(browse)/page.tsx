@@ -9,6 +9,7 @@ import { Pitch, InvestmentTier } from "@/lib/types/pitch"; // adjust path if nee
 import * as Button from "@/components/Button";
 
 import { useAuthStore } from "@/lib/store/authStore";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function BusinessPitchesPage() {
 	const router = useRouter();
