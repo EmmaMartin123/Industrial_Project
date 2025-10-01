@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/lib/store/authStore";
+import * as Button from "@/components/Button";
 
 export default function WithdrawPage() {
 	const router = useRouter();
@@ -12,7 +12,7 @@ export default function WithdrawPage() {
 
 	const [amount, setAmount] = useState("");
 	const [loading, setLoading] = useState(false);
-	const [balance, setBalance] = useState(10000); // Mock user balance
+	const [balance, setBalance] = useState(10000);
 
 	useEffect(() => {
 		checkAuth();
@@ -64,9 +64,11 @@ export default function WithdrawPage() {
 					value={amount}
 					onChange={(e) => setAmount(e.target.value)}
 				/>
-				<Button onClick={handleWithdraw} disabled={loading}>
+				<button
+					className={`${Button.buttonClassName}`}
+					onClick={handleWithdraw} disabled={loading}>
 					{loading ? "Processing..." : "Withdraw"}
-				</Button>
+				</button>
 			</div>
 		</div>
 	);

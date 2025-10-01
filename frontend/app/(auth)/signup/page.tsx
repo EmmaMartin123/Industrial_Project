@@ -6,8 +6,8 @@ import toast from "react-hot-toast"
 import { Loader } from "lucide-react"
 
 import { useAuthStore } from "@/lib/store/authStore"
-import Button from "@/components/Button"
 import axios from "@/lib/axios"
+import * as Button from "@/components/Button"
 
 export default function SignupPage() {
 	const router = useRouter()
@@ -73,13 +73,13 @@ export default function SignupPage() {
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 					<div className="flex justify-between">
-						<Button
+						<button
 							onClick={handleSignup}
-							isLoading={isSigningUp}
-							loadingText="Logging in..."
+							className={`${Button.buttonClassName}`}
+							disabled={isSigningUp}
 						>
-							Sign up
-						</Button>
+							{isSigningUp ? "Signing up..." : "Sign up"}
+						</button>
 					</div>
 
 					<div className="text-center mt-4">

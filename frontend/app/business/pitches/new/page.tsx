@@ -199,15 +199,12 @@ export default function NewPitchPage() {
 	// final submission will call the existing handleSubmit
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		// ... (existing submission logic from before) ...
 
 		if (!authUser) return toast.error("You must be logged in to submit a pitch");
 		if (!endDate) return toast.error("Investment end date is required");
 
 		const invalidTiers = tiers.some(t => !t.name || Number(t.min_amount) < 0 || Number(t.multiplier) <= 0);
 		if (invalidTiers) return toast.error("Please ensure all tiers have a name, non-negative min amount, and positive multiplier.");
-
-		// ... (rest of the submission logic) ...
 
 		setLoading(true);
 		try {
