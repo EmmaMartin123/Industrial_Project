@@ -201,3 +201,50 @@ func ReplaceByID(table string, id string, data any) ([]byte, error) {
 
 	return body, nil
 }
+
+type AuthUser struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+}
+
+func GetAuthUserEmail(userID string) (string, error) {
+	SUPABASE_URL := os.Getenv("SUPABASE_URL")
+	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
+	if SUPABASE_URL == "" || SUPABASE_KEY == "" {
+		return "", fmt.Errorf("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set")
+	}
+
+	url := fmt.Sprintf("%s/auth/v1/admin/users/%s", SUPABASE_URL, userID)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("apikey", SUPABASE_KEY)
+	req.Header.Set("Authorization", "Bearer "+SUPABASE_KEY)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to fetch auth user: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var user AuthUser
+	if err := json.Unmarshal(body, &user); err != nil {
+		return "", fmt.Errorf("invalid auth user response: %w", err)
+	}
+
+	if user.Email == "" {
+		return "", fmt.Errorf("email missing or invalid in auth user")
+	}
+
+	return user.Email, nil
+}
