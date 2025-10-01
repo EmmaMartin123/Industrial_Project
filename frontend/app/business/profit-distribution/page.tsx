@@ -81,9 +81,11 @@ export default function ProfitDistributionPage({
 					onChange={(e) => setProfitAmount(Number(e.target.value))}
 					className="input input-bordered w-full mb-4"
 				/>
-				<Button onClick={handleDistribute} disabled={distributing}>
+				<button onClick={handleDistribute} disabled={distributing}
+					className={`${Button.buttonClassName}`}
+				>
 					{distributing ? "Distributing..." : "Distribute Profit"}
-				</Button>
+				</button>
 			</div>
 		</div>
 	);
