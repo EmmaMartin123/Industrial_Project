@@ -26,7 +26,7 @@ func Pitch_ToDatabase(p frontend.Pitch, userID string) database.Pitch {
 	}
 }
 
-func Pitch_ToFrontend(p database.Pitch, investmentTiers []model.InvestmentTier) frontend.Pitch {
+func Pitch_ToFrontend(p database.Pitch, investmentTiers []model.InvestmentTier, media []frontend.PitchMedia) frontend.Pitch {
 	return frontend.Pitch{
 		PitchID:             p.PitchID,
 		ProductTitle:        p.ProductTitle,
@@ -39,5 +39,6 @@ func Pitch_ToFrontend(p database.Pitch, investmentTiers []model.InvestmentTier) 
 		UserID:              &p.UserID,
 		InvestmentTiers:     investmentTiers,
 		RaisedAmount:        &p.RaisedAmount,
+		Media:               media,
 	}
 }

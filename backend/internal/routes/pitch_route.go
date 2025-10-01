@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	model "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/common"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/database"
@@ -74,6 +76,23 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	media, media_err := utils.GetPitchMedia(*pitch.PitchID)
+	if media_err != nil {
+		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
+	} else {
+		for _, item := range media {
+			if err := utils.DeleteFileFromS3(item.URL); err != nil {
+				fmt.Printf("Warning: failed to delete file from S3: %v\n", err)
+			}
+
+			if item.ID != nil {
+				if err := utils.DeleteByID("pitch_media", strconv.Itoa(*item.ID)); err != nil {
+					fmt.Printf("Warning: failed to delete media %d from database: %v\n", *item.ID, err)
+				}
+			}
+		}
+	}
+
 	if err := utils.DeleteByID("pitch", pitch_id_str); err != nil {
 		http.Error(w, "Failed to delete pitch", http.StatusInternalServerError)
 		return
@@ -83,27 +102,45 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 }
 
 func create_pitch_route(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+
 	var pitch frontend.Pitch
-	if err := json.NewDecoder(r.Body).Decode(&pitch); err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
-		return
+	var err error
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB max
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
+		pitchData := r.FormValue("pitch")
+		if pitchData == "" {
+			http.Error(w, "No pitch data provided", http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal([]byte(pitchData), &pitch); err != nil {
+			http.Error(w, "Invalid pitch data", http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&pitch); err != nil {
+			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
 	}
-	defer r.Body.Close()
 
 	uid, _ := utils.UserIDFromCtx(r.Context())
-
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
-
 	result, err := utils.InsertData(db_pitch, "pitch")
 
 	if err != nil {
-		fmt.Println("Error inserting data:", err)
-	} else {
-		fmt.Println("Inserted successfully!")
+		http.Error(w, "Error creating pitch", http.StatusInternalServerError)
+		return
 	}
 
 	var ids []model.ID
-
 	err = json.Unmarshal([]byte(result), &ids)
 	if err != nil {
 		http.Error(w, "Error decoding IDs", http.StatusInternalServerError)
@@ -116,13 +153,78 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		tier.PitchID = pitch_id
 		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
-			fmt.Println("Error inserting data:", invest_err)
-		} else {
-			fmt.Println("Inserted successfully!")
+			fmt.Printf("Error inserting investment tier: %v\n", invest_err)
+		}
+	}
+
+	var media_files []frontend.PitchMedia
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		files := r.MultipartForm.File["media"]
+		for i, fileHeader := range files {
+			file, err := fileHeader.Open()
+			if err != nil {
+				fmt.Printf("Error opening file: %v\n", err)
+				continue
+			}
+
+			ext := filepath.Ext(fileHeader.Filename)
+			mediaType := "application/octet-stream"
+			if contentTypes, ok := fileHeader.Header["Content-Type"]; ok && len(contentTypes) > 0 {
+				mediaType = contentTypes[0]
+			}
+
+			fileName := utils.GenerateUniqueFileName(fmt.Sprintf("pitch_%d", pitch_id), ext)
+
+			fileURL, err := utils.UploadFileToS3(file, fileName, mediaType)
+			file.Close()
+
+			if err != nil {
+				fmt.Printf("Error uploading file: %v\n", err)
+				continue
+			}
+
+			mediaEntry := frontend.PitchMedia{
+				PitchID:            &pitch_id,
+				URL:                fileURL,
+				MediaType:          mediaType,
+				OrderInDescription: i + 1, // 1-based index for ordering
+			}
+
+			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, pitch_id)
+			_, err = utils.InsertData(dbMedia, "pitch_media")
+			if err != nil {
+				fmt.Printf("Error saving media metadata: %v\n", err)
+				continue
+			}
+
+			media_files = append(media_files, mediaEntry)
+		}
+	} else if len(pitch.Media) > 0 {
+		for i, media := range pitch.Media {
+			if media.URL == "" {
+				fmt.Printf("Skipping empty media entry\n")
+				continue
+			}
+
+			if media.OrderInDescription == 0 {
+				media.OrderInDescription = i + 1
+			}
+
+			media.PitchID = &pitch_id
+			dbMedia := mapping.PitchMedia_ToDatabase(media, pitch_id)
+			_, err = utils.InsertData(dbMedia, "pitch_media")
+			if err != nil {
+				fmt.Printf("Error saving media metadata: %v\n", err)
+				continue
+			}
+
+			media_files = append(media_files, media)
 		}
 	}
 
 	pitch.PitchID = &pitch_id
+	pitch.Media = media_files
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -170,7 +272,13 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			pitches_to_send = append(pitches_to_send, mapping.Pitch_ToFrontend(pitch, investment_tiers))
+			media, media_err := utils.GetPitchMedia(*pitch.PitchID)
+			if media_err != nil {
+				fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
+				media = []frontend.PitchMedia{} // Empty array instead of nil
+			}
+
+			pitches_to_send = append(pitches_to_send, mapping.Pitch_ToFrontend(pitch, investment_tiers, media))
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -204,7 +312,13 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers)
+	media, media_err := utils.GetPitchMedia(*pitch.PitchID)
+	if media_err != nil {
+		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
+		media = []frontend.PitchMedia{} // Empty array instead of nil
+	}
+
+	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pitch_to_send)
@@ -239,28 +353,52 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_id, ok := utils.UserIDFromCtx(r.Context())
-
-	if !ok || user_id != old_pitch.UserID {
-		http.Error(w, "Invalid Pitch ID", http.StatusBadRequest)
+	old_media, media_err := utils.GetPitchMedia(*old_pitch.PitchID)
+	if media_err != nil {
+		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *old_pitch.PitchID, media_err)
+		old_media = []frontend.PitchMedia{} // Empty array instead of nil
 	}
 
-	var new_pitch frontend.Pitch
-	if err := json.NewDecoder(r.Body).Decode(&new_pitch); err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+	user_id, ok := utils.UserIDFromCtx(r.Context())
+	if !ok || user_id != old_pitch.UserID {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	//TODO: check if what is being changed is valid?
+	contentType := r.Header.Get("Content-Type")
+	var new_pitch frontend.Pitch
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(32 << 20); err != nil { // 32MB max
+			http.Error(w, "Error parsing form", http.StatusBadRequest)
+			return
+		}
+
+		pitchData := r.FormValue("pitch")
+		if pitchData == "" {
+			http.Error(w, "No pitch data provided", http.StatusBadRequest)
+			return
+		}
+
+		if err := json.Unmarshal([]byte(pitchData), &new_pitch); err != nil {
+			http.Error(w, "Invalid pitch data", http.StatusBadRequest)
+			return
+		}
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&new_pitch); err != nil {
+			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+	}
+
 	to_db_pitch := mapping.Pitch_ToDatabase(new_pitch, user_id)
 
 	for _, tier := range old_investment_tiers {
 		id := tier.ID
 		invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(*id))
 		if invest_err != nil {
-			fmt.Println("Error deleting data:", err)
-		} else {
-			fmt.Println("Deleted successfully!")
+			fmt.Printf("Error deleting investment tier %d: %v\n", *id, invest_err)
 		}
 	}
 
@@ -268,20 +406,119 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		tier.PitchID = *old_pitch.PitchID
 		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
-			fmt.Println("Error inserting data:", invest_err)
-		} else {
-			fmt.Println("Inserted successfully!")
+			fmt.Printf("Error inserting investment tier: %v\n", invest_err)
 		}
 	}
 
-	//TODO: log this
-	_, update_err := utils.ReplaceByID("pitch", strconv.Itoa(*old_pitch.PitchID), to_db_pitch)
-
-	if update_err != nil {
-		fmt.Println("Error deleting data:", err)
-	} else {
-		fmt.Println("Deleted successfully!")
+	keep_media_ids := make(map[int]bool)
+	for _, media := range new_pitch.Media {
+		if media.ID != nil {
+			keep_media_ids[*media.ID] = true
+		}
 	}
 
-	json.NewEncoder(w).Encode(mapping.Pitch_ToFrontend(to_db_pitch, new_pitch.InvestmentTiers))
+	for _, media := range old_media {
+		if media.ID != nil && !keep_media_ids[*media.ID] {
+			if err := utils.DeleteFileFromS3(media.URL); err != nil {
+				fmt.Printf("Warning: failed to delete file from S3: %v\n", err)
+			}
+
+			if err := utils.DeleteByID("pitch_media", strconv.Itoa(*media.ID)); err != nil {
+				fmt.Printf("Warning: failed to delete media %d from database: %v\n", *media.ID, err)
+			}
+		}
+	}
+
+	var media_files []frontend.PitchMedia
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		files := r.MultipartForm.File["media"]
+		for i, fileHeader := range files {
+			file, err := fileHeader.Open()
+			if err != nil {
+				fmt.Printf("Error opening file: %v\n", err)
+				continue
+			}
+
+			ext := filepath.Ext(fileHeader.Filename)
+			mediaType := "application/octet-stream"
+			if contentTypes, ok := fileHeader.Header["Content-Type"]; ok && len(contentTypes) > 0 {
+				mediaType = contentTypes[0]
+			}
+
+			fileName := utils.GenerateUniqueFileName(fmt.Sprintf("pitch_%d", *old_pitch.PitchID), ext)
+
+			fileURL, err := utils.UploadFileToS3(file, fileName, mediaType)
+			file.Close()
+
+			if err != nil {
+				fmt.Printf("Error uploading file: %v\n", err)
+				continue
+			}
+
+			mediaEntry := frontend.PitchMedia{
+				PitchID:            old_pitch.PitchID,
+				URL:                fileURL,
+				MediaType:          mediaType,
+				OrderInDescription: i + 1, // 1-based index for ordering
+			}
+
+			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, *old_pitch.PitchID)
+			_, err = utils.InsertData(dbMedia, "pitch_media")
+			if err != nil {
+				fmt.Printf("Error saving media metadata: %v\n", err)
+				continue
+			}
+
+			media_files = append(media_files, mediaEntry)
+		}
+	}
+
+	for i, media := range new_pitch.Media {
+		if media.ID != nil && keep_media_ids[*media.ID] {
+			media_files = append(media_files, media)
+			continue
+		}
+
+		if media.URL == "" {
+			continue
+		}
+
+		if strings.HasPrefix(media.URL, "data:") {
+			fmt.Printf("Base64 image uploads no longer supported\n")
+			continue
+		}
+
+		if media.OrderInDescription == 0 {
+			media.OrderInDescription = i + 1
+		}
+
+		media.PitchID = old_pitch.PitchID
+		dbMedia := mapping.PitchMedia_ToDatabase(media, *old_pitch.PitchID)
+		result, err := utils.InsertData(dbMedia, "pitch_media")
+		if err != nil {
+			fmt.Printf("Error saving media metadata: %v\n", err)
+			continue
+		}
+
+		var ids []model.ID
+		if err = json.Unmarshal([]byte(result), &ids); err == nil && len(ids) > 0 {
+			mediaID := ids[0].ID
+			media.ID = &mediaID
+		}
+
+		media_files = append(media_files, media)
+	}
+
+	_, update_err := utils.ReplaceByID("pitch", strconv.Itoa(*old_pitch.PitchID), to_db_pitch)
+	if update_err != nil {
+		fmt.Printf("Error updating pitch: %v\n", update_err)
+		http.Error(w, "Error updating pitch", http.StatusInternalServerError)
+		return
+	}
+
+	new_pitch.Media = media_files
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(mapping.Pitch_ToFrontend(to_db_pitch, new_pitch.InvestmentTiers, media_files))
 }
