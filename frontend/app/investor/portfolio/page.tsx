@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/lib/store/authStore";
 import { mockInvestments } from "@/lib/mockInvestments";
+import * as Button from "@/components/Button";
 
 export default function PortfolioPage() {
 	const router = useRouter();
@@ -55,12 +55,12 @@ export default function PortfolioPage() {
 							</p>
 						</div>
 						<div className="mt-4 flex justify-end">
-							<Button
-								className="btn-sm btn-outline"
+							<button
+								className={`${Button.buttonOutlineClassName}`}
 								onClick={() => router.push(`/view-pitch?id=${inv.pitch_id}`)}
 							>
 								View Pitch
-							</Button>
+							</button>
 						</div>
 					</div>
 				))}

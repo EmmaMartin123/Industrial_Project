@@ -3,11 +3,11 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import { Plus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { mockPitches } from "@/lib/mockPitches";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch";
+import * as Button from "@/components/Button";
 
 export default function EditPitchPage({
 	searchParams,
@@ -184,14 +184,18 @@ export default function EditPitchPage({
 							</button>
 						</div>
 					))}
-					<Button type="button" onClick={handleAddTier}>
+					<button type="button" onClick={handleAddTier}
+						className={`${Button.buttonOutlineClassName}`}
+					>
 						<Plus /> Add Tier
-					</Button>
+					</button>
 				</div>
 
-				<Button type="button" onClick={handleSave}>
+				<button type="button" onClick={handleSave}
+					className={`${Button.buttonClassName}`}
+				>
 					Save Changes
-				</Button>
+				</button>
 			</div>
 		</div>
 	);

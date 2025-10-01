@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Button from "@/components/Button";
 import toast from "react-hot-toast";
 import { Eye, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch"; // adjust path if needed
+import * as Button from "@/components/Button";
 
 import { useAuthStore } from "@/lib/store/authStore";
 
@@ -104,12 +104,12 @@ export default function BusinessPitchesPage() {
 								</p>
 							</div>
 							<div className="mt-4 flex justify-end">
-								<Button
-									className="flex items-center gap-1 btn-outline btn-sm"
+								<button
+									className={`${Button.buttonOutlineClassName}`}
 									onClick={() => handleView(pitch.pitch_id)}
 								>
 									<Eye /> View
-								</Button>
+								</button>
 							</div>
 						</div>
 					))}

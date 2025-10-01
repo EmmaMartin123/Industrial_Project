@@ -9,9 +9,7 @@ const config = {
 	theme: {
 		extend: {
 			colors: {
-				extBg: 'var(--ext-bg)',
-				extFg: 'var(--ext-fg)',
-				extPrimary: 'var(--ext-primary)',
+
 			}
 		},
 	},

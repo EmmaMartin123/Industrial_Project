@@ -4,7 +4,7 @@ import { useAuthStore } from "@/lib/store/authStore"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import ThemeToggler from "@/components/ThemeToggler"
-import Button from "@/components/Button"
+import * as Button from "@/components/Button"
 
 export default function Navbar() {
 	const router = useRouter()
@@ -35,21 +35,23 @@ export default function Navbar() {
 				{authUser ? (
 					<>
 						<a
-							className="btn btn-ghost"
+							className={`${Button.buttonClassName}`}
 							onClick={() => router.push("/investor/dashboard")}
 						>
 							My Portfolio
 						</a>
 
 						<a
-							className="btn btn-ghost"
+							className={`${Button.buttonClassName}`}
 							onClick={() => router.push("/business/dashboard")}
 						>
 							My dashboard
 						</a>
 
+						<ThemeToggler />
+
 						<button
-							className="btn btn-error rounded-md"
+							className={`${Button.buttonOutlineClassName} border-red-500 text-red-500 hover:bg-red-100`}
 							onClick={handleLogout}
 						>
 							Logout
@@ -59,14 +61,14 @@ export default function Navbar() {
 					<>
 						{/* only show if we're NOT on the login page */}
 						{pathname !== "/login" && (
-							<Button onClick={() => router.push("/login")}>
+							<button
+								className={`${Button.buttonClassName}`}
+								onClick={() => router.push("/login")}>
 								Log in
-							</Button>
+							</button>
 						)}
 					</>
 				)}
-
-				<ThemeToggler />
 			</div>
 		</nav>
 	)

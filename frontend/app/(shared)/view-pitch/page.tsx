@@ -4,8 +4,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch";
-import Button from "@/components/Button";
 import { mockPitches } from "@/lib/mockPitches";
+import * as Button from "@/components/Button";
 
 export default function ViewPitchPage({
 	searchParams,
@@ -28,9 +28,11 @@ export default function ViewPitchPage({
 
 	return (
 		<div className="min-h-screen bg-base-100 p-6">
-			<Button className="mb-4" onClick={() => router.back()}>
+			<button 
+				className={`${Button.buttonOutlineClassName}`}
+				onClick={() => router.back()}>
 				Back
-			</Button>
+			</button>
 
 			<h1 className="text-3xl font-bold mb-2">{pitch.title}</h1>
 			<p className="text-lg mb-4">{pitch.elevator_pitch}</p>

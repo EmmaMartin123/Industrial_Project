@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import Button from "@/components/Button";
 import { mockPitches } from "@/lib/mockPitches";
+import * as Button from "@/components/Button";
 
 export default function ProfitDistributionPage({
 	searchParams,
@@ -25,9 +25,12 @@ export default function ProfitDistributionPage({
 		return (
 			<div className="min-h-screen bg-base-100 p-6">
 				<h1 className="text-2xl font-bold">Pitch not found</h1>
-				<Button className="mt-4" onClick={() => router.back()}>
+				<button 
+					className={`${Button.buttonOutlineClassName}`}
+					onClick={() => router.back()}
+				>
 					Go Back
-				</Button>
+				</button>
 			</div>
 		);
 	}
@@ -78,9 +81,11 @@ export default function ProfitDistributionPage({
 					onChange={(e) => setProfitAmount(Number(e.target.value))}
 					className="input input-bordered w-full mb-4"
 				/>
-				<Button onClick={handleDistribute} disabled={distributing}>
+				<button onClick={handleDistribute} disabled={distributing}
+					className={`${Button.buttonClassName}`}
+				>
 					{distributing ? "Distributing..." : "Distribute Profit"}
-				</Button>
+				</button>
 			</div>
 		</div>
 	);

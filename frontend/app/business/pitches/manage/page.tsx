@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Button from "@/components/Button";
 import toast from "react-hot-toast";
 import { Pencil, Eye, DollarSign } from "lucide-react";
 import { mockPitches } from "@/lib/mockPitches";
+import * as Button from "@/components/Button";
 
 export default function ManagePitchesPage() {
 	const router = useRouter();
@@ -45,25 +45,25 @@ export default function ManagePitchesPage() {
 							<p className="opacity-70">Profit Share: {pitch.profit_share_percent}%</p>
 						</div>
 						<div className="mt-4 flex flex-wrap gap-2">
-							<Button
-								className="flex items-center gap-1 btn-sm"
+							<button
+								className={`${Button.buttonOutlineClassName}`}
 								onClick={() => handleEdit(pitch.pitch_id)}
 							>
 								<Pencil /> Edit
-							</Button>
-							<Button
-								className="flex items-center gap-1 btn-outline btn-sm"
+							</button>
+							<button
+								className={`${Button.buttonOutlineClassName}`}
 								onClick={() => handleView(pitch.pitch_id)}
 							>
 								<Eye /> View
-							</Button>
+							</button>
 							{pitch.status === "Funded" && (
-								<Button
-									className="flex items-center gap-1 btn-success btn-sm"
+								<button
+									className="flex items-center gap-1 btn-outline btn-sm"
 									onClick={() => handleProfit(pitch.pitch_id)}
 								>
 									<DollarSign /> Distribute Profit
-								</Button>
+								</button>
 							)}
 						</div>
 					</div>
