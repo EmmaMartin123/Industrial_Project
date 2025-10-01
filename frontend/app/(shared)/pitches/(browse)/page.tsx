@@ -36,10 +36,24 @@ export default function BusinessPitchesPage() {
 	useEffect(() => {
 		const fetchPitches = async () => {
 			try {
+				// Fetches data from the /pitch endpoint
 				const res = await axiosInstance.get("/pitch");
 
+				// check if the response is an array or a single object
+				let dataToMap = res.data;
+
+				// if response data is not an array but is a non null object then 
+				// wrap it in an array so that .map() can be called on it
+				if (!Array.isArray(dataToMap) && dataToMap !== null && typeof dataToMap === 'object') {
+					dataToMap = [dataToMap];
+				} else if (!Array.isArray(dataToMap)) {
+					// if it's neither an array nor a single object
+					dataToMap = [];
+				}
+				// -------------------------------------------------------------------
+
 				// map backend data to pitch type
-				const mappedPitches: Pitch[] = res.data.map((p: any) => ({
+				const mappedPitches: Pitch[] = dataToMap.map((p: any) => ({
 					pitch_id: p.id,
 					title: p.title,
 					elevator_pitch: p.elevator_pitch,
@@ -68,10 +82,10 @@ export default function BusinessPitchesPage() {
 	}, []);
 
 	const handleView = (pitchId: number) => {
-		router.push(`/view-pitch?id=${pitchId}`);
+		router.push(`/pitches/${pitchId}`);
 	};
 
-	// Show loader while checking auth or loading pitches
+	// show loader while checking auth or loading pitches
 	if (isCheckingAuth || !authUser || loading) {
 		return (
 			<div className="flex items-center justify-center h-screen">
