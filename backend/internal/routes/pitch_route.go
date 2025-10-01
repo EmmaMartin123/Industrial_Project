@@ -252,6 +252,7 @@ func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, erro
 
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitchID := r.URL.Query().Get("id")
+	user_id := r.URL.Query().Get("user_id")
 
 	if pitchID == "" {
 		result, err := utils.GetAllData("pitch")
@@ -264,6 +265,16 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal([]byte(result), &pitches_from_database); err != nil {
 			http.Error(w, "Error decoding pitches", http.StatusInternalServerError)
 			return
+		}
+
+		if user_id != "" {
+			var filtered_pitches []database.Pitch
+			for _, pitch := range pitches_from_database {
+				if pitch.UserID == user_id {
+					filtered_pitches = append(filtered_pitches, pitch)
+				}
+			}
+			pitches_from_database = filtered_pitches
 		}
 
 		var pitches_to_send []frontend.Pitch
