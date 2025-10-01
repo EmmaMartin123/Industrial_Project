@@ -17,69 +17,6 @@ export default function BusinessPitchesPage() {
 
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-	// check auth on mount
-	useEffect(() => {
-		const verifyAuth = async () => {
-			await checkAuth();
-		};
-		verifyAuth();
-	}, [checkAuth]);
-
-	// redirect if not logged in
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) {
-			router.push("/login");
-		}
-	}, [authUser, isCheckingAuth, router]);
-
-	// fetch pitches from backend
-	useEffect(() => {
-		const fetchPitches = async () => {
-			try {
-				const res = await axiosInstance.get("/pitch");
-
-				// map backend data to pitch type
-				const mappedPitches: Pitch[] = res.data.map((p: any) => ({
-					pitch_id: p.id,
-					title: p.title,
-					elevator_pitch: p.elevator_pitch,
-					detailed_pitch: p.detailed_pitch,
-					target_amount: p.target_amount,
-					raised_amount: p.raised_amount ?? 0,
-					profit_share_percent: p.profit_share_percent,
-					status: p.status ?? "Active",
-					investment_start_date: new Date(p.investment_start_date),
-					investment_end_date: new Date(p.investment_end_date),
-					created_at: new Date(p.created_at ?? Date.now()),
-					updated_at: new Date(p.updated_at ?? Date.now()),
-					investment_tiers: p.investment_tiers as InvestmentTier[]
-				}));
-
-				setPitches(mappedPitches);
-			} catch (err: any) {
-				console.error(err);
-				toast.error("Failed to load pitches");
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchPitches();
-	}, []);
-
-	const handleView = (pitchId: number) => {
-		router.push(`/view-pitch?id=${pitchId}`);
-	};
-
-	// Show loader while checking auth or loading pitches
-	if (isCheckingAuth || !authUser || loading) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<Loader className="w-10 h-10 animate-spin" />
-			</div>
-		);
-	}
-
 	return (
 		<div className="min-h-screen bg-base-100 p-6">
 			<h1 className="text-3xl font-bold mb-6">All Pitches</h1>
