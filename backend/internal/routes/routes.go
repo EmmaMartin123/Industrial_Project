@@ -21,6 +21,7 @@ func SetupRouter() http.Handler {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/pitch", protected.Then(http.HandlerFunc(pitch_route)))
+	mux.Handle("/api/profile", protected.Then(http.HandlerFunc(profile_route)))
 
 	fmt.Println("Router setup complete")
 	return base.Then(mux)
