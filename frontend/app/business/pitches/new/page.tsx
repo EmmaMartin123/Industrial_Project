@@ -1,4 +1,3 @@
-// app/business/pitches/new/page.tsx
 "use client";
 
 import { useState, ChangeEvent, KeyboardEvent, memo } from "react";
@@ -9,21 +8,16 @@ import axiosInstance from "@/lib/axios";
 import { useAuthStore } from "@/lib/store/authStore";
 import { InvestmentTier } from "@/lib/types/pitch";
 import { supabase } from "@/lib/supabaseClient";
-import * as Button from "@/components/Button"; // Assuming this is needed for button styling
+import * as Button from "@/components/Button";
+import { postPitch } from "@/lib/api/pitch";
 
-// Reusable styles (retained for basic look)
 const inputStyle = "input input-bordered rounded-lg w-full bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200";
 const textareaStyle = "textarea textarea-bordered w-full h-24 bg-base-100 border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200 rounded-lg";
 const richTextareaStyle = "textarea w-full h-48 bg-base-100 border border-base-300 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition duration-200 rounded-lg p-4 resize-y";
 
-// ----------------------------------------------------------------------
-// InvestmentTierInput Component (Re-used for form simplicity)
-// ----------------------------------------------------------------------
-
 interface InvestmentTierInputProps {
 	tier: Partial<InvestmentTier>;
 	index: number;
-	// Updated type to accept undefined for max_amount on change
 	onChange: (index: number, field: keyof Partial<InvestmentTier>, value: string | number | undefined) => void;
 	onRemove: (index: number) => void;
 }
@@ -99,14 +93,9 @@ const InvestmentTierInput: React.FC<InvestmentTierInputProps> = memo(
 		);
 	});
 
-// ----------------------------------------------------------------------
-// Main Component: NewPitchPage
-// ----------------------------------------------------------------------
-
 export default function NewPitchPage() {
 	const { authUser } = useAuthStore();
 
-	// Form State (All retained)
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
@@ -122,7 +111,6 @@ export default function NewPitchPage() {
 
 	const ELEVATOR_MAX_LENGTH = 150;
 
-	// Handlers (All retained/modified to remove step validation)
 	const handleAddTier = () => setTiers([...tiers, { name: "", min_amount: 0, multiplier: 1, max_amount: undefined }]);
 	const handleRemoveTier = (index: number) => {
 		if (tiers.length > 1) {
@@ -131,7 +119,6 @@ export default function NewPitchPage() {
 			toast.error("You must have at least one investment tier.");
 		}
 	};
-	// The handleTierChange logic needs to handle `undefined` for optional fields like max_amount
 	const handleTierChange = (index: number, field: keyof Partial<InvestmentTier>, value: string | number | undefined) => {
 		const newTiers = [...tiers];
 		newTiers[index][field] = value as any;
@@ -162,11 +149,9 @@ export default function NewPitchPage() {
 		}
 	};
 
-	// Main Submission Logic (Retained and slightly improved validation message)
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// --- All-in-one Validation ---
 		if (!authUser) return toast.error("You must be logged in to submit a pitch.");
 		if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
 			return toast.error("Please fill in the Title, Elevator Pitch, and Detailed Pitch.");
@@ -184,7 +169,6 @@ export default function NewPitchPage() {
 		});
 
 		if (invalidTiers) return toast.error("Each tier must have a name, minimum amount > £0, positive multiplier, and Max Amount must be greater than Min Amount (if set).");
-		// -----------------------------
 
 		setLoading(true);
 		try {
@@ -205,17 +189,14 @@ export default function NewPitchPage() {
 				investment_tiers: tiers.map((t) => ({
 					name: t.name!,
 					min_amount: Number(t.min_amount),
-					// Converts undefined (empty input) to null for the database
 					max_amount: t.max_amount !== undefined ? Number(t.max_amount) : null,
 					multiplier: Number(t.multiplier),
 				})),
 			};
 
-			// POST Request
-			await axiosInstance.post("/pitch", payload);
+			await postPitch(payload);
 
 			toast.success("Pitch submitted successfully!");
-			// Clear form on success
 			setTitle("");
 			setElevator("");
 			setDetailedPitchContent("");
@@ -240,7 +221,6 @@ export default function NewPitchPage() {
 
 				<form onSubmit={handleSubmit} className="space-y-8 p-6 bg-white rounded-xl shadow-2xl">
 
-					{/* 1. General Info */}
 					<fieldset className="space-y-6 border-b pb-6">
 						<legend className="text-2xl font-bold text-secondary mb-4">General Information</legend>
 
@@ -283,7 +263,6 @@ export default function NewPitchPage() {
 						</div>
 					</fieldset>
 
-					{/* 2. Funding Details */}
 					<fieldset className="space-y-6 border-b pb-6">
 						<legend className="text-2xl font-bold text-secondary mb-4">Funding Details</legend>
 
@@ -325,7 +304,6 @@ export default function NewPitchPage() {
 						</div>
 					</fieldset>
 
-					{/* 3. Investment Tiers */}
 					<fieldset className="space-y-6 border-b pb-6">
 						<legend className="text-2xl font-bold text-secondary mb-4">Investment Tiers</legend>
 						<p className="text-sm text-gray-500">Define the minimum amount and multiplier for each tier.</p>
@@ -347,7 +325,6 @@ export default function NewPitchPage() {
 						</button>
 					</fieldset>
 
-					{/* 4. Tags and Submit */}
 					<fieldset className="space-y-6">
 						<legend className="text-2xl font-bold text-secondary mb-4">Tags</legend>
 

@@ -8,8 +8,9 @@ import { Loader } from "lucide-react"
 import { useAuthStore } from "@/lib/store/authStore"
 import axios from "@/lib/axios"
 import * as Button from "@/components/Button"
+import { postUserProfile } from "@/lib/api/profile"
+import { supabase } from "@/lib/supabaseClient"
 
-// Define the two role choices
 const ROLES = {
 	INVESTOR: "investor",
 	BUSINESS: "business",
@@ -22,30 +23,21 @@ export default function SignupPage() {
 	const [name, setName] = useState("")
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
-	// New state for the selected role
-	const [role, setRole] = useState(ROLES.INVESTOR) // Default to investor
+	const [role, setRole] = useState(ROLES.INVESTOR)
 
-	// States for the role-dependent fields
-	const [businessName, setBusinessName] = useState("") // Business field
-	const [investmentFocus, setInvestmentFocus] = useState("") // Investor field
+	const [businessName, setBusinessName] = useState("") // business field
+	const [investmentFocus, setInvestmentFocus] = useState("") // investor field
 
-	// Check if user is already logged in on mount
 	useEffect(() => {
 		checkAuth()
 	}, [checkAuth])
 
-	// Redirect to dashboard if already logged in
-	useEffect(() => {
-		if (authUser) router.push("/dashboard")
-	}, [authUser, router])
 
-	const handleSignup = () => {
-		// Base validation
+	const handleSignup = async () => {
 		if (!name || !email || !password || !role) {
 			return toast.error("Please fill in all general fields.")
 		}
 
-		// Role-specific validation
 		if (role === ROLES.BUSINESS && !businessName) {
 			return toast.error("Please enter the business name.")
 		}
@@ -53,21 +45,38 @@ export default function SignupPage() {
 			return toast.error("Please enter your investment focus.")
 		}
 
-		// Assemble the data payload
-		const signupData = {
-			name,
-			email,
-			password,
-			role,
-			// Include role-specific data only if present
-			...(role === ROLES.BUSINESS && { businessName }),
-			...(role === ROLES.INVESTOR && { investmentFocus }),
-		}
+		const nameToUse = name;
+		const roleToUse = role;
 
-		signup(signupData)
+		try {
+			// supabase auth signup
+			await signup({ email, password });
+
+			const { data: sessionData } = await supabase.auth.getSession()
+			const token = sessionData?.session?.access_token
+			console.log("Token:", token)
+
+			if (token) {
+				localStorage.setItem("token", token);
+			} else {
+				console.warn("No JWT found after login")
+			}
+
+			// post user profile
+			await postUserProfile({
+				display_name: nameToUse,
+				role: roleToUse
+			});
+
+			toast.success("Signup successful! Welcome.");
+			router.push("/");
+
+		} catch (error) {
+			toast.error("An error occurred during signup. Please try again.");
+			console.error("Signup sequence failed:", error);
+		}
 	}
 
-	// Function to render role-specific fields
 	const renderRoleSpecificFields = () => {
 		if (role === ROLES.BUSINESS) {
 			return (
@@ -105,13 +114,17 @@ export default function SignupPage() {
 		</div>
 	);
 
+	if (authUser) {
+		router.push("/");
+		return null;
+	}
+
 	return (
 		<div className="min-h-screen flex items-center justify-center bg-base-200">
 			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
 				<div className="card-body">
 					<h2 className="card-title text-center text-2xl mb-4">Sign Up</h2>
 
-					{/* Role Selection Field */}
 					Role
 					<select
 						className="select select-bordered w-full mb-3"
@@ -122,7 +135,6 @@ export default function SignupPage() {
 						<option value={ROLES.BUSINESS}>Business</option>
 					</select>
 
-					{/* General Fields */}
 					Display name
 					<input
 						type="text"
@@ -141,7 +153,6 @@ export default function SignupPage() {
 						onChange={(e) => setEmail(e.target.value)}
 					/>
 
-					{/* Dynamic Fields based on Role */}
 					{renderRoleSpecificFields()}
 
 					Password
