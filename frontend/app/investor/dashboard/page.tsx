@@ -71,7 +71,7 @@ export default function InvestorDashboardPage() {
 	};
 
 	const handleInvest = () => {
-		router.push("/browse-pitches");
+		router.push("/pitches");
 	};
 
 	// Dummy data for quick stats - replace with actual data later

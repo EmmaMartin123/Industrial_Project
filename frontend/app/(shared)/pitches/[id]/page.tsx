@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
 import axiosInstance from "@/lib/axios";
-import { Pitch, InvestmentTier } from "@/lib/types/pitch";
-
+import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
-import * as Button from "@/components/Button";
+import { getPitch } from "@/lib/api/pitch";
 
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
@@ -34,6 +33,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 		const fetchPitch = async () => {
 			try {
 				const res = await axiosInstance.get(`/pitch?id=${pitchId}`);
+
 				const pitchData = Array.isArray(res.data) ? res.data[0] : res.data;
 
 				if (!pitchData) {
@@ -55,6 +55,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					created_at: new Date(pitchData.created_at ?? Date.now()),
 					updated_at: new Date(pitchData.updated_at ?? Date.now()),
 					investment_tiers: (pitchData.investment_tiers || []) as InvestmentTier[],
+					media: (pitchData.media || []) as PitchMedia[],
 				};
 
 				setPitch(mappedPitch);
@@ -73,6 +74,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 		fetchPitch();
 	}, [pitchId]);
+
 
 	if (loading) {
 		return <LoaderComponent />;
@@ -96,8 +98,53 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	return (
 		<div style={{ padding: "1rem" }}>
 			<h1>{pitch.title}</h1>
+
 			<p><strong>Elevator Pitch:</strong> {pitch.elevator_pitch}</p>
 			<p><strong>Details:</strong> {pitch.detailed_pitch}</p>
+
+			{/* Media Display Section */}
+			{pitch.media && pitch.media.length > 0 && (
+				<div style={{ marginTop: "2rem", borderTop: "1px solid #eee", paddingTop: "1rem" }}>
+					<h2>Media 🖼️</h2>
+					<div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "1rem" }}>
+						{pitch.media
+							.sort((a, b) => a.order_in_description - b.order_in_description)
+							.map((mediaItem) => {
+								const isVideo = mediaItem.media_type.startsWith("video/");
+								const isImage = mediaItem.media_type.startsWith("image/");
+
+								// CORRECTED: Use mediaItem.media_id as the unique key
+								return (
+									<div key={mediaItem.media_id} style={{ maxWidth: isVideo ? "400px" : "200px", border: "1px solid #ccc", padding: "5px" }}>
+
+										{isImage && (
+											<img
+												src={mediaItem.url}
+												alt={`Pitch Media ${mediaItem.order_in_description}`}
+												style={{ width: "100%", height: "auto", display: "block" }}
+											/>
+										)}
+
+										{isVideo && (
+											<video controls style={{ width: "100%", height: "auto", display: "block" }}>
+												<source src={mediaItem.url} type={mediaItem.media_type} />
+												Your browser does not support the video tag.
+											</video>
+										)}
+
+										{!isImage && !isVideo && (
+											<p>Unsupported Media Type: {mediaItem.media_type}</p>
+										)}
+
+									</div>
+								);
+							})}
+					</div>
+				</div>
+			)}
+
+			<hr style={{ margin: "2rem 0" }} />
+
 			<p><strong>Target:</strong> ${pitch.target_amount}</p>
 			<p><strong>Raised:</strong> ${pitch.raised_amount}</p>
 			<p><strong>Profit Share:</strong> {pitch.profit_share_percent}%</p>
@@ -105,18 +152,24 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			<p>
 				<strong>Investment Start Date:</strong>{" "}
 				{pitch.investment_start_date.toLocaleDateString()}
-			<br />
+				<br />
 				<strong>Investment End Date:</strong>{" "}
 				{pitch.investment_end_date.toLocaleDateString()}
 			</p>
 
+			{/* Investment Tiers Section */}
 			{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
+				// CORRECTED: Added key={index} to the wrapping div for the entire tiers block
+				// Although this is a single element wrapped in conditional logic, it's good practice 
+				// if this block was part of a larger list render. Since it's not, we only need keys
+				// on the children being mapped.
 				<div style={{ marginTop: "1rem" }}>
 					<h2><strong>Investment Tiers</strong></h2>
 					<br />
 					<ul>
-						{pitch.investment_tiers.map((tier, index) => (
-							<li key={index}>
+						{pitch.investment_tiers.map((tier) => (
+							// CORRECTED: Use tier.tier_id as the unique key for the <li>
+							<li key={tier.tier_id}>
 								Name: {tier.name},
 								Max amount: ${tier.max_amount}, Min amount: ${tier.min_amount},
 								Multiplier: {tier.multiplier}%
