@@ -12,12 +12,6 @@ export default function Footer() {
 						replace with slogan or name or something
 					</p>
 				</div>
-				<div>
-					<span className="footer-title">Links</span>
-					<a className="link link-hover">Browse Pitches</a>
-					<a className="link link-hover">My Portfolio</a>
-					<a className="link link-hover">Sign In</a>
-				</div>
 			</footer>
 		</div>
 	)

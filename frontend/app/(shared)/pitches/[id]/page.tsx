@@ -7,13 +7,15 @@ import toast from "react-hot-toast";
 import axiosInstance from "@/lib/axios";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 
+import LoaderComponent from "@/components/Loader";
+import * as Button from "@/components/Button";
+
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
 }
 
 export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const router = useRouter();
-
 	const resolved_params = use(params);
 
 	const pitchId = Number(resolved_params.id);
@@ -73,58 +75,58 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	}, [pitchId]);
 
 	if (loading) {
-		return <div>Loading pitch...</div>;
+		return <LoaderComponent />;
 	}
 
 	if (error || !pitch) {
 		return (
-			<div>
-				<h1>Error</h1>
+			<div className="p-6">
+				<h1 className="text-xl font-bold">Error</h1>
 				<p>{error || "Pitch data not available."}</p>
-				<button onClick={() => router.back()}>Go Back</button>
+				<button
+					onClick={() => router.back()}
+					className="btn btn-secondary mt-4"
+				>
+					Go Back
+				</button>
 			</div>
 		);
 	}
 
 	return (
-		<div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-			<button onClick={() => router.back()}>Back to Pitches</button>
-			<hr />
-
+		<div style={{ padding: "1rem" }}>
 			<h1>{pitch.title}</h1>
-			<p>"{pitch.elevator_pitch}"</p>
-
-			<h2>Detailed Pitch:</h2>
-			<p>{pitch.detailed_pitch}</p>
-
-			<h2>Key Metrics:</h2>
-			<ul>
-				<li>Status: {pitch.status}</li>
-				<li>Profit Share: {pitch.profit_share_percent}%</li>
-				<li>Target Investment: £{pitch.target_amount.toLocaleString()}</li>
-				<li>Raised Amount: £{pitch.raised_amount.toLocaleString()}</li>
-				<li>Investment Start: {pitch.investment_start_date.toLocaleDateString()}</li>
-				<li>Investment End: {pitch.investment_end_date.toLocaleDateString()}</li>
-			</ul>
+			<p><strong>Elevator Pitch:</strong> {pitch.elevator_pitch}</p>
+			<p><strong>Details:</strong> {pitch.detailed_pitch}</p>
+			<p><strong>Target:</strong> ${pitch.target_amount}</p>
+			<p><strong>Raised:</strong> ${pitch.raised_amount}</p>
+			<p><strong>Profit Share:</strong> {pitch.profit_share_percent}%</p>
+			<p><strong>Status:</strong> {pitch.status}</p>
+			<p>
+				<strong>Investment Start Date:</strong>{" "}
+				{pitch.investment_start_date.toLocaleDateString()}
+			<br />
+				<strong>Investment End Date:</strong>{" "}
+				{pitch.investment_end_date.toLocaleDateString()}
+			</p>
 
 			{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
-				<>
-					<h2>Investment Tiers:</h2>
-					{pitch.investment_tiers.map((tier: InvestmentTier) => (
-						<div key={tier.tier_id} style={{ border: '1px solid #ccc', padding: '10px', margin: '10px 0' }}>
-							<h3>Tier Name: {tier.name}</h3>
-							<p>Min Investment: £{tier.min_amount.toLocaleString()}</p>
-							{tier.max_amount && (
-								<p>Max Investment: £{tier.max_amount.toLocaleString()}</p>
-							)}
-							<p>Multiplier: {tier.multiplier}x</p>
-						</div>
-					))}
-				</>
+				<div style={{ marginTop: "1rem" }}>
+					<h2><strong>Investment Tiers</strong></h2>
+					<br />
+					<ul>
+						{pitch.investment_tiers.map((tier, index) => (
+							<li key={index}>
+								Name: {tier.name},
+								Max amount: ${tier.max_amount}, Min amount: ${tier.min_amount},
+								Multiplier: {tier.multiplier}%
+								<br />
+								<br />
+							</li>
+						))}
+					</ul>
+				</div>
 			)}
-
-			<hr />
-			<button onClick={() => {/* handle investment */ }}>Invest Now</button>
 		</div>
 	);
 }
