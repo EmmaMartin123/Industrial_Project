@@ -1,0 +1,25 @@
+(functionality wise not design wise)
+
+general:
+
+- auth
+
+business:
+
+  done:
+	- create new pitch
+	- browse all pitches
+	- browse own pitches
+	- view pitch
+
+todo:
+
+- edit pitch
+
+in progress:
+
+
+
+
+
+investor:
