@@ -7,7 +7,7 @@ import (
 )
 
 func Pitch_ToDatabase(p frontend.Pitch, user_id string) database.Pitch {
-	raised_amount := 0
+	raised_amount := int64(0)
 	if p.RaisedAmount != nil {
 		raised_amount = *p.RaisedAmount
 	}

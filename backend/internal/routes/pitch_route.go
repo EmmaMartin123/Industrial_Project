@@ -73,7 +73,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		if tier.ID == nil {
 			continue
 		}
-		if err := utils.DeleteByID("investment_tier", strconv.Itoa(*tier.ID)); err != nil {
+		if err := utils.DeleteByID("investment_tier", strconv.Itoa(int(*tier.ID))); err != nil {
 			fmt.Printf("Warning: failed to delete investment tier %d: %v\n", *tier.ID, err)
 		}
 	}
@@ -88,7 +88,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if item.ID != nil {
-				if err := utils.DeleteByID("pitch_media", strconv.Itoa(*item.ID)); err != nil {
+				if err := utils.DeleteByID("pitch_media", strconv.Itoa(int(*item.ID))); err != nil {
 					fmt.Printf("Warning: failed to delete media %d from database: %v\n", *item.ID, err)
 				}
 			}
@@ -190,7 +190,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 				PitchID:            &pitch_id,
 				URL:                fileURL,
 				MediaType:          mediaType,
-				OrderInDescription: i + 1, // 1-based index for ordering
+				OrderInDescription: int64(i + 1), // 1-based index for ordering
 			}
 
 			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, pitch_id)
@@ -210,7 +210,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if media.OrderInDescription == 0 {
-				media.OrderInDescription = i + 1
+				media.OrderInDescription = int64(i + 1)
 			}
 
 			media.PitchID = &pitch_id
@@ -409,7 +409,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	for _, tier := range old_investment_tiers {
 		id := tier.ID
-		invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(*id))
+		invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(int(*id)))
 		if invest_err != nil {
 			fmt.Printf("Error deleting investment tier %d: %v\n", *id, invest_err)
 		}
@@ -423,7 +423,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	keep_media_ids := make(map[int]bool)
+	keep_media_ids := make(map[int64]bool)
 	for _, media := range new_pitch.Media {
 		if media.ID != nil {
 			keep_media_ids[*media.ID] = true
@@ -436,7 +436,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Warning: failed to delete file from S3: %v\n", err)
 			}
 
-			if err := utils.DeleteByID("pitch_media", strconv.Itoa(*media.ID)); err != nil {
+			if err := utils.DeleteByID("pitch_media", strconv.Itoa(int(*media.ID))); err != nil {
 				fmt.Printf("Warning: failed to delete media %d from database: %v\n", *media.ID, err)
 			}
 		}
@@ -473,7 +473,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 				PitchID:            old_pitch.PitchID,
 				URL:                fileURL,
 				MediaType:          mediaType,
-				OrderInDescription: i + 1, // 1-based index for ordering
+				OrderInDescription: int64(i + 1), // 1-based index for ordering
 			}
 
 			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, *old_pitch.PitchID)
@@ -503,7 +503,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if media.OrderInDescription == 0 {
-			media.OrderInDescription = i + 1
+			media.OrderInDescription = int64(i + 1)
 		}
 
 		media.PitchID = old_pitch.PitchID
@@ -523,7 +523,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		media_files = append(media_files, media)
 	}
 
-	_, update_err := utils.ReplaceByID("pitch", strconv.Itoa(*old_pitch.PitchID), to_db_pitch)
+	_, update_err := utils.ReplaceByID("pitch", strconv.Itoa(int(*old_pitch.PitchID)), to_db_pitch)
 	if update_err != nil {
 		fmt.Printf("Error updating pitch: %v\n", update_err)
 		http.Error(w, "Error updating pitch", http.StatusInternalServerError)

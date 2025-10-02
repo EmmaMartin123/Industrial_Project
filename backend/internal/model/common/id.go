@@ -1,5 +1,5 @@
 package model
 
 type ID struct {
-	ID int `json:"id"`
+	ID int64 `json:"id"`
 }

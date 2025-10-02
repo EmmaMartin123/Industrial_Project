@@ -173,7 +173,7 @@ func TestPitchCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("Missing or invalid 'id' in response: %v", created_pitch)
 	}
-	pitch_id := int(pitch_id_float)
+	pitch_id := int64(pitch_id_float)
 
 	defer func() {
 		delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)
@@ -400,7 +400,7 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 	if !ok {
 		t.Fatalf("Missing or invalid 'id' in response: %v", created_pitch)
 	}
-	pitch_id := int(pitch_id_float)
+	pitch_id := int64(pitch_id_float)
 
 	defer func() {
 		delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)
