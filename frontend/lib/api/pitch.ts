@@ -1,10 +1,13 @@
-// /lib/api/pitch.ts
-
 import { Pitch, NewPitch, UpdatePitch } from "@/lib/types/pitch";
 import axios from "@/lib/axios";
 
-export const getAllPitches = async (): Promise<Pitch[]> => {
-	const response = await axios.get("/pitch");
+export const getAllPitches = async (userId?: string): Promise<Pitch[]> => {
+	// if a userid is provided append it as a query parameter
+	const query = userId ? `?user_id=${userId}` : "";
+
+	const response = await axios.get(`/pitch${query}`);
+
+	// the backend returns an array of pitches in this case
 	return response.data;
 };
 
@@ -13,11 +16,8 @@ export const getPitch = async (id: number): Promise<Pitch> => {
 	return response.data;
 };
 
-// --- MODIFIED postPitch FUNCTION ---
-// Now accepts FormData (which includes files) or the original NewPitch data.
-// The backend expects FormData for file uploads.
 export const postPitch = async (data: NewPitch | FormData): Promise<Pitch> => {
-	// If it's FormData, we tell axios *not* to set Content-Type, letting the browser handle multipart boundary.
+	// if it's formdata make axios not to set content type letting the browser handle multipart boundary
 	const headers = data instanceof FormData ? {
 		'Content-Type': 'multipart/form-data'
 	} : {};

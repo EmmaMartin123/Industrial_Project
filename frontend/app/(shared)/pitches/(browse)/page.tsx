@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Eye, Loader } from "lucide-react";
 import { useRouter } from "next/navigation";
-import axiosInstance from "@/lib/axios";
-import { Pitch, InvestmentTier } from "@/lib/types/pitch"; // adjust path if needed
+import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 import * as Button from "@/components/Button";
-
+import { getAllPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
-import { supabase } from "@/lib/supabaseClient";
 
 export default function BusinessPitchesPage() {
 	const router = useRouter();
@@ -18,7 +16,6 @@ export default function BusinessPitchesPage() {
 
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
 			await checkAuth();
@@ -26,34 +23,33 @@ export default function BusinessPitchesPage() {
 		verifyAuth();
 	}, [checkAuth]);
 
-	// redirect if not logged in
 	useEffect(() => {
 		if (!isCheckingAuth && !authUser) {
 			router.push("/login");
 		}
 	}, [authUser, isCheckingAuth, router]);
 
-	// fetch pitches from backend
 	useEffect(() => {
+		if (isCheckingAuth || !authUser) {
+			return;
+		}
+
 		const fetchPitches = async () => {
 			try {
-				// Fetches data from the /pitch endpoint
-				const res = await axiosInstance.get("/pitch");
+				setLoading(true);
 
-				// check if the response is an array or a single object
-				let dataToMap = res.data;
+				const fetchedData = await getAllPitches();
 
-				// if response data is not an array but is a non null object then 
-				// wrap it in an array so that .map() can be called on it
-				if (!Array.isArray(dataToMap) && dataToMap !== null && typeof dataToMap === 'object') {
-					dataToMap = [dataToMap];
-				} else if (!Array.isArray(dataToMap)) {
-					// if it's neither an array nor a single object
-					dataToMap = [];
+				let dataToMap = fetchedData;
+
+				if (!Array.isArray(dataToMap)) {
+					if (dataToMap !== null && typeof dataToMap === 'object') {
+						dataToMap = [dataToMap];
+					} else {
+						dataToMap = [];
+					}
 				}
-				// -------------------------------------------------------------------
 
-				// map backend data to pitch type
 				const mappedPitches: Pitch[] = dataToMap.map((p: any) => ({
 					pitch_id: p.id,
 					title: p.title,
@@ -62,12 +58,13 @@ export default function BusinessPitchesPage() {
 					target_amount: p.target_amount,
 					raised_amount: p.raised_amount ?? 0,
 					profit_share_percent: p.profit_share_percent,
-					status: p.status ?? "Active",
+					status: p.status,
 					investment_start_date: new Date(p.investment_start_date),
 					investment_end_date: new Date(p.investment_end_date),
 					created_at: new Date(p.created_at ?? Date.now()),
 					updated_at: new Date(p.updated_at ?? Date.now()),
-					investment_tiers: p.investment_tiers as InvestmentTier[]
+					investment_tiers: p.investment_tiers as InvestmentTier[],
+					// media is not returned when getting all pitches
 				}));
 
 				setPitches(mappedPitches);
@@ -80,13 +77,13 @@ export default function BusinessPitchesPage() {
 		};
 
 		fetchPitches();
-	}, []);
+
+	}, [authUser, isCheckingAuth]);
 
 	const handleView = (pitchId: number) => {
 		router.push(`/pitches/${pitchId}`);
 	};
 
-	// show loader while checking auth or loading pitches
 	if (isCheckingAuth || !authUser || loading) {
 		return (
 			<div className="flex items-center justify-center h-screen">
@@ -110,9 +107,9 @@ export default function BusinessPitchesPage() {
 						>
 							<div>
 								<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
-								<p className="opacity-70 mb-1">Status: {pitch.status}</p>
+								<p className="opacity-70 mb-1">Status: **{pitch.status}**</p>
 								<p className="opacity-70 mb-1">
-									Raised: £{pitch.raised_amount} / £{pitch.target_amount}
+									Raised: **£{pitch.raised_amount}** / £{pitch.target_amount}
 								</p>
 								<p className="opacity-70">
 									Profit Share: {pitch.profit_share_percent}%

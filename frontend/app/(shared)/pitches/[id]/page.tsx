@@ -4,10 +4,11 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-import axiosInstance from "@/lib/axios";
+// Importing the API wrapper function and types
+import { getPitch } from "@/lib/api/pitch"; // <-- CORRECTED: Using the API wrapper
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
+
 import LoaderComponent from "@/components/Loader";
-import { getPitch } from "@/lib/api/pitch";
 
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
@@ -32,30 +33,30 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 		const fetchPitch = async () => {
 			try {
-				const res = await axiosInstance.get(`/pitch?id=${pitchId}`);
+				const pitchData = await getPitch(pitchId);
 
-				const pitchData = Array.isArray(res.data) ? res.data[0] : res.data;
+				const finalPitchData = Array.isArray(pitchData) ? pitchData[0] : pitchData;
 
-				if (!pitchData) {
+				if (!finalPitchData) {
 					setError("Pitch not found.");
 					return;
 				}
 
 				const mappedPitch: Pitch = {
-					pitch_id: pitchData.id,
-					title: pitchData.title,
-					elevator_pitch: pitchData.elevator_pitch,
-					detailed_pitch: pitchData.detailed_pitch,
-					target_amount: pitchData.target_amount,
-					raised_amount: pitchData.raised_amount ?? 0,
-					profit_share_percent: pitchData.profit_share_percent,
-					status: pitchData.status ?? "Active",
-					investment_start_date: new Date(pitchData.investment_start_date),
-					investment_end_date: new Date(pitchData.investment_end_date),
-					created_at: new Date(pitchData.created_at ?? Date.now()),
-					updated_at: new Date(pitchData.updated_at ?? Date.now()),
-					investment_tiers: (pitchData.investment_tiers || []) as InvestmentTier[],
-					media: (pitchData.media || []) as PitchMedia[],
+					pitch_id: finalPitchData.id || finalPitchData.pitch_id,
+					title: finalPitchData.title,
+					elevator_pitch: finalPitchData.elevator_pitch,
+					detailed_pitch: finalPitchData.detailed_pitch,
+					target_amount: finalPitchData.target_amount,
+					raised_amount: finalPitchData.raised_amount ?? 0,
+					profit_share_percent: finalPitchData.profit_share_percent,
+					status: "ddd",
+					investment_start_date: new Date(finalPitchData.investment_start_date),
+					investment_end_date: new Date(finalPitchData.investment_end_date),
+					created_at: new Date(finalPitchData.created_at ?? Date.now()),
+					updated_at: new Date(finalPitchData.updated_at ?? Date.now()),
+					investment_tiers: (finalPitchData.investment_tiers || []) as InvestmentTier[],
+					media: (finalPitchData.media || []) as PitchMedia[],
 				};
 
 				setPitch(mappedPitch);
@@ -102,7 +103,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			<p><strong>Elevator Pitch:</strong> {pitch.elevator_pitch}</p>
 			<p><strong>Details:</strong> {pitch.detailed_pitch}</p>
 
-			{/* Media Display Section */}
 			{pitch.media && pitch.media.length > 0 && (
 				<div style={{ marginTop: "2rem", borderTop: "1px solid #eee", paddingTop: "1rem" }}>
 					<h2>Media 🖼️</h2>
@@ -113,7 +113,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 								const isVideo = mediaItem.media_type.startsWith("video/");
 								const isImage = mediaItem.media_type.startsWith("image/");
 
-								// CORRECTED: Use mediaItem.media_id as the unique key
 								return (
 									<div key={mediaItem.media_id} style={{ maxWidth: isVideo ? "400px" : "200px", border: "1px solid #ccc", padding: "5px" }}>
 
@@ -157,18 +156,12 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 				{pitch.investment_end_date.toLocaleDateString()}
 			</p>
 
-			{/* Investment Tiers Section */}
 			{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
-				// CORRECTED: Added key={index} to the wrapping div for the entire tiers block
-				// Although this is a single element wrapped in conditional logic, it's good practice 
-				// if this block was part of a larger list render. Since it's not, we only need keys
-				// on the children being mapped.
 				<div style={{ marginTop: "1rem" }}>
 					<h2><strong>Investment Tiers</strong></h2>
 					<br />
 					<ul>
 						{pitch.investment_tiers.map((tier) => (
-							// CORRECTED: Use tier.tier_id as the unique key for the <li>
 							<li key={tier.tier_id}>
 								Name: {tier.name},
 								Max amount: ${tier.max_amount}, Min amount: ${tier.min_amount},

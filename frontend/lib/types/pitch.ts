@@ -15,7 +15,7 @@ export type Pitch = {
 	target_amount: number;
 	raised_amount: number;
 	profit_share_percent: number;
-	status: "Active" | "Draft" | "Funded";
+	status: string;
 	investment_start_date: Date;
 	investment_end_date: Date;
 	created_at: Date;
