@@ -4,11 +4,19 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
-// Importing the API wrapper function and types
-import { getPitch } from "@/lib/api/pitch"; // <-- CORRECTED: Using the API wrapper
+import { getPitch } from "@/lib/api/pitch";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 
 import LoaderComponent from "@/components/Loader";
+
+// ✅ Import carousel components from shadcn/ui
+import {
+	Carousel,
+	CarouselContent,
+	CarouselItem,
+	CarouselNext,
+	CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
@@ -35,7 +43,9 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			try {
 				const pitchData = await getPitch(pitchId);
 
-				const finalPitchData = Array.isArray(pitchData) ? pitchData[0] : pitchData;
+				const finalPitchData = Array.isArray(pitchData)
+					? pitchData[0]
+					: pitchData;
 
 				if (!finalPitchData) {
 					setError("Pitch not found.");
@@ -55,7 +65,8 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					investment_end_date: new Date(finalPitchData.investment_end_date),
 					created_at: new Date(finalPitchData.created_at ?? Date.now()),
 					updated_at: new Date(finalPitchData.updated_at ?? Date.now()),
-					investment_tiers: (finalPitchData.investment_tiers || []) as InvestmentTier[],
+					investment_tiers: (finalPitchData.investment_tiers ||
+						[]) as InvestmentTier[],
 					media: (finalPitchData.media || []) as PitchMedia[],
 				};
 
@@ -75,7 +86,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 		fetchPitch();
 	}, [pitchId]);
-
 
 	if (loading) {
 		return <LoaderComponent />;
@@ -100,54 +110,67 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 		<div style={{ padding: "1rem" }}>
 			<h1>{pitch.title}</h1>
 
-			<p><strong>Elevator Pitch:</strong> {pitch.elevator_pitch}</p>
-			<p><strong>Details:</strong> {pitch.detailed_pitch}</p>
+			<p>
+				<strong>Elevator Pitch:</strong> {pitch.elevator_pitch}
+			</p>
+			<p>
+				<strong>Details:</strong> {pitch.detailed_pitch}
+			</p>
 
 			{pitch.media && pitch.media.length > 0 && (
-				<div style={{ marginTop: "2rem", borderTop: "1px solid #eee", paddingTop: "1rem" }}>
-					<h2>Media 🖼️</h2>
-					<div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "1rem" }}>
-						{pitch.media
-							.sort((a, b) => a.order_in_description - b.order_in_description)
-							.map((mediaItem) => {
-								const isVideo = mediaItem.media_type.startsWith("video/");
-								const isImage = mediaItem.media_type.startsWith("image/");
+				<div className="mt-8 border-t pt-6">
+					<h2 className="text-lg font-semibold mb-4">Media 🖼️</h2>
 
-								return (
-									<div key={mediaItem.media_id} style={{ maxWidth: isVideo ? "400px" : "200px", border: "1px solid #ccc", padding: "5px" }}>
+					<Carousel className="w-full max-w-2xl mx-auto">
+						<CarouselContent>
+							{pitch.media
+								.sort((a, b) => a.order_in_description - b.order_in_description)
+								.map((mediaItem) => (
+									<CarouselItem key={mediaItem.media_id}>
+										<div className="flex items-center justify-center">
+											<div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden shadow-md">
+												{mediaItem.media_type.startsWith("image/") && (
+													<img
+														src={mediaItem.url}
+														alt={`Pitch Media ${mediaItem.order_in_description}`}
+														className="w-full h-full object-cover"
+													/>
+												)}
 
-										{isImage && (
-											<img
-												src={mediaItem.url}
-												alt={`Pitch Media ${mediaItem.order_in_description}`}
-												style={{ width: "100%", height: "auto", display: "block" }}
-											/>
-										)}
-
-										{isVideo && (
-											<video controls style={{ width: "100%", height: "auto", display: "block" }}>
-												<source src={mediaItem.url} type={mediaItem.media_type} />
-												Your browser does not support the video tag.
-											</video>
-										)}
-
-										{!isImage && !isVideo && (
-											<p>Unsupported Media Type: {mediaItem.media_type}</p>
-										)}
-
-									</div>
-								);
-							})}
-					</div>
+												{mediaItem.media_type.startsWith("video/") && (
+													<video
+														controls
+														className="w-full h-full object-cover"
+													>
+														<source src={mediaItem.url} type={mediaItem.media_type} />
+														Your browser does not support the video tag.
+													</video>
+												)}
+											</div>
+										</div>
+									</CarouselItem>
+								))}
+						</CarouselContent>
+						<CarouselPrevious />
+						<CarouselNext />
+					</Carousel>
 				</div>
 			)}
 
 			<hr style={{ margin: "2rem 0" }} />
 
-			<p><strong>Target:</strong> ${pitch.target_amount}</p>
-			<p><strong>Raised:</strong> ${pitch.raised_amount}</p>
-			<p><strong>Profit Share:</strong> {pitch.profit_share_percent}%</p>
-			<p><strong>Status:</strong> {pitch.status}</p>
+			<p>
+				<strong>Target:</strong> ${pitch.target_amount}
+			</p>
+			<p>
+				<strong>Raised:</strong> ${pitch.raised_amount}
+			</p>
+			<p>
+				<strong>Profit Share:</strong> {pitch.profit_share_percent}%
+			</p>
+			<p>
+				<strong>Status:</strong> {pitch.status}
+			</p>
 			<p>
 				<strong>Investment Start Date:</strong>{" "}
 				{pitch.investment_start_date.toLocaleDateString()}
@@ -157,17 +180,14 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			</p>
 
 			{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
-				<div style={{ marginTop: "1rem" }}>
-					<h2><strong>Investment Tiers</strong></h2>
-					<br />
-					<ul>
+				<div className="mt-4">
+					<h2 className="font-bold text-lg">Investment Tiers</h2>
+					<ul className="list-disc ml-6 mt-2">
 						{pitch.investment_tiers.map((tier) => (
-							<li key={tier.tier_id}>
-								Name: {tier.name},
-								Max amount: ${tier.max_amount}, Min amount: ${tier.min_amount},
-								Multiplier: {tier.multiplier}%
-								<br />
-								<br />
+							<li key={tier.tier_id} className="mb-2">
+								<span className="font-semibold">{tier.name}</span> — Min: $
+								{tier.min_amount}, Max: ${tier.max_amount}, Multiplier:{" "}
+								{tier.multiplier}%
 							</li>
 						))}
 					</ul>
