@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -253,32 +254,92 @@ func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, erro
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitchID := r.URL.Query().Get("id")
 	user_id := r.URL.Query().Get("user_id")
+	tags := r.URL.Query().Get("tags")
+	target_amount := r.URL.Query().Get("target_amount")
+	profit_share_percent := r.URL.Query().Get("profit_share_percent")
+	investment_end_date := r.URL.Query().Get("investment_end_date")
+	limit := r.URL.Query().Get("limit")
+	offset := r.URL.Query().Get("offset")
+	sort := r.URL.Query().Get("sort")
 
 	if pitchID == "" {
-		result, err := utils.GetAllData("pitch")
+		
+		var queryParams []string
+		var tagIDs []int64
+
+		
+		if user_id != "" {
+			queryParams = append(queryParams, fmt.Sprintf("user_id=eq.%s", user_id))
+		}
+
+		if target_amount != "" {
+			queryParams = append(queryParams, fmt.Sprintf("target_amount=eq.%s", target_amount))
+		}
+
+		if profit_share_percent != "" {
+			queryParams = append(queryParams, fmt.Sprintf("profit_share_percent=eq.%s", profit_share_percent))
+		}
+
+		if investment_end_date != "" {
+			queryParams = append(queryParams, fmt.Sprintf("investment_end_date=eq.%s", investment_end_date))
+		}
+
+		
+		if limit != "" {
+			limitValue, err := strconv.Atoi(limit)
+			if err == nil && limitValue > 0 {
+				queryParams = append(queryParams, fmt.Sprintf("limit=%d", limitValue))
+			}
+		}
+
+		if offset != "" {
+			offsetValue, err := strconv.Atoi(offset)
+			if err == nil && offsetValue > 0 {
+				queryParams = append(queryParams, fmt.Sprintf("offset=%d", offsetValue))
+			}
+		}
+
+		
+		if tags != "" {
+			tagList := strings.Split(tags, ",")
+			for i := range tagList {
+				tagList[i] = strings.TrimSpace(tagList[i])
+			}
+
+			tagIDs = getTagIDsByNames(tagList)
+
+			if len(tagIDs) > 0 {
+				tagConditions := make([]string, len(tagIDs))
+				for i, id := range tagIDs {
+					tagConditions[i] = fmt.Sprintf("tags_id.eq.%d", id)
+				}
+				queryParams = append(queryParams, fmt.Sprintf("or=(%s)", strings.Join(tagConditions, ",")))
+			}
+		}
+
+		var result []byte
+		var err error
+
+		if len(queryParams) > 0 {
+			query := strings.Join(queryParams, "&")
+			result, err = utils.GetDataByQuery("pitch", query)
+		} else {
+			result, err = utils.GetAllData("pitch")
+		}
+
 		if err != nil {
 			http.Error(w, "Error fetching pitches", http.StatusInternalServerError)
 			return
 		}
 
-		var pitches_from_database []database.Pitch
-		if err := json.Unmarshal([]byte(result), &pitches_from_database); err != nil {
+		var filtered_pitches []database.Pitch
+		if err := json.Unmarshal(result, &filtered_pitches); err != nil {
 			http.Error(w, "Error decoding pitches", http.StatusInternalServerError)
 			return
 		}
 
-		if user_id != "" {
-			var filtered_pitches []database.Pitch
-			for _, pitch := range pitches_from_database {
-				if pitch.UserID == user_id {
-					filtered_pitches = append(filtered_pitches, pitch)
-				}
-			}
-			pitches_from_database = filtered_pitches
-		}
-
 		var pitches_to_send []frontend.Pitch
-		for _, pitch := range pitches_from_database {
+		for _, pitch := range filtered_pitches {
 			investment_tiers, invest_err := get_investment_tiers(pitch)
 			if invest_err != nil {
 				http.Error(w, "Error decoding investment tiers", http.StatusInternalServerError)
@@ -288,10 +349,19 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			media, media_err := utils.GetPitchMedia(*pitch.PitchID)
 			if media_err != nil {
 				fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
-				media = []frontend.PitchMedia{} // Empty array instead of nil
+				media = []frontend.PitchMedia{}
 			}
 
 			pitches_to_send = append(pitches_to_send, mapping.Pitch_ToFrontend(pitch, investment_tiers, media))
+		}
+
+		if sort != "" {
+			parts := strings.Split(sort, ":")
+			if len(parts) == 2 && parts[0] == "price" {
+				isAscending := parts[1] == "asc"
+
+				sortPitchesByPrice(pitches_to_send, isAscending)
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -328,13 +398,83 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	media, media_err := utils.GetPitchMedia(*pitch.PitchID)
 	if media_err != nil {
 		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
-		media = []frontend.PitchMedia{} // Empty array instead of nil
+		media = []frontend.PitchMedia{}
 	}
 
 	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pitch_to_send)
+}
+
+func getMinimumTierPrice(tiers []model.InvestmentTier) float64 {
+	if len(tiers) == 0 {
+		return math.MaxFloat64
+	}
+
+	minPrice := math.MaxFloat64
+	for _, tier := range tiers {
+		price := float64(tier.MinAmount)
+		if price < minPrice {
+			minPrice = price
+		}
+	}
+
+	return minPrice
+}
+
+func getTagIDsByNames(tagNames []string) []int64 {
+	var tagIDs []int64
+
+	for _, name := range tagNames {
+		if name == "" {
+			continue
+		}
+
+		query := fmt.Sprintf("name=eq.%s", name)
+		result, err := utils.GetDataByQuery("tag", query)
+
+		if err != nil {
+			fmt.Printf("Error fetching tag with name %s: %v\n", name, err)
+			continue
+		}
+
+		var tags []database.Tag
+		if err := json.Unmarshal([]byte(result), &tags); err != nil {
+			fmt.Printf("Error unmarshaling tag: %v\n", err)
+			continue
+		}
+
+		if len(tags) > 0 {
+			tagIDs = append(tagIDs, tags[0].ID)
+		}
+	}
+
+	return tagIDs
+}
+
+func sortPitchesByPrice(pitches []frontend.Pitch, ascending bool) {
+	if ascending {
+		for i := 0; i < len(pitches)-1; i++ {
+			for j := i + 1; j < len(pitches); j++ {
+				priceI := getMinimumTierPrice(pitches[i].InvestmentTiers)
+				priceJ := getMinimumTierPrice(pitches[j].InvestmentTiers)
+				if priceI > priceJ {
+					pitches[i], pitches[j] = pitches[j], pitches[i]
+				}
+			}
+		}
+	} else {
+		for i := 0; i < len(pitches)-1; i++ {
+			for j := i + 1; j < len(pitches); j++ {
+				priceI := getMinimumTierPrice(pitches[i].InvestmentTiers)
+				priceJ := getMinimumTierPrice(pitches[j].InvestmentTiers)
+				if priceI < priceJ {
+					pitches[i], pitches[j] = pitches[j], pitches[i]
+				}
+			}
+		}
+	}
 }
 
 func update_pitch_route(w http.ResponseWriter, r *http.Request) {
@@ -369,7 +509,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	old_media, media_err := utils.GetPitchMedia(*old_pitch.PitchID)
 	if media_err != nil {
 		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *old_pitch.PitchID, media_err)
-		old_media = []frontend.PitchMedia{} // Empty array instead of nil
+		old_media = []frontend.PitchMedia{}
 	}
 
 	user_id, ok := utils.UserIDFromCtx(r.Context())
@@ -473,7 +613,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 				PitchID:            old_pitch.PitchID,
 				URL:                fileURL,
 				MediaType:          mediaType,
-				OrderInDescription: int64(i + 1), // 1-based index for ordering
+				OrderInDescription: int64(i + 1),
 			}
 
 			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, *old_pitch.PitchID)
