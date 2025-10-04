@@ -227,7 +227,6 @@ export default function SignupPage() {
 				</CardContent>
 
 				<CardFooter className="flex justify-center text-sm">
-					{/* "Already have an account?" link matching the login page style */}
 					<p className="text-center text-sm text-gray-500 dark:text-gray-400">
 						Already have an account?{" "}
 						<a

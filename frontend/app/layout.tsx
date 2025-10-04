@@ -1,21 +1,22 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+// NOTE: Navbar and Footer imports are moved to LayoutWrapper
 import { Fugaz_One } from "next/font/google";
 import { Lato } from "next/font/google";
 import { Toaster } from "sonner";
+import LayoutWrapper from "@/components/LayoutWrapper"; // NEW IMPORT
 
 const fugazOne = Fugaz_One({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-fugaz-one",
+	subsets: ["latin"],
+	weight: "400",
+	variable: "--font-fugaz-one",
 });
 
 const lato = Lato({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-lato",
+	subsets: ["latin"],
+	weight: "400",
+	variable: "--font-lato",
 });
 
 export const metadata: Metadata = {
@@ -30,15 +31,10 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" className={lato.variable} data-theme="light">
-			<body className="font-lato" >
-				<Navbar />
-
+			{/* The <body> tag, Navbar, Footer, and Toaster are now inside LayoutWrapper */}
+			<LayoutWrapper>
 				{children}
-
-				<Toaster position="top-center" />
-
-				<Footer />
-			</body>
+			</LayoutWrapper>
 		</html>
 	);
 }

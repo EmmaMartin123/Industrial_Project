@@ -114,14 +114,16 @@ export default function LoginPage() {
 						</div>
 					</form>
 				</CardContent>
-				<CardFooter className="justify-center gap-2">
-					Dont have an account?
-					<a
-						className="link link-primary"
-						onClick={() => router.push("/signup")}
-					>
-						Sign up
-					</a>
+				<CardFooter className="flex justify-center text-sm">
+					<p className="text-center text-sm text-gray-500 dark:text-gray-400">
+						Dont have an account? {" "}
+						<a
+							className="text-primary-600 hover:text-primary-700 font-medium underline cursor-pointer"
+							onClick={() => router.push("/login")}
+						>
+							Sign up
+						</a>
+					</p>
 				</CardFooter>
 			</Card>
 		</div>
