@@ -6,6 +6,8 @@ import { getPitch } from "@/lib/api/pitch";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
 import * as Button from "@/components/Button";
+// Import the required Icon from lucide-react
+import { Info } from "lucide-react";
 
 import {
 	Carousel,
@@ -24,6 +26,21 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner"
 
+// Helper function to calculate days remaining
+const calculateDaysRemaining = (endDate: Date): number | null => {
+	const today = new Date();
+	// Set both to start of day for accurate calculation
+	today.setHours(0, 0, 0, 0);
+	endDate.setHours(0, 0, 0, 0);
+
+	const diffTime = endDate.getTime() - today.getTime();
+	if (diffTime <= 0) return 0;
+
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+	return diffDays;
+};
+
+
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
 }
@@ -36,6 +53,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const [pitch, setPitch] = useState<Pitch | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	// REMOVED: selectedTierId state and logic
 
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {
@@ -114,13 +132,43 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			: (pitch.raised_amount / pitch.target_amount) * 100;
 
 	const handleInvest = () => {
-		toast("Your investment was recorded successfully! 🎉");
+		// REVERTED: Now, we assume the user can click Invest and select a tier later, 
+		// or this button leads to a selection page.
+		toast("Proceeding to investment checkout! 🎉");
+	};
+
+	// Date display component for better UX
+	const DateDisplay = () => {
+		const startDate = pitch.investment_start_date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+		const endDate = pitch.investment_end_date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+		const daysRemaining = calculateDaysRemaining(pitch.investment_end_date);
+
+		const isInvestmentOpen = daysRemaining !== null && daysRemaining > 0;
+		const daysText = isInvestmentOpen
+			? <span className="text-lg font-bold text-blue-600">{daysRemaining} days left!</span>
+			: <span className="text-lg font-bold text-red-600">Closed</span>;
+
+		return (
+			<div className="p-4 border rounded-lg bg-neutral-50 space-y-2">
+				<div className="flex justify-between items-center">
+					<p className="text-sm font-medium">Investment Window</p>
+					{daysText}
+				</div>
+
+				<p className="text-sm text-muted-foreground">
+					<span className="font-medium text-black">Start:</span> {startDate}
+				</p>
+				<p className="text-sm text-muted-foreground">
+					<span className="font-medium text-black">End:</span> {endDate}
+				</p>
+			</div>
+		);
 	};
 
 	return (
 		<div className="max-w-6xl mx-auto p-8">
 			{/* header */}
-			<header className="mb-8">
+			<header className="mt-2 mb-8">
 				<h1 className="text-4xl font-bold">{pitch.title}</h1>
 				<p className="text-lg text-muted-foreground mt-2">
 					{pitch.elevator_pitch}
@@ -131,6 +179,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 				{/* left side: media + description */}
 				<div className="lg:col-span-2 space-y-6">
+					{/* Carousel Code */}
 					{pitch.media && pitch.media.length > 0 && (
 						<div>
 							<Carousel className="w-full">
@@ -207,14 +256,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					</div>
 
 					{/* investment dates */}
-					<div className="p-4 border rounded-lg bg-neutral-50">
-						<p className="text-sm">
-							<span className="font-medium">Investment Window:</span>
-							<br />
-							{pitch.investment_start_date.toLocaleDateString()} →{" "}
-							{pitch.investment_end_date.toLocaleDateString()}
-						</p>
-					</div>
+					<DateDisplay />
 
 					{/* investment tiers */}
 					{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
@@ -223,38 +265,35 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 							<div className="space-y-3">
 								{pitch.investment_tiers.map((tier) => (
 									<HoverCard key={tier.tier_id} openDelay={200}>
-
 										<HoverCardTrigger asChild>
 											<div
-												className="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition cursor-pointer"
+												className="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition cursor-pointer flex justify-between items-center" // Added flex classes
 											>
-												<p className="font-semibold">{tier.name}</p>
-												<p className="text-sm text-muted-foreground">
-													Min: £{tier.min_amount}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													Max: £{tier.max_amount}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													Multiplier: {tier.multiplier}x
-												</p>
+												<div> {/* New div to wrap tier info */}
+													<p className="font-semibold">{tier.name}</p>
+													<div className="text-sm text-muted-foreground mt-1">
+														<p>Min: £{tier.min_amount}</p>
+														<p>Max: £{tier.max_amount}</p>
+														<p>Multiplier: {tier.multiplier}x</p>
+													</div>
+												</div>
+												<Info className="w-5 h-5 text-blue-500 flex-shrink-0" /> {/* Added Info icon */}
 											</div>
 										</HoverCardTrigger>
 
 										<HoverCardContent className="w-80">
 											<div className="space-y-2">
 												<p className="text-sm font-medium">
-													Tier Details: **{tier.name}**
+													Tier Details: {tier.name}
 												</p>
 												<p className="text-sm text-muted-foreground">
-													This tier is for investments between **£{tier.min_amount}** and **£{tier.max_amount}**.
+													This tier is for investments between <strong>£{tier.min_amount}</strong> and <strong>£{tier.max_amount}</strong>.
 												</p>
 												<p className="text-xs text-muted-foreground">
-													You receive a **{tier.multiplier}x** boost on your profit share.
+													You receive a <strong>{tier.multiplier}x</strong> boost on your profit share.
 												</p>
 											</div>
 										</HoverCardContent>
-
 									</HoverCard>
 								))}
 							</div>
@@ -262,7 +301,10 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					)}
 
 					{/* call to action */}
-					<button className={Button.buttonClassName + " w-full"} onClick={handleInvest}>
+					<button
+						className={Button.buttonClassName + " w-full"}
+						onClick={handleInvest}
+					>
 						Invest Now
 					</button>
 				</aside>
