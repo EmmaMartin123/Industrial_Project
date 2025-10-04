@@ -22,8 +22,10 @@ func TestBankAndWalletIntegration(t *testing.T) {
 		"SUPABASE_URL",
 		"SUPABASE_ANON_KEY",
 		"SUPABASE_SERVICE_ROLE_KEY",
-		"TEST_USER_EMAIL",
-		"TEST_USER_PASSWORD",
+		"TEST_INVESTOR_EMAIL",
+		"TEST_INVESTOR_PASSWORD",
+		"TEST_BUSINESS_EMAIL",
+		"TEST_BUSINESS_PASSWORD",
 	}
 	for _, key := range required {
 		if os.Getenv(key) == "" {
@@ -36,8 +38,8 @@ func TestBankAndWalletIntegration(t *testing.T) {
 	}
 
 	access_token, err := login_to_supabase(
-		os.Getenv("TEST_USER_EMAIL"),
-		os.Getenv("TEST_USER_PASSWORD"),
+		os.Getenv("TEST_INVESTOR_EMAIL"),
+		os.Getenv("TEST_INVESTOR_PASSWORD"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to log in to Supabase: %v", err)

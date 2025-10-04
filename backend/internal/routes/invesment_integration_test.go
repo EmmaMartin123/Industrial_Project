@@ -22,8 +22,10 @@ func TestInvestmentCRU(t *testing.T) {
 		"SUPABASE_URL",
 		"SUPABASE_ANON_KEY",
 		"SUPABASE_SERVICE_ROLE_KEY",
-		"TEST_USER_EMAIL",
-		"TEST_USER_PASSWORD",
+		"TEST_INVESTOR_EMAIL",
+		"TEST_INVESTOR_PASSWORD",
+		"TEST_BUSINESS_EMAIL",
+		"TEST_BUSINESS_PASSWORD",
 	}
 	for _, key := range required {
 		if os.Getenv(key) == "" {
@@ -35,12 +37,22 @@ func TestInvestmentCRU(t *testing.T) {
 		t.Fatalf("Failed to initialize JWT: %v", err)
 	}
 
-	access_token, err := login_to_supabase(
-		os.Getenv("TEST_USER_EMAIL"),
-		os.Getenv("TEST_USER_PASSWORD"),
+	// Login as business to create pitch
+	business_token, err := login_to_supabase(
+		os.Getenv("TEST_BUSINESS_EMAIL"),
+		os.Getenv("TEST_BUSINESS_PASSWORD"),
 	)
 	if err != nil {
-		t.Fatalf("Failed to log in to Supabase: %v", err)
+		t.Fatalf("Failed to log in as business: %v", err)
+	}
+
+	// Login as investor to invest
+	investor_token, err := login_to_supabase(
+		os.Getenv("TEST_INVESTOR_EMAIL"),
+		os.Getenv("TEST_INVESTOR_PASSWORD"),
+	)
+	if err != nil {
+		t.Fatalf("Failed to log in as investor: %v", err)
 	}
 
 	router := routes.SetupRouter()
@@ -62,7 +74,7 @@ func TestInvestmentCRU(t *testing.T) {
 		},
 	}
 	pitch_body, _ := json.Marshal(pitch_payload)
-	resp, err := make_request(client, "POST", server.URL+"/api/pitch", pitch_body, access_token)
+	resp, err := make_request(client, "POST", server.URL+"/api/pitch", pitch_body, business_token)
 	if err != nil {
 		t.Fatalf("Failed to create pitch: %v", err)
 	}
@@ -76,14 +88,24 @@ func TestInvestmentCRU(t *testing.T) {
 	}
 	pitch_id := int64(pitch_id_float)
 
-	//TODO: should delete the pitch, can't because of "is still referenced from table "investments"."
+	// defer func() {
+	// 	delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)
+	// 	resp, err := make_request(client, "DELETE", delete_url, nil, business_token)
+	// 	if err != nil {
+	// 		t.Logf("Warning: failed to send DELETE request for cleanup: %v", err)
+	// 	} else if resp.StatusCode != http.StatusNoContent {
+	// 		body, _ := io.ReadAll(resp.Body)
+	// 		resp.Body.Close()
+	// 		t.Logf("Warning: DELETE cleanup failed with status %d: %s", resp.StatusCode, string(body))
+	// 	}
+	// }()
 
 	investment_payload := map[string]interface{}{
 		"pitch_id": pitch_id,
-		"amount":   1500, // Premium tier
+		"amount":   int64(1500),
 	}
 	investment_body, _ := json.Marshal(investment_payload)
-	resp, err = make_request(client, "POST", server.URL+"/api/investment", investment_body, access_token)
+	resp, err = make_request(client, "POST", server.URL+"/api/investment", investment_body, investor_token)
 	if err != nil {
 		t.Fatalf("Create investment request failed: %v", err)
 	}
@@ -98,18 +120,20 @@ func TestInvestmentCRU(t *testing.T) {
 	}
 	investment_id := int64(investment_id_float)
 
-	if created_investment["amount"].(float64) != 1500 {
-		t.Errorf("Expected amount 1500, got %v", created_investment["amount"])
+	amount := int64(created_investment["amount"].(float64))
+	if amount != 1500 {
+		t.Errorf("Expected amount 1500, got %d", amount)
 	}
-	if created_investment["pitch_id"].(float64) != float64(pitch_id) {
-		t.Errorf("Pitch ID mismatch")
+	pitch_id_resp := int64(created_investment["pitch_id"].(float64))
+	if pitch_id_resp != pitch_id {
+		t.Errorf("Pitch ID mismatch: expected %d, got %d", pitch_id, pitch_id_resp)
 	}
 	if created_investment["refunded"] != false {
 		t.Errorf("New investment should not be refunded")
 	}
 
 	get_url := fmt.Sprintf("%s/api/investment?id=%d", server.URL, investment_id)
-	resp, err = make_request(client, "GET", get_url, nil, access_token)
+	resp, err = make_request(client, "GET", get_url, nil, investor_token)
 	if err != nil {
 		t.Fatalf("GET investment failed: %v", err)
 	}
@@ -117,11 +141,12 @@ func TestInvestmentCRU(t *testing.T) {
 	if err := decode_json_response(resp, &fetched_investment); err != nil {
 		t.Fatalf("GET investment response error: %v", err)
 	}
-	if fetched_investment["id"].(float64) != float64(investment_id) {
+	fetched_id := int64(fetched_investment["id"].(float64))
+	if fetched_id != investment_id {
 		t.Errorf("Fetched investment ID mismatch")
 	}
 
-	resp, err = make_request(client, "GET", server.URL+"/api/investment", nil, access_token)
+	resp, err = make_request(client, "GET", server.URL+"/api/investment", nil, investor_token)
 	if err != nil {
 		t.Fatalf("GET all investments failed: %v", err)
 	}
@@ -132,7 +157,7 @@ func TestInvestmentCRU(t *testing.T) {
 	found := false
 	for _, inv := range all_investments {
 		if invMap, ok := inv.(map[string]interface{}); ok {
-			if invMap["id"].(float64) == float64(investment_id) {
+			if int64(invMap["id"].(float64)) == investment_id {
 				found = true
 				break
 			}
@@ -146,7 +171,7 @@ func TestInvestmentCRU(t *testing.T) {
 		"refunded": true,
 	}
 	refund_body, _ := json.Marshal(refund_payload)
-	resp, err = make_request(client, "PATCH", get_url, refund_body, access_token)
+	resp, err = make_request(client, "PATCH", get_url, refund_body, investor_token)
 	if err != nil {
 		t.Fatalf("Refund PATCH request failed: %v", err)
 	}
@@ -158,7 +183,7 @@ func TestInvestmentCRU(t *testing.T) {
 		t.Errorf("Expected refunded=true after PATCH, got %v", refunded_investment["refunded"])
 	}
 
-	resp, err = make_request(client, "GET", get_url, nil, access_token)
+	resp, err = make_request(client, "GET", get_url, nil, investor_token)
 	if err != nil {
 		t.Fatalf("Final GET failed: %v", err)
 	}

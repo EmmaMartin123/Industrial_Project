@@ -154,6 +154,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	result, err := utils.InsertData(db_pitch, "pitch")
 
 	if err != nil {
+		fmt.Printf("Error inserting pitch: %v\n", err)
 		http.Error(w, "Error creating pitch", http.StatusInternalServerError)
 		return
 	}
