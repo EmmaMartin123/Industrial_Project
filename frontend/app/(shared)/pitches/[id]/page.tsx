@@ -26,10 +26,9 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner"
 
-// Helper function to calculate days remaining
 const calculateDaysRemaining = (endDate: Date): number | null => {
 	const today = new Date();
-	// Set both to start of day for accurate calculation
+	// set both to start of day for accurate calculation
 	today.setHours(0, 0, 0, 0);
 	endDate.setHours(0, 0, 0, 0);
 
@@ -53,7 +52,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const [pitch, setPitch] = useState<Pitch | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	// REMOVED: selectedTierId state and logic
 
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {
@@ -132,12 +130,9 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			: (pitch.raised_amount / pitch.target_amount) * 100;
 
 	const handleInvest = () => {
-		// REVERTED: Now, we assume the user can click Invest and select a tier later, 
-		// or this button leads to a selection page.
 		toast("Proceeding to investment checkout! 🎉");
 	};
 
-	// Date display component for better UX
 	const DateDisplay = () => {
 		const startDate = pitch.investment_start_date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 		const endDate = pitch.investment_end_date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
@@ -179,7 +174,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 				{/* left side: media + description */}
 				<div className="lg:col-span-2 space-y-6">
-					{/* Carousel Code */}
+					{/* carousel code */}
 					{pitch.media && pitch.media.length > 0 && (
 						<div>
 							<Carousel className="w-full">

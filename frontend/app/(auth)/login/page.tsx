@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader } from "lucide-react"
 import axios from "axios"
 
 import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
 import toast from "react-hot-toast"
 import * as Button from "@/components/Button"
+
+import {
+	Card,
+	CardAction,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { LoaderPinwheel } from "lucide-react"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -32,7 +44,9 @@ export default function LoginPage() {
 		}
 	}, [authUser, router])
 
-	const handleLogin = async () => {
+	const handleLogin = async (e: React.FormEvent) => {
+		e.preventDefault() // Prevents default form submission behavior
+
 		if (!email || !password) {
 			return window.alert("Please enter both email and password")
 		}
@@ -54,55 +68,62 @@ export default function LoginPage() {
 
 	if (isCheckingAuth && !authUser) return (
 		<div className="flex items-center justify-center h-screen">
-			<Loader className="size-10 animate-spin" />
+			<LoaderPinwheel className="size-10 animate-spin" />
 		</div>
 	);
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-base-200">
-			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
-				<div className="card-body">
-					<h2 className="card-title text-center text-2xl mb-4">Login</h2>
-
-					<input
-						type="email"
-						placeholder="Email"
-						className="input input-bordered w-full mb-3"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
-
-					<input
-						type="password"
-						placeholder="Password"
-						className="input input-bordered w-full mb-4"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-					/>
-
-					<div className="flex justify-between">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handleLogin}
-							disabled={isLoggingIn}
-						>
-							{isLoggingIn ? "Logging in..." : "Log in"}
-						</button>
-					</div>
-
-					<div className="text-center mt-4">
-						<p className="text-center text-sm">
-							Don't have an account?{" "}
-							<a
-								className="link link-primary"
-								onClick={() => router.push("/signup")}
-							>
-								Sign up
-							</a>
-						</p>
-					</div>
-				</div>
-			</div>
+		<div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+			<Card className="w-full max-w-sm mb-20">
+				<CardHeader>
+					<CardTitle className="text-xl">Log in</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<form onSubmit={handleLogin}>
+						<div className="flex flex-col gap-6">
+							<div className="grid gap-2">
+								<Label htmlFor="email">Email</Label>
+								<Input
+									id="email"
+									type="email"
+									placeholder="m@example.com"
+									required
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+								/>
+							</div>
+							<div className="grid gap-2">
+								<div className="flex items-center">
+									<Label htmlFor="password">Password</Label>
+								</div>
+								<Input
+									id="password"
+									type="password"
+									required
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+								/>
+							</div>
+							<button type="submit" className={Button.buttonClassName} disabled={isLoggingIn}>
+								{isLoggingIn ? (
+									<LoaderPinwheel className="size-4 animate-spin" />
+								) : (
+									"Log in"
+								)}
+							</button>
+						</div>
+					</form>
+				</CardContent>
+				<CardFooter className="justify-center gap-2">
+					Dont have an account?
+					<a
+						className="link link-primary"
+						onClick={() => router.push("/signup")}
+					>
+						Sign up
+					</a>
+				</CardFooter>
+			</Card>
 		</div>
 	)
 }
