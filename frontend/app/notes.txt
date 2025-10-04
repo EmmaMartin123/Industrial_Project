@@ -1,25 +1,15 @@
-(functionality wise not design wise)
-
-general:
-
-- auth
-
-business:
-
-  done:
-	- create new pitch
-	- browse all pitches
-	- browse own pitches
-	- view pitch
-
 todo:
 
-- edit pitch
-
-in progress:
-
-
-
-
+business:
+style business dashboard
+decide what information to show on business dashboard
+extend manage pitches page
+add ability to edit pitches
 
 investor:
+restyle investor dashboard
+make investment page
+
+general:
+find good theme
+
