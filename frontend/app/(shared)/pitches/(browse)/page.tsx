@@ -16,39 +16,26 @@ export default function BusinessPitchesPage() {
 
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
+	// Auth check
 	useEffect(() => {
-		const verifyAuth = async () => {
-			await checkAuth();
-		};
+		const verifyAuth = async () => await checkAuth();
 		verifyAuth();
 	}, [checkAuth]);
 
 	useEffect(() => {
-		if (!isCheckingAuth && !authUser) {
-			router.push("/login");
-		}
+		if (!isCheckingAuth && !authUser) router.push("/login");
 	}, [authUser, isCheckingAuth, router]);
 
+	// Fetch pitches
 	useEffect(() => {
-		if (isCheckingAuth || !authUser) {
-			return;
-		}
+		if (isCheckingAuth || !authUser) return;
 
 		const fetchPitches = async () => {
 			try {
 				setLoading(true);
-
 				const fetchedData = await getAllPitches();
 
-				let dataToMap = fetchedData;
-
-				if (!Array.isArray(dataToMap)) {
-					if (dataToMap !== null && typeof dataToMap === 'object') {
-						dataToMap = [dataToMap];
-					} else {
-						dataToMap = [];
-					}
-				}
+				let dataToMap = Array.isArray(fetchedData) ? fetchedData : [];
 
 				const mappedPitches: Pitch[] = dataToMap.map((p: any) => ({
 					pitch_id: p.id,
@@ -64,20 +51,19 @@ export default function BusinessPitchesPage() {
 					created_at: new Date(p.created_at ?? Date.now()),
 					updated_at: new Date(p.updated_at ?? Date.now()),
 					investment_tiers: p.investment_tiers as InvestmentTier[],
-					// media is not returned when getting all pitches
 				}));
 
 				setPitches(mappedPitches);
-			} catch (err: any) {
+			} catch (err) {
 				console.error(err);
 				toast.error("Failed to load pitches");
+				setPitches([]);
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchPitches();
-
 	}, [authUser, isCheckingAuth]);
 
 	const handleView = (pitchId: number) => {
@@ -93,40 +79,65 @@ export default function BusinessPitchesPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6">
-			<h1 className="text-3xl font-bold mb-6">All Pitches</h1>
-
-			{pitches.length === 0 ? (
-				<p>No pitches available.</p>
-			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{pitches.map((pitch, index) => (
-						<div
-							key={pitch.pitch_id ?? `pitch-${index}`}
-							className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between"
-						>
-							<div>
-								<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
-								<p className="opacity-70 mb-1">Status: **{pitch.status}**</p>
-								<p className="opacity-70 mb-1">
-									Raised: **£{pitch.raised_amount}** / £{pitch.target_amount}
-								</p>
-								<p className="opacity-70">
-									Profit Share: {pitch.profit_share_percent}%
-								</p>
-							</div>
-							<div className="mt-4 flex justify-end">
-								<button
-									className={`${Button.buttonOutlineClassName}`}
-									onClick={() => handleView(pitch.pitch_id)}
-								>
-									<Eye /> View
-								</button>
-							</div>
-						</div>
-					))}
+		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
+			<div className="max-w-7xl mx-auto">
+				{/* Header */}
+				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
+					<h1 className="text-4xl font-bold text-gray-900 dark:text-white">All Pitches</h1>
+					<p className="text-gray-600 dark:text-gray-400 mt-2 md:mt-0">
+						Explore all pitches available on the platform.
+					</p>
 				</div>
-			)}
+
+				{pitches.length === 0 ? (
+					<p className="text-gray-600 dark:text-gray-400">No pitches available.</p>
+				) : (
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						{pitches.map((pitch, index) => (
+							<div
+								key={pitch.pitch_id ?? `pitch-${index}`}
+								className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-200 flex flex-col justify-between"
+							>
+								<div>
+									<h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-primary transition">
+										{pitch.title}
+									</h2>
+									<p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+										<span className="font-medium text-gray-800 dark:text-gray-200">Status:</span>{" "}
+										<span
+											className={`${pitch.status === "Funded"
+													? "text-green-600 dark:text-green-400"
+													: pitch.status === "Draft"
+														? "text-gray-500"
+														: "text-yellow-600 dark:text-yellow-400"
+												}`}
+										>
+											{pitch.status}
+										</span>
+									</p>
+									<p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+										<span className="font-medium text-gray-800 dark:text-gray-200">Raised:</span> £
+										{pitch.raised_amount} / £{pitch.target_amount}
+									</p>
+									<p className="text-sm text-gray-600 dark:text-gray-400">
+										<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
+										{pitch.profit_share_percent}%
+									</p>
+								</div>
+
+								<div className="mt-6 flex justify-end">
+									<button
+										className={`${Button.buttonOutlineClassName}`}
+										onClick={() => handleView(pitch.pitch_id)}
+									>
+										<Eye /> View
+									</button>
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

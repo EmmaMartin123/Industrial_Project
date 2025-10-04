@@ -141,11 +141,11 @@ export default function Navbar() {
 					</>
 				) : (
 					pathname !== "/login" && (
-						<ShadcnButton
+						<button
 							onClick={() => router.push("/login")}
 						>
 							Log in
-						</ShadcnButton>
+						</button>
 					)
 				)}
 			</div>
