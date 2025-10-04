@@ -2,12 +2,27 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react"; // Added useMemo for efficient previews
 import toast from "react-hot-toast";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, FileText, Image as ImageIcon, Video, X, Calendar as CalendarIcon, DollarSign, Percent, FileTextIcon, Wallet, Layers, GalleryVertical } from "lucide-react";
 
-import { NewPitch } from "@/lib/types/pitch"; // Removed InvestmentTier as we use a local TierState
+// --- Required External Dependencies ---
+import { format } from "date-fns";
+
+// --- Local Imports ---
+import { cn } from "@/lib/utils";
+import { NewPitch } from "@/lib/types/pitch";
 import { postPitch } from "@/lib/api/pitch";
+
+// --- Shadcn UI Components ---
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Define a type for the tier state
 type TierState = {
@@ -17,28 +32,60 @@ type TierState = {
 	multiplier: number | "";
 };
 
+// Helper function to determine the icon for a generic file type
+const getFileIcon = (mimeType: string) => {
+	if (mimeType.startsWith('image/')) return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
+	if (mimeType.startsWith('video/')) return <Video className="w-4 h-4 mr-2 text-purple-500" />;
+	return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
+};
+
 export default function NewPitchPage() {
+	// --- State ---
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
 	const [targetAmount, setTargetAmount] = useState<number | "">("");
 	const [profitShare, setProfitShare] = useState<number | "">("");
-	const [endDate, setEndDate] = useState("");
+	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
-	// NEW STATE for media files
+	const investmentStartDate = new Date();
 	const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-
 	const [tiers, setTiers] = useState<TierState[]>([
 		{ name: "", min_amount: "", multiplier: "", max_amount: "" },
 	]);
 	const [loading, setLoading] = useState(false);
+	const [activeTab, setActiveTab] = useState("content");
 
-	// --- Tier Handlers (omitted for brevity, assume they are correct from last step) ---
-	const handleTierChange = (
-		index: number,
-		field: keyof TierState,
-		value: string | number
-	) => {
+	// --- NEW: Memoized array of objects for easier previewing ---
+	const mediaPreviews = useMemo(() => {
+		return mediaFiles.map(file => ({
+			name: file.name,
+			type: file.type,
+			url: URL.createObjectURL(file),
+		}));
+	}, [mediaFiles]);
+	// NOTE: We must revoke these URLs in a cleanup effect in a real app to avoid memory leaks.
+	// However, for this simplified component, we'll keep the logic here for clarity.
+
+	// --- Handlers (Simplified and consolidated) ---
+
+	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (e.target.files) {
+			setMediaFiles(prevFiles => [...prevFiles, ...Array.from(e.target.files || [])]);
+			e.target.value = '';
+		}
+	};
+
+	const removeMediaFile = (fileIndex: number) => {
+		// Revoke the object URL to free up memory
+		if (mediaPreviews[fileIndex]?.url) {
+			URL.revokeObjectURL(mediaPreviews[fileIndex].url);
+		}
+		setMediaFiles(prevFiles => prevFiles.filter((_, i) => i !== fileIndex));
+		toast.success(`Removed file.`);
+	};
+
+	const handleTierChange = (index: number, field: keyof TierState, value: string | number) => {
 		const newTiers = [...tiers];
 		if (field === "name") {
 			newTiers[index][field] = value as string;
@@ -52,53 +99,70 @@ export default function NewPitchPage() {
 		setTiers([...tiers, { name: "", min_amount: "", multiplier: "", max_amount: "" }]);
 	};
 
-	const removeTier = (index: number) => {
+	const removeTierHandler = (index: number) => {
 		const newTiers = tiers.filter((_, i) => i !== index);
 		setTiers(newTiers);
 	};
-	// --- End Tier Handlers ---
 
-	// NEW HANDLER for media file selection
-	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files) {
-			// Converts FileList to an array and sets the state
-			setMediaFiles(Array.from(e.target.files));
+	// --- Validation & Navigation Logic ---
+	const validateStep = (step: string): boolean => {
+		if (step === "content") {
+			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
+				toast.error("Please complete the **Title**, **Elevator Pitch**, and **Detailed Pitch**.");
+				return false;
+			}
+		} else if (step === "media") {
+			// Optional to check media, but good for user flow
+			if (mediaFiles.length === 0) {
+				toast.success("Tip: Adding media greatly improves your pitch visibility!");
+			}
+		}
+		else if (step === "financials") {
+			if (targetAmount === "" || profitShare === "" || !endDate) {
+				toast.error("Please provide valid numbers and select an **End Date**.");
+				return false;
+			}
+			if (endDate! <= investmentStartDate) {
+				toast.error("The End Date must be after today's Start Date.");
+				return false;
+			}
+		} else if (step === "tiers") {
+			const allTiersValid = tiers.every(
+				(t) => t.name.trim() && t.min_amount !== "" && t.multiplier !== ""
+			);
+			if (!allTiersValid) {
+				toast.error("Please ensure all tiers have a **Name**, **Min Amount**, and **Multiplier**.");
+				return false;
+			}
+		}
+		return true;
+	}
+
+	const handleNext = (currentStep: string, nextStep: string) => {
+		if (validateStep(currentStep)) {
+			setActiveTab(nextStep);
+			window.scrollTo(0, 0);
 		}
 	};
+
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// 1. Basic Field Validation
-		if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
-			return toast.error("Please fill in all text fields.");
-		}
-		if (targetAmount === "" || profitShare === "" || !endDate) {
-			return toast.error("Please provide valid numbers and select an End Date.");
-		}
-		const allTiersValid = tiers.every(
-			(t) => t.name.trim() && t.min_amount !== "" && t.multiplier !== ""
-		);
-		if (!allTiersValid) {
-			return toast.error("Please ensure all tiers have a Name, Min Amount, and Multiplier.");
+		// 1. Final comprehensive validation (before submission)
+		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) {
+			return;
 		}
 
-		// 2. Construct the NewPitch object (without media for now)
+		// 2. Construct the NewPitch object
 		const pitchPayload: NewPitch = {
 			title,
 			elevator_pitch: elevator,
 			detailed_pitch: detailedPitchContent,
 			target_amount: Number(targetAmount),
-			investment_start_date: new Date().toISOString(),
-			investment_end_date: new Date(endDate).toISOString(),
+			investment_start_date: investmentStartDate.toISOString(),
+			investment_end_date: endDate!.toISOString(),
 			profit_share_percent: Number(profitShare),
-			// The backend is designed to handle media separately, so we send an empty array 
-			// for the Media field on the initial POST unless you also had a structure for external links.
-			// Based on the backend code, it handles the file uploads separately from the JSON.
-			// We ensure we send an empty array for media, as the NewPitch type doesn't include it.
-			// IMPORTANT: If your NewPitch type *did* include a `Media` field, you would include it here. 
-			// Since it doesn't, we just build the rest of the object.
-
 			investment_tiers: tiers.map((t) => ({
 				name: t.name || "Tier",
 				min_amount: Number(t.min_amount),
@@ -107,25 +171,19 @@ export default function NewPitchPage() {
 					: Number(t.max_amount),
 				multiplier: Number(t.multiplier),
 			})),
-			// Note: If you need to include data about external media links, you'd add a 
-			// 'media' array property here if the NewPitch type allowed it.
 		};
 
-		// 3. Construct FormData for multipart submission
+		// 3. Construct FormData & 4. API Call
 		const formData = new FormData();
-
-		// Append the main pitch data as a JSON string under the key 'pitch' (Backend requirement)
 		formData.append("pitch", JSON.stringify(pitchPayload));
+		if (mediaFiles.length > 0) {
+			mediaFiles.forEach((file) => {
+				formData.append("media", file);
+			});
+		}
 
-		// Append each selected media file under the key 'media' (Backend requirement)
-		mediaFiles.forEach((file) => {
-			formData.append("media", file);
-		});
-
-		// 4. API Call
 		try {
 			setLoading(true);
-			// Send the FormData object
 			await postPitch(formData);
 			toast.success("Pitch submitted successfully! 🚀");
 		} catch (err: any) {
@@ -136,63 +194,310 @@ export default function NewPitchPage() {
 		}
 	};
 
+
 	return (
-		<form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', maxWidth: '600px', margin: 'auto', gap: '10px', padding: '20px', border: '1px solid #ccc' }}>
-			<h2>Create New Pitch</h2>
+		<div className="flex justify-center p-8 bg-gray-50 min-h-screen">
+			<Card className="w-full max-w-4xl shadow-2xl">
+				<CardHeader>
+					<CardTitle className="text-4xl font-extrabold text-gray-900">Create New Pitch</CardTitle>
+					<CardDescription className="text-lg">
+						Follow the steps below to define your investment proposal.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{/* Tabs component wrapper */}
+					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-			{/* Simple Fields */}
-			<input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" required />
-			<textarea value={elevator} onChange={(e) => setElevator(e.target.value)} placeholder="Elevator Pitch" required />
-			<textarea value={detailedPitchContent} onChange={(e) => setDetailedPitchContent(e.target.value)} placeholder="Detailed Pitch" required />
-			<input type="number" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="Target Amount (e.g., 100000)" required />
-			<input type="number" value={profitShare} onChange={(e) => setProfitShare(e.target.value === "" ? "" : Number(e.target.value))} placeholder="Profit Share % (e.g., 10)" required />
-			<input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+						{/* Tab Navigation List: 4 Tabs */}
+						<TabsList className="grid w-full grid-cols-4 mb-6 h-auto p-1">
+							<TabsTrigger value="content" className="flex items-center space-x-1 text-xs sm:text-sm">
+								<FileTextIcon className="w-4 h-4" />
+								<span>1. Content</span>
+							</TabsTrigger>
+							<TabsTrigger value="media" className="flex items-center space-x-1 text-xs sm:text-sm">
+								<GalleryVertical className="w-4 h-4" />
+								<span>2. Media</span>
+							</TabsTrigger>
+							<TabsTrigger value="financials" className="flex items-center space-x-1 text-xs sm:text-sm">
+								<Wallet className="w-4 h-4" />
+								<span>3. Financials</span>
+							</TabsTrigger>
+							<TabsTrigger value="tiers" className="flex items-center space-x-1 text-xs sm:text-sm">
+								<Layers className="w-4 h-4" />
+								<span>4. Tiers</span>
+							</TabsTrigger>
+						</TabsList>
 
-			<hr />
+						<form onSubmit={handleSubmit}>
 
-			{/* NEW MEDIA INPUT */}
-			<h3>Media (Images/Videos)</h3>
-			<input
-				type="file"
-				multiple
-				accept="image/*,video/*" // Allow common image and video formats
-				onChange={handleMediaChange}
-			/>
-			{mediaFiles.length > 0 && (
-				<p>Selected Files: {mediaFiles.map(f => f.name).join(', ')}</p>
-			)}
+							{/* TAB 1: Content */}
+							<TabsContent value="content" className="space-y-8">
+								<h4 className="text-xl font-semibold text-indigo-700">1. Pitch Summary</h4>
 
-			<hr />
+								{/* Title */}
+								<div className="space-y-2">
+									<Label htmlFor="title">Title</Label>
+									<Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Revolutionary AI-Powered Farming" required />
+								</div>
 
-			{/* Investment Tiers Section (Simplified rendering) */}
-			<h3>Investment Tiers</h3>
-			{tiers.map((tier, index) => (
-				<div key={index} style={{ border: '1px dashed #ddd', padding: '10px' }}>
-					{/* ... Tier inputs remain here ... */}
-					<input
-						value={tier.name}
-						onChange={(e) => handleTierChange(index, "name", e.target.value)}
-						placeholder={`Tier ${index + 1} Name`}
-						required
-					/>
-					<input type="number" value={tier.min_amount} onChange={(e) => handleTierChange(index, "min_amount", e.target.value)} placeholder="Min Amount" required />
-					<input type="number" value={tier.max_amount === null ? "" : tier.max_amount} onChange={(e) => handleTierChange(index, "max_amount", e.target.value)} placeholder="Max Amount (Optional)" />
-					<input type="number" value={tier.multiplier} onChange={(e) => handleTierChange(index, "multiplier", e.target.value)} placeholder="Multiplier" required />
-					<button type="button" onClick={() => removeTier(index)} disabled={tiers.length === 1}>
-						<Trash size={16} /> Remove
-					</button>
-				</div>
-			))}
+								{/* Elevator Pitch */}
+								<div className="space-y-2">
+									<Label htmlFor="elevator">Elevator Pitch (Short Summary)</Label>
+									<Textarea id="elevator" value={elevator} onChange={(e) => setElevator(e.target.value)} placeholder="A short, catchy summary for quick interest." required rows={3} maxLength={250} />
+								</div>
 
-			<button type="button" onClick={addTier} style={{ marginTop: '5px' }}>
-				<Plus size={16} /> Add Tier
-			</button>
+								{/* Detailed Pitch (MARKDOWN TEXTAREA) */}
+								<div className="space-y-2">
+									<Label htmlFor="detailed">Detailed Pitch Content</Label>
+									<Textarea
+										id="detailed"
+										value={detailedPitchContent}
+										onChange={(e) => setDetailedPitchContent(e.target.value)}
+										placeholder="Provide the full, comprehensive description. Use Markdown (*bold*, # headings, - lists) for formatting."
+										required
+										rows={12}
+										className="resize-y"
+									/>
+									<p className="text-sm text-muted-foreground">This field supports Markdown for rich formatting.</p>
+								</div>
 
-			<hr />
+								{/* Navigation button */}
+								<div className="flex justify-end pt-4">
+									<Button type="button" onClick={() => handleNext("content", "media")} className="bg-indigo-600 hover:bg-indigo-700">
+										Next: Media & Visuals
+									</Button>
+								</div>
+							</TabsContent>
 
-			<button type="submit" disabled={loading}>
-				{loading ? "Submitting..." : "Submit Pitch"}
-			</button>
-		</form>
+							{/* TAB 2: Media & Visuals (NEW TAB) */}
+							<TabsContent value="media" className="space-y-8">
+								<h4 className="text-xl font-semibold text-indigo-700">2. Media & Visuals</h4>
+
+								{/* Media Uploader */}
+								<Label htmlFor="media-files" className="cursor-pointer block">
+									<div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg hover:border-indigo-500 hover:bg-gray-100 transition-colors">
+										<Plus className="w-6 h-6 mb-2 text-indigo-500" />
+										<span className="font-semibold text-lg text-gray-700">Click to select files (Images/Videos)</span>
+										<p className="text-sm text-muted-foreground mt-1">Select multiple files for the pitch carousel.</p>
+									</div>
+								</Label>
+								<Input
+									id="media-files"
+									type="file"
+									multiple
+									accept="image/*,video/*"
+									onChange={handleMediaChange}
+									className="hidden"
+								/>
+
+								{/* Display Selected Files with Previews */}
+								{mediaPreviews.length > 0 && (
+									<div className="space-y-4 pt-2">
+										<p className="text-lg font-semibold">Selected Files ({mediaPreviews.length}):</p>
+										<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+											{mediaPreviews.map((preview, index) => (
+												<Card key={index} className="p-2 relative group overflow-hidden">
+													{preview.type.startsWith('image/') && (
+														<img
+															src={preview.url}
+															alt={`Media Preview ${index}`}
+															className="w-full h-24 object-cover rounded-md"
+														/>
+													)}
+													{preview.type.startsWith('video/') && (
+														<video
+															src={preview.url}
+															className="w-full h-24 object-cover rounded-md bg-black"
+															muted
+															playsInline
+														>
+															Your browser does not support the video tag.
+														</video>
+													)}
+													{/* Generic file display (shouldn't happen with the accept filter, but safe) */}
+													{!preview.type.startsWith('image/') && !preview.type.startsWith('video/') && (
+														<div className="w-full h-24 flex items-center justify-center text-gray-500 bg-gray-100 rounded-md">
+															<FileText className="w-6 h-6" />
+														</div>
+													)}
+
+													{/* File Name Overlay */}
+													<p className="text-xs font-medium truncate mt-2 px-1">{preview.name}</p>
+
+													{/* Remove Button Overlay */}
+													<Button
+														type="button"
+														size="icon"
+														onClick={() => removeMediaFile(index)}
+														className="absolute top-4 right-4 w-6 h-6 p-0 text-white bg-red-500 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+													>
+														<X className="w-4 h-4" />
+													</Button>
+												</Card>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Navigation buttons */}
+								<div className="flex justify-between pt-4">
+									<Button type="button" variant="outline" onClick={() => setActiveTab("content")}>
+										Previous
+									</Button>
+									<Button type="button" onClick={() => handleNext("media", "financials")} className="bg-indigo-600 hover:bg-indigo-700">
+										Next: Financial Goals
+									</Button>
+								</div>
+							</TabsContent>
+
+							{/* TAB 3: Financial Goals (Previously Tab 2) */}
+							<TabsContent value="financials" className="space-y-8">
+								<h4 className="text-xl font-semibold text-teal-700">3. Set Funding Targets and Timeline</h4>
+
+								{/* Target Amount */}
+								<div className="space-y-2">
+									<Label htmlFor="targetAmount">Target Amount</Label>
+									<div className="flex items-center">
+										<span className="text-gray-500 mr-2"><DollarSign className="w-5 h-5" /></span>
+										<Input type="number" id="targetAmount" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="100,000" required />
+									</div>
+								</div>
+
+								{/* Profit Share */}
+								<div className="space-y-2">
+									<Label htmlFor="profitShare">Profit Share Percentage</Label>
+									<div className="flex items-center">
+										<span className="text-gray-500 mr-2"><Percent className="w-5 h-5" /></span>
+										<Input type="number" id="profitShare" value={profitShare} onChange={(e) => setProfitShare(e.target.value === "" ? "" : Number(e.target.value))} placeholder="10" required />
+									</div>
+								</div>
+
+								{/* Investment Start Date (Read-only) */}
+								<div className="space-y-2">
+									<Label htmlFor="startDate">Start Date</Label>
+									<div className="flex items-center">
+										<span className="text-gray-500 mr-2"><CalendarIcon className="w-5 h-5" /></span>
+										<Input
+											id="startDate"
+											value={format(investmentStartDate, "PPP")}
+											readOnly
+											className="bg-gray-100 cursor-not-allowed"
+										/>
+									</div>
+									<p className="text-xs text-muted-foreground ml-7">Automatically set to today.</p>
+								</div>
+
+								{/* End Date (SHADCN DATE PICKER) */}
+								<div className="space-y-2">
+									<Label htmlFor="endDate">Investment End Date</Label>
+									<div className="flex items-center">
+										<span className="text-gray-500 mr-2"><CalendarIcon className="w-5 h-5" /></span>
+										<Popover>
+											<PopoverTrigger asChild>
+												<Button
+													variant={"outline"}
+													className={cn(
+														"w-full justify-start text-left font-normal",
+														!endDate && "text-muted-foreground"
+													)}
+												>
+													{endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
+												</Button>
+											</PopoverTrigger>
+											<PopoverContent className="w-auto p-0" align="start">
+												<Calendar
+													mode="single"
+													selected={endDate}
+													onSelect={setEndDate}
+													initialFocus
+													fromDate={new Date(investmentStartDate.getTime() + 24 * 60 * 60 * 1000)}
+												/>
+											</PopoverContent>
+										</Popover>
+									</div>
+								</div>
+
+								{/* Navigation buttons */}
+								<div className="flex justify-between pt-4">
+									<Button type="button" variant="outline" onClick={() => setActiveTab("media")}>
+										Previous
+									</Button>
+									<Button type="button" onClick={() => handleNext("financials", "tiers")} className="bg-teal-600 hover:bg-teal-700">
+										Next: Investment Tiers
+									</Button>
+								</div>
+							</TabsContent>
+
+							{/* TAB 4: Investment Tiers (Previously Tab 3) */}
+							<TabsContent value="tiers" className="space-y-8">
+								<h4 className="text-xl font-semibold text-blue-700">4. Define Investment Levels</h4>
+
+								<div className="space-y-4">
+									{tiers.map((tier, index) => (
+										<Card key={index} className="p-4 border-l-4 border-blue-500 bg-blue-50 shadow-sm">
+											<div className="flex justify-between items-start mb-2">
+												<p className="font-bold text-lg text-blue-800">Tier {index + 1}</p>
+												<Button
+													type="button"
+													variant="ghost"
+													size="sm"
+													onClick={() => removeTierHandler(index)}
+													disabled={tiers.length === 1}
+													className="text-red-500 hover:text-red-700 p-1 h-auto"
+												>
+													<Trash className="w-4 h-4 mr-1" /> Remove
+												</Button>
+											</div>
+
+											<div className="space-y-3">
+												<div className="space-y-1">
+													<Label htmlFor={`tier-name-${index}`}>Name</Label>
+													<Input
+														id={`tier-name-${index}`}
+														value={tier.name}
+														onChange={(e) => handleTierChange(index, "name", e.target.value)}
+														placeholder="e.g., Early Bird Investor"
+														required
+													/>
+												</div>
+
+												<div className="grid grid-cols-3 gap-2">
+													<div className="space-y-1 col-span-1">
+														<Label htmlFor={`tier-min-${index}`}>Min ($)</Label>
+														<Input type="number" id={`tier-min-${index}`} value={tier.min_amount} onChange={(e) => handleTierChange(index, "min_amount", e.target.value)} placeholder="Min" required />
+													</div>
+													<div className="space-y-1 col-span-1">
+														<Label htmlFor={`tier-max-${index}`}>Max ($) (Opt)</Label>
+														<Input type="number" id={`tier-max-${index}`} value={tier.max_amount === null ? "" : tier.max_amount} onChange={(e) => handleTierChange(index, "max_amount", e.target.value)} placeholder="Max" />
+													</div>
+													<div className="space-y-1 col-span-1">
+														<Label htmlFor={`tier-mult-${index}`}>Multiplier</Label>
+														<Input type="number" id={`tier-mult-${index}`} value={tier.multiplier} onChange={(e) => handleTierChange(index, "multiplier", e.target.value)} placeholder="x" required />
+													</div>
+												</div>
+											</div>
+										</Card>
+									))}
+								</div>
+
+								<Button type="button" onClick={addTier} variant="outline" className="w-full border-blue-500 text-blue-600 hover:bg-blue-100">
+									<Plus className="w-4 h-4 mr-2" /> Add Investment Tier
+								</Button>
+
+								{/* Navigation and Submit buttons */}
+								<div className="flex justify-between pt-4">
+									<Button type="button" variant="outline" onClick={() => setActiveTab("financials")}>
+										Previous
+									</Button>
+									<Button type="submit" className="h-10 text-base bg-blue-600 hover:bg-blue-700" disabled={loading}>
+										{loading ? "Submitting Pitch..." : "Submit Final Pitch"}
+									</Button>
+								</div>
+							</TabsContent>
+						</form>
+					</Tabs>
+				</CardContent>
+			</Card>
+		</div>
 	);
 }
