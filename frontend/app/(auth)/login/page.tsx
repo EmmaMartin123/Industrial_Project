@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Loader } from "lucide-react"
-import axios from "axios"
-
 import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
-import toast from "react-hot-toast"
+import { LoaderPinwheel } from "lucide-react"
 import * as Button from "@/components/Button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -32,75 +31,95 @@ export default function LoginPage() {
 		}
 	}, [authUser, router])
 
-	const handleLogin = async () => {
+	const handleLogin = async (e: React.FormEvent) => {
+		e.preventDefault()
 		if (!email || !password) {
 			return window.alert("Please enter both email and password")
 		}
 
-		// login via auth store
 		await login({ email, password })
-
-		// after login get the jwt and send it to the backend
 		const { data: sessionData } = await supabase.auth.getSession()
 		const token = sessionData?.session?.access_token
-		console.log("Token:", token)
-
-		if (token) {
-			localStorage.setItem("token", token);
-		} else {
-			console.warn("No JWT found after login")
-		}
+		if (token) localStorage.setItem("token", token)
 	}
 
-	if (isCheckingAuth && !authUser) return (
-		<div className="flex items-center justify-center h-screen">
-			<Loader className="size-10 animate-spin" />
-		</div>
-	);
+	if (isCheckingAuth && !authUser)
+		return (
+			<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
+				<LoaderPinwheel className="w-10 h-10 text-primary animate-spin" />
+			</div>
+		)
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-base-200">
-			<div className="card w-full max-w-sm shadow-xl bg-base-100 mb-40">
-				<div className="card-body">
-					<h2 className="card-title text-center text-2xl mb-4">Login</h2>
+		<div className="flex min-h-screen">
+			{/* Left Section (Visual / Brand area) */}
+			<div className="hidden lg:flex w-[60%] bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-background items-center justify-center relative overflow-hidden">
+				<div className="max-w-lg text-left px-12 space-y-4">
+					<h1 className="text-5xl font-bold text-primary tracking-tight leading-tight">
+						Welcome Back
+					</h1>
+					<p className="text-lg text-gray-700 dark:text-gray-300">
+						Log in to access your investor dashboard, track performance, and discover new opportunities.
+					</p>
+				</div>
+				<div className="absolute inset-0 bg-gradient-to-t from-background/10 via-transparent to-transparent pointer-events-none" />
+			</div>
 
-					<input
-						type="email"
-						placeholder="Email"
-						className="input input-bordered w-full mb-3"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-					/>
+			{/* Right Section (Login Form) */}
+			<div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-12 bg-gray-50 dark:bg-gray-900">
+				<div className="max-w-md w-full mx-auto">
+					<h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+						Log In
+					</h2>
 
-					<input
-						type="password"
-						placeholder="Password"
-						className="input input-bordered w-full mb-4"
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-					/>
+					<form onSubmit={handleLogin} className="space-y-6">
+						<div className="space-y-2">
+							<Label htmlFor="email">Email</Label>
+							<Input
+								id="email"
+								type="email"
+								placeholder="you@example.com"
+								required
+								value={email}
+								onChange={(e) => setEmail(e.target.value)}
+								className="bg-white dark:bg-gray-800"
+							/>
+						</div>
 
-					<div className="flex justify-between">
+						<div className="space-y-2">
+							<Label htmlFor="password">Password</Label>
+							<Input
+								id="password"
+								type="password"
+								required
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}
+								className="bg-white dark:bg-gray-800"
+							/>
+						</div>
+
 						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handleLogin}
+							type="submit"
+							className={`${Button.buttonClassName} w-full`}
 							disabled={isLoggingIn}
 						>
-							{isLoggingIn ? "Logging in..." : "Log in"}
+							{isLoggingIn ? (
+								<LoaderPinwheel className="w-5 h-5 animate-spin" />
+							) : (
+								"Log In"
+							)}
 						</button>
-					</div>
+					</form>
 
-					<div className="text-center mt-4">
-						<p className="text-center text-sm">
-							Don't have an account?{" "}
-							<a
-								className="link link-primary"
-								onClick={() => router.push("/signup")}
-							>
-								Sign up
-							</a>
-						</p>
-					</div>
+					<p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
+						Don’t have an account?{" "}
+						<a
+							className="text-primary hover:underline font-medium cursor-pointer"
+							onClick={() => router.push("/signup")}
+						>
+							Sign up
+						</a>
+					</p>
 				</div>
 			</div>
 		</div>
