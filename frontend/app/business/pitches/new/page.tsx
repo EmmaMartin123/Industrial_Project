@@ -214,7 +214,7 @@ export default function NewPitchPage() {
 
 	return (
 		<div className="flex justify-center p-8 bg-gray-50 min-h-screen">
-			<Card className="w-full max-w-4xl shadow-2xl">
+			<Card className="w-full max-w-4xl border-0 shadow-none">
 				<CardHeader>
 					<CardTitle className="text-4xl font-extrabold text-gray-900">Create New Pitch</CardTitle>
 					<CardDescription className="text-lg">
@@ -249,7 +249,7 @@ export default function NewPitchPage() {
 
 							{/* tab 1: content */}
 							<TabsContent value="content" className="space-y-8">
-								<h4 className="text-xl font-semibold text-indigo-700">1. Pitch Summary</h4>
+								<h4 className="text-xl font-semibold">Pitch Information</h4>
 
 								{/* title */}
 								<div className="space-y-2">
