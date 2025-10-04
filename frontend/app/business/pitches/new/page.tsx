@@ -1,20 +1,12 @@
-// NewPitchPage.tsx
-
 "use client";
 
-import { useState, useMemo } from "react"; // Added useMemo for efficient previews
+import { useState, useMemo, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Plus, Trash, FileText, Image as ImageIcon, Video, X, Calendar as CalendarIcon, DollarSign, Percent, FileTextIcon, Wallet, Layers, GalleryVertical } from "lucide-react";
-
-// --- Required External Dependencies ---
 import { format } from "date-fns";
-
-// --- Local Imports ---
 import { cn } from "@/lib/utils";
 import { NewPitch } from "@/lib/types/pitch";
 import { postPitch } from "@/lib/api/pitch";
-
-// --- Shadcn UI Components ---
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +16,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// Define a type for the tier state
 type TierState = {
 	name: string;
 	min_amount: number | "";
@@ -32,7 +23,7 @@ type TierState = {
 	multiplier: number | "";
 };
 
-// Helper function to determine the icon for a generic file type
+// helper function to determine the icon for a generic file type
 const getFileIcon = (mimeType: string) => {
 	if (mimeType.startsWith('image/')) return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
 	if (mimeType.startsWith('video/')) return <Video className="w-4 h-4 mr-2 text-purple-500" />;
@@ -40,7 +31,6 @@ const getFileIcon = (mimeType: string) => {
 };
 
 export default function NewPitchPage() {
-	// --- State ---
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
@@ -56,7 +46,6 @@ export default function NewPitchPage() {
 	const [loading, setLoading] = useState(false);
 	const [activeTab, setActiveTab] = useState("content");
 
-	// --- NEW: Memoized array of objects for easier previewing ---
 	const mediaPreviews = useMemo(() => {
 		return mediaFiles.map(file => ({
 			name: file.name,
@@ -64,20 +53,37 @@ export default function NewPitchPage() {
 			url: URL.createObjectURL(file),
 		}));
 	}, [mediaFiles]);
-	// NOTE: We must revoke these URLs in a cleanup effect in a real app to avoid memory leaks.
-	// However, for this simplified component, we'll keep the logic here for clarity.
 
-	// --- Handlers (Simplified and consolidated) ---
+	// cleanup hook basically just revokes object urls on state change or unmount to prevent memory leaks
+	useEffect(() => {
+		// okay so this has to run when the component unmounts or when the dependencies change
+		return () => {
+			// revoke all urls from the previous mediapreviews state
+			mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+		};
+	}, [mediaFiles]); // depend only on mediafiles to correctly track file array changes
+
+
+	// handlers
 
 	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		if (e.target.files) {
-			setMediaFiles(prevFiles => [...prevFiles, ...Array.from(e.target.files || [])]);
+		const newFiles = e.target.files;
+
+		if (newFiles && newFiles.length > 0) {
+			// use functional update to correctly append new files to the state
+			setMediaFiles((prevFiles) => [
+				...prevFiles,
+				...Array.from(newFiles)
+			]);
+
+			// clear the input value instantly HOURS BRO HOURS TO FIGURE THIS OUT but yeah that forces the browser to re fire the change event next time
 			e.target.value = '';
+
+			toast.success(`Added ${newFiles.length} new file(s).`);
 		}
 	};
 
 	const removeMediaFile = (fileIndex: number) => {
-		// Revoke the object URL to free up memory
 		if (mediaPreviews[fileIndex]?.url) {
 			URL.revokeObjectURL(mediaPreviews[fileIndex].url);
 		}
@@ -104,7 +110,7 @@ export default function NewPitchPage() {
 		setTiers(newTiers);
 	};
 
-	// --- Validation & Navigation Logic ---
+	// validation / navigation logic
 	const validateStep = (step: string): boolean => {
 		if (step === "content") {
 			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
@@ -112,14 +118,19 @@ export default function NewPitchPage() {
 				return false;
 			}
 		} else if (step === "media") {
-			// Optional to check media, but good for user flow
 			if (mediaFiles.length === 0) {
 				toast.success("Tip: Adding media greatly improves your pitch visibility!");
 			}
 		}
 		else if (step === "financials") {
+			// check for empty string / undefined / null for required fields
 			if (targetAmount === "" || profitShare === "" || !endDate) {
 				toast.error("Please provide valid numbers and select an **End Date**.");
+				return false;
+			}
+			// check for valid numeric valuesv
+			if (typeof targetAmount !== 'number' || typeof profitShare !== 'number' || targetAmount <= 0 || profitShare < 0) {
+				toast.error("Target Amount and Profit Share must be positive numbers.");
 				return false;
 			}
 			if (endDate! <= investmentStartDate) {
@@ -132,6 +143,13 @@ export default function NewPitchPage() {
 			);
 			if (!allTiersValid) {
 				toast.error("Please ensure all tiers have a **Name**, **Min Amount**, and **Multiplier**.");
+				return false;
+			}
+			const numericTiersValid = tiers.every(
+				(t) => Number(t.min_amount) > 0 && Number(t.multiplier) > 0 && (t.max_amount === "" || t.max_amount === null || Number(t.max_amount) > Number(t.min_amount))
+			);
+			if (!numericTiersValid) {
+				toast.error("Tier amounts and multipliers must be positive, and Max Amount must be greater than Min Amount.");
 				return false;
 			}
 		}
@@ -149,12 +167,10 @@ export default function NewPitchPage() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// 1. Final comprehensive validation (before submission)
 		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) {
 			return;
 		}
 
-		// 2. Construct the NewPitch object
 		const pitchPayload: NewPitch = {
 			title,
 			elevator_pitch: elevator,
@@ -173,7 +189,6 @@ export default function NewPitchPage() {
 			})),
 		};
 
-		// 3. Construct FormData & 4. API Call
 		const formData = new FormData();
 		formData.append("pitch", JSON.stringify(pitchPayload));
 		if (mediaFiles.length > 0) {
@@ -186,6 +201,8 @@ export default function NewPitchPage() {
 			setLoading(true);
 			await postPitch(formData);
 			toast.success("Pitch submitted successfully! 🚀");
+			// redirect here
+			// router.push('/dashboard'); 
 		} catch (err: any) {
 			console.error(err);
 			toast.error("Failed to submit pitch. Check console for details.");
@@ -205,10 +222,10 @@ export default function NewPitchPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					{/* Tabs component wrapper */}
+					{/* tabs component wrapper */}
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 
-						{/* Tab Navigation List: 4 Tabs */}
+						{/* tab navigation list 4 tabs */}
 						<TabsList className="grid w-full grid-cols-4 mb-6 h-auto p-1">
 							<TabsTrigger value="content" className="flex items-center space-x-1 text-xs sm:text-sm">
 								<FileTextIcon className="w-4 h-4" />
@@ -230,23 +247,23 @@ export default function NewPitchPage() {
 
 						<form onSubmit={handleSubmit}>
 
-							{/* TAB 1: Content */}
+							{/* tab 1: content */}
 							<TabsContent value="content" className="space-y-8">
 								<h4 className="text-xl font-semibold text-indigo-700">1. Pitch Summary</h4>
 
-								{/* Title */}
+								{/* title */}
 								<div className="space-y-2">
 									<Label htmlFor="title">Title</Label>
 									<Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Revolutionary AI-Powered Farming" required />
 								</div>
 
-								{/* Elevator Pitch */}
+								{/* elevator pitch */}
 								<div className="space-y-2">
 									<Label htmlFor="elevator">Elevator Pitch (Short Summary)</Label>
 									<Textarea id="elevator" value={elevator} onChange={(e) => setElevator(e.target.value)} placeholder="A short, catchy summary for quick interest." required rows={3} maxLength={250} />
 								</div>
 
-								{/* Detailed Pitch (MARKDOWN TEXTAREA) */}
+								{/* detailed pitch */}
 								<div className="space-y-2">
 									<Label htmlFor="detailed">Detailed Pitch Content</Label>
 									<Textarea
@@ -261,7 +278,7 @@ export default function NewPitchPage() {
 									<p className="text-sm text-muted-foreground">This field supports Markdown for rich formatting.</p>
 								</div>
 
-								{/* Navigation button */}
+								{/* navigation button */}
 								<div className="flex justify-end pt-4">
 									<Button type="button" onClick={() => handleNext("content", "media")} className="bg-indigo-600 hover:bg-indigo-700">
 										Next: Media & Visuals
@@ -269,28 +286,29 @@ export default function NewPitchPage() {
 								</div>
 							</TabsContent>
 
-							{/* TAB 2: Media & Visuals (NEW TAB) */}
+							{/* tab 2: media & visuals */}
 							<TabsContent value="media" className="space-y-8">
 								<h4 className="text-xl font-semibold text-indigo-700">2. Media & Visuals</h4>
 
-								{/* Media Uploader */}
+								{/* media uploader */}
 								<Label htmlFor="media-files" className="cursor-pointer block">
 									<div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg hover:border-indigo-500 hover:bg-gray-100 transition-colors">
 										<Plus className="w-6 h-6 mb-2 text-indigo-500" />
-										<span className="font-semibold text-lg text-gray-700">Click to select files (Images/Videos)</span>
-										<p className="text-sm text-muted-foreground mt-1">Select multiple files for the pitch carousel.</p>
+										<span className="font-semibold text-lg text-gray-700">Click here to add more files</span>
+										<p className="text-sm text-muted-foreground mt-1">You can select **multiple** images or videos at once.</p>
 									</div>
 								</Label>
 								<Input
 									id="media-files"
 									type="file"
+									// ENABLE MULTIPLE SELECTION like bro i cant believe how long i spent on this
 									multiple
 									accept="image/*,video/*"
 									onChange={handleMediaChange}
 									className="hidden"
 								/>
 
-								{/* Display Selected Files with Previews */}
+								{/* TODO: display selected files with previews */}
 								{mediaPreviews.length > 0 && (
 									<div className="space-y-4 pt-2">
 										<p className="text-lg font-semibold">Selected Files ({mediaPreviews.length}):</p>
@@ -314,17 +332,17 @@ export default function NewPitchPage() {
 															Your browser does not support the video tag.
 														</video>
 													)}
-													{/* Generic file display (shouldn't happen with the accept filter, but safe) */}
+													{/* fallback for non-visual files */}
 													{!preview.type.startsWith('image/') && !preview.type.startsWith('video/') && (
 														<div className="w-full h-24 flex items-center justify-center text-gray-500 bg-gray-100 rounded-md">
 															<FileText className="w-6 h-6" />
 														</div>
 													)}
 
-													{/* File Name Overlay */}
+													{/* file name overlay */}
 													<p className="text-xs font-medium truncate mt-2 px-1">{preview.name}</p>
 
-													{/* Remove Button Overlay */}
+													{/* remove button overlay */}
 													<Button
 														type="button"
 														size="icon"
@@ -339,7 +357,7 @@ export default function NewPitchPage() {
 									</div>
 								)}
 
-								{/* Navigation buttons */}
+								{/* navigation buttons */}
 								<div className="flex justify-between pt-4">
 									<Button type="button" variant="outline" onClick={() => setActiveTab("content")}>
 										Previous
@@ -350,29 +368,29 @@ export default function NewPitchPage() {
 								</div>
 							</TabsContent>
 
-							{/* TAB 3: Financial Goals (Previously Tab 2) */}
+							{/* tab 3: financial goals */}
 							<TabsContent value="financials" className="space-y-8">
 								<h4 className="text-xl font-semibold text-teal-700">3. Set Funding Targets and Timeline</h4>
 
-								{/* Target Amount */}
+								{/* target amount */}
 								<div className="space-y-2">
 									<Label htmlFor="targetAmount">Target Amount</Label>
 									<div className="flex items-center">
 										<span className="text-gray-500 mr-2"><DollarSign className="w-5 h-5" /></span>
-										<Input type="number" id="targetAmount" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="100,000" required />
+										<Input type="number" id="targetAmount" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="100,000" required min={1} />
 									</div>
 								</div>
 
-								{/* Profit Share */}
+								{/* profit share */}
 								<div className="space-y-2">
 									<Label htmlFor="profitShare">Profit Share Percentage</Label>
 									<div className="flex items-center">
 										<span className="text-gray-500 mr-2"><Percent className="w-5 h-5" /></span>
-										<Input type="number" id="profitShare" value={profitShare} onChange={(e) => setProfitShare(e.target.value === "" ? "" : Number(e.target.value))} placeholder="10" required />
+										<Input type="number" id="profitShare" value={profitShare} onChange={(e) => setProfitShare(e.target.value === "" ? "" : Number(e.target.value))} placeholder="10" required min={0} max={100} />
 									</div>
 								</div>
 
-								{/* Investment Start Date (Read-only) */}
+								{/* investment start date (read-only) */}
 								<div className="space-y-2">
 									<Label htmlFor="startDate">Start Date</Label>
 									<div className="flex items-center">
@@ -387,7 +405,8 @@ export default function NewPitchPage() {
 									<p className="text-xs text-muted-foreground ml-7">Automatically set to today.</p>
 								</div>
 
-								{/* End Date (SHADCN DATE PICKER) */}
+								{/* end date */}
+								{/* TODO: change this immediately it looks garbage */}
 								<div className="space-y-2">
 									<Label htmlFor="endDate">Investment End Date</Label>
 									<div className="flex items-center">
@@ -410,6 +429,7 @@ export default function NewPitchPage() {
 													selected={endDate}
 													onSelect={setEndDate}
 													initialFocus
+													// ensure the end date is at least one day after today
 													fromDate={new Date(investmentStartDate.getTime() + 24 * 60 * 60 * 1000)}
 												/>
 											</PopoverContent>
@@ -417,7 +437,7 @@ export default function NewPitchPage() {
 									</div>
 								</div>
 
-								{/* Navigation buttons */}
+								{/* navigation buttons */}
 								<div className="flex justify-between pt-4">
 									<Button type="button" variant="outline" onClick={() => setActiveTab("media")}>
 										Previous
@@ -428,7 +448,7 @@ export default function NewPitchPage() {
 								</div>
 							</TabsContent>
 
-							{/* TAB 4: Investment Tiers (Previously Tab 3) */}
+							{/* tab 4: investment tiers */}
 							<TabsContent value="tiers" className="space-y-8">
 								<h4 className="text-xl font-semibold text-blue-700">4. Define Investment Levels</h4>
 
@@ -464,15 +484,38 @@ export default function NewPitchPage() {
 												<div className="grid grid-cols-3 gap-2">
 													<div className="space-y-1 col-span-1">
 														<Label htmlFor={`tier-min-${index}`}>Min ($)</Label>
-														<Input type="number" id={`tier-min-${index}`} value={tier.min_amount} onChange={(e) => handleTierChange(index, "min_amount", e.target.value)} placeholder="Min" required />
+														<Input
+															type="number"
+															id={`tier-min-${index}`}
+															value={tier.min_amount}
+															onChange={(e) => handleTierChange(index, "min_amount", e.target.value)}
+															placeholder="Min"
+															required
+															min={1}
+														/>
 													</div>
 													<div className="space-y-1 col-span-1">
 														<Label htmlFor={`tier-max-${index}`}>Max ($) (Opt)</Label>
-														<Input type="number" id={`tier-max-${index}`} value={tier.max_amount === null ? "" : tier.max_amount} onChange={(e) => handleTierChange(index, "max_amount", e.target.value)} placeholder="Max" />
+														<Input
+															type="number"
+															id={`tier-max-${index}`}
+															value={tier.max_amount === null ? "" : tier.max_amount}
+															onChange={(e) => handleTierChange(index, "max_amount", e.target.value)}
+															placeholder="Max"
+															min={tier.min_amount === "" ? 1 : Number(tier.min_amount) + 1}
+														/>
 													</div>
 													<div className="space-y-1 col-span-1">
 														<Label htmlFor={`tier-mult-${index}`}>Multiplier</Label>
-														<Input type="number" id={`tier-mult-${index}`} value={tier.multiplier} onChange={(e) => handleTierChange(index, "multiplier", e.target.value)} placeholder="x" required />
+														<Input
+															type="number"
+															id={`tier-mult-${index}`}
+															value={tier.multiplier}
+															onChange={(e) => handleTierChange(index, "multiplier", e.target.value)}
+															placeholder="x"
+															required
+															min={1}
+														/>
 													</div>
 												</div>
 											</div>
@@ -484,7 +527,7 @@ export default function NewPitchPage() {
 									<Plus className="w-4 h-4 mr-2" /> Add Investment Tier
 								</Button>
 
-								{/* Navigation and Submit buttons */}
+								{/* navigation and submit buttons */}
 								<div className="flex justify-between pt-4">
 									<Button type="button" variant="outline" onClick={() => setActiveTab("financials")}>
 										Previous
