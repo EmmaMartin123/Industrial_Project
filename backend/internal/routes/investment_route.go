@@ -8,6 +8,7 @@ import (
 
 	model "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/common"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/utils"
+	utilsdb "github.com/EmmaMartin123/Industrial_Project/backend/internal/utils/db"
 )
 
 func investment_route(w http.ResponseWriter, r *http.Request) {
@@ -24,19 +25,18 @@ func investment_route(w http.ResponseWriter, r *http.Request) {
 }
 
 func update_investor_balance(user_id string, amount_pounds int64) error {
-
-	profile_body, err := utils.GetDataByID("profile", user_id)
+	profile, err := utilsdb.GetUserProfile(user_id)
 	if err != nil {
-		return fmt.Errorf("investor profile not found")
+		return fmt.Errorf("investor profile not found: %w", err)
 	}
-	var profiles []model.Profile
-	if err := json.Unmarshal(profile_body, &profiles); err != nil || len(profiles) != 1 {
-		return fmt.Errorf("invalid profile data")
+
+	if profile.Role != "investor" {
+		return fmt.Errorf("user is not an investor")
 	}
 
 	current_balance := int64(0)
-	if profiles[0].DashboardBalance != nil {
-		current_balance = int64(*profiles[0].DashboardBalance)
+	if profile.DashboardBalance != nil {
+		current_balance = int64(*profile.DashboardBalance)
 	}
 	new_balance := current_balance + amount_pounds
 
@@ -58,6 +58,10 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if ok, _ := utilsdb.CheckUserRole(w, user_id, "investor"); !ok {
 		return
 	}
 
@@ -136,7 +140,6 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 
 	result, err := utils.InsertData(investment, "investments")
 	if err != nil {
-		// Add amount back if insert fails
 		_ = update_investor_balance(user_id, req.Amount)
 		http.Error(w, "Failed to create investment", http.StatusInternalServerError)
 		return
@@ -161,6 +164,11 @@ func get_investment_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify the user has an investor role
+	if ok, _ := utilsdb.CheckUserRole(w, user_id, "investor"); !ok {
 		return
 	}
 
@@ -213,6 +221,11 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify the user has an investor role
+	if ok, _ := utilsdb.CheckUserRole(w, user_id, "investor"); !ok {
 		return
 	}
 

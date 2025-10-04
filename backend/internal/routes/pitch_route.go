@@ -14,6 +14,7 @@ import (
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/frontend"
 	mapping "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/mapping"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/utils"
+	utilsdb "github.com/EmmaMartin123/Industrial_Project/backend/internal/utils/db"
 )
 
 func pitch_route(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +62,10 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || userID != pitch.UserID {
 		http.Error(w, "Unauthorised", http.StatusUnauthorized)
+		return
+	}
+
+	if ok, _ := utilsdb.CheckUserRole(w, userID, "business"); !ok {
 		return
 	}
 
@@ -134,7 +139,17 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 	}
 
-	uid, _ := utils.UserIDFromCtx(r.Context())
+	uid, ok := utils.UserIDFromCtx(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Check that the user has a "business" role
+	if ok, _ := utilsdb.CheckUserRole(w, uid, "business"); !ok {
+		return
+	}
+
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
 	result, err := utils.InsertData(db_pitch, "pitch")
 
@@ -263,11 +278,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	sort := r.URL.Query().Get("sort")
 
 	if pitchID == "" {
-		
+
 		var queryParams []string
 		var tagIDs []int64
 
-		
 		if user_id != "" {
 			queryParams = append(queryParams, fmt.Sprintf("user_id=eq.%s", user_id))
 		}
@@ -284,7 +298,6 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			queryParams = append(queryParams, fmt.Sprintf("investment_end_date=eq.%s", investment_end_date))
 		}
 
-		
 		if limit != "" {
 			limitValue, err := strconv.Atoi(limit)
 			if err == nil && limitValue > 0 {
@@ -299,7 +312,6 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		
 		if tags != "" {
 			tagList := strings.Split(tags, ",")
 			for i := range tagList {
@@ -515,6 +527,11 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || user_id != old_pitch.UserID {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Check that the user has a "business" role
+	if ok, _ := utilsdb.CheckUserRole(w, user_id, "business"); !ok {
 		return
 	}
 
