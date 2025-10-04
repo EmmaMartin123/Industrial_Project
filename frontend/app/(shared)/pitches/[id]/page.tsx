@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
 import { getPitch } from "@/lib/api/pitch";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/carousel";
 
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner"
 
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
@@ -106,6 +106,10 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 		(pitch.raised_amount / pitch.target_amount) * 100 > 100
 			? 100
 			: (pitch.raised_amount / pitch.target_amount) * 100;
+
+	const handleInvest = () => {
+		toast("Your investment was recorded successfully! 🎉");
+	};
 
 	return (
 		<div className="max-w-6xl mx-auto p-8">
@@ -230,7 +234,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					)}
 
 					{/* call to action */}
-					<button className={Button.buttonClassName + " w-full"}>
+					<button className={Button.buttonClassName + " w-full"} onClick={handleInvest}>
 						Invest Now
 					</button>
 				</aside>

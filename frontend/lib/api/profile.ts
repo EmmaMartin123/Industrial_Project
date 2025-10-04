@@ -1,4 +1,5 @@
 import axios from "@/lib/axios"
+import { useAuthStore } from "@/lib/store/authStore"
 
 interface ProfileData {
 	role: string;
@@ -12,7 +13,10 @@ export const postUserProfile = async (data: ProfileData) => {
 };
 
 export const getMyUserProfile = async () => {
-	const response = await axios.get("/profile");
+	const { getId } = useAuthStore()
+
+	const userId = getId(); 
+	const response = await axios.get("/profile?id=" + userId);
 
 	return response.data;
 };

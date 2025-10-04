@@ -20,6 +20,9 @@ type AuthStore = {
 	signup: (data: AuthData) => Promise<void>
 	login: (data: AuthData) => Promise<void>
 	logout: () => Promise<void>
+	getUser: () => User | null
+	getId: () => string | null
+	getToken: () => Promise<string | null>
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -84,10 +87,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
 		}
 	},
 
+	getUser: (): User | null => {
+		const user = useAuthStore.getState().authUser
+		return user ?? null
+	},
+
+	getId: (): string | null => {
+		const user = useAuthStore.getState().authUser
+		return user?.id ?? null
+	},
+
 	// get the JWT token
-	getToken: async () => {
+	getToken: async (): Promise<string | null> => {
 		const { data, error } = await supabase.auth.getSession()
 		if (error) throw error
-		return data.session?.access_token
-	},
+		return data.session?.access_token ?? null
+	}
 }))

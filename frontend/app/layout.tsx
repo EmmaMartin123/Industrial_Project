@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Toaster } from "react-hot-toast"
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Fugaz_One } from "next/font/google";
 import { Lato } from "next/font/google";
+import { Toaster } from "sonner";
 
 const fugazOne = Fugaz_One({
   subsets: ["latin"],
@@ -35,7 +35,7 @@ export default function RootLayout({
 
 				{children}
 
-				<Toaster position="top-right" reverseOrder={false} />
+				<Toaster position="top-center" />
 
 				<Footer />
 			</body>
