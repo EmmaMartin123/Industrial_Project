@@ -527,7 +527,7 @@ export default function NewPitchPage() {
 									<Plus className="w-4 h-4 mr-2" /> Add Investment Tier
 								</Button>
 
-								{/* navigation and submit buttons */}
+								{/* navigation / submit buttons */}
 								<div className="flex justify-between pt-4">
 									<Button type="button" variant="outline" onClick={() => setActiveTab("financials")}>
 										Previous
