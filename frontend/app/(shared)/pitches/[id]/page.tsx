@@ -15,6 +15,12 @@ import {
 	CarouselPrevious,
 } from "@/components/ui/carousel";
 
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from "@/components/ui/hover-card"
+
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner"
 
@@ -161,7 +167,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					{/* details */}
 					<section className="space-y-3">
 						<h2 className="text-2xl font-semibold">About this Pitch</h2>
-						<p className="text-muted-foreground leading-relaxed">
+						<p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
 							{pitch.detailed_pitch}
 						</p>
 					</section>
@@ -216,18 +222,40 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 							<h2 className="text-lg font-semibold">Investment Tiers</h2>
 							<div className="space-y-3">
 								{pitch.investment_tiers.map((tier) => (
-									<div
-										key={tier.tier_id}
-										className="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition"
-									>
-										<p className="font-semibold">{tier.name}</p>
-										<p className="text-sm text-muted-foreground">
-											Min: ${tier.min_amount} | Max: ${tier.max_amount}
-										</p>
-										<p className="text-sm text-muted-foreground">
-											Multiplier: {tier.multiplier}%
-										</p>
-									</div>
+									<HoverCard key={tier.tier_id} openDelay={200}>
+
+										<HoverCardTrigger asChild>
+											<div
+												className="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition cursor-pointer"
+											>
+												<p className="font-semibold">{tier.name}</p>
+												<p className="text-sm text-muted-foreground">
+													Min: £{tier.min_amount}
+												</p>
+												<p className="text-sm text-muted-foreground">
+													Max: £{tier.max_amount}
+												</p>
+												<p className="text-sm text-muted-foreground">
+													Multiplier: {tier.multiplier}x
+												</p>
+											</div>
+										</HoverCardTrigger>
+
+										<HoverCardContent className="w-80">
+											<div className="space-y-2">
+												<p className="text-sm font-medium">
+													Tier Details: **{tier.name}**
+												</p>
+												<p className="text-sm text-muted-foreground">
+													This tier is for investments between **£{tier.min_amount}** and **£{tier.max_amount}**.
+												</p>
+												<p className="text-xs text-muted-foreground">
+													You receive a **{tier.multiplier}x** boost on your profit share.
+												</p>
+											</div>
+										</HoverCardContent>
+
+									</HoverCard>
 								))}
 							</div>
 						</div>
