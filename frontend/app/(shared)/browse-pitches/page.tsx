@@ -3,8 +3,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { Eye, Search, Filter, X, Plus, Minus } from "lucide-react";
 import { mockPitches } from "@/lib/mockPitches";
+import { useRouter } from "next/navigation";
+
 
 export default function BusinessPitchesPage() {
+	const router = useRouter();
 	const [pitches] = useState(mockPitches);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
@@ -258,7 +261,9 @@ export default function BusinessPitchesPage() {
                   </div>
 
                   <div className="mt-4 flex justify-end">
-                    <button className="flex items-center gap-2 px-4 py-2 border border-base-300 text-gray-700 rounded-lg hover:bg-base-200 transition-colors font-medium">
+                    <button 
+					onClick={() => router.push(`/business/pitches/view?id=${pitch.pitch_id}`)}
+					className="flex items-center gap-2 px-4 py-2 border border-base-300 text-gray-700 rounded-lg hover:bg-base-200 transition-colors font-medium">
                       <Eye className="w-4 h-4" />
                       View Details
                     </button>

@@ -26,6 +26,11 @@ export default function ViewPitchPage({
 
 	if (!pitch) return <div className="p-6">Pitch not found.</div>;
 
+	const progress =
+    (pitch.raised_amount / pitch.target_amount) * 100 > 100
+      ? 100
+      : (pitch.raised_amount / pitch.target_amount) * 100;
+
 	return (
 		<div className="min-h-screen bg-base-100 p-6">
 			<button 
@@ -36,24 +41,24 @@ export default function ViewPitchPage({
 
 			<h1 className="text-3xl font-bold mb-2">{pitch.title}</h1>
 			<p className="text-lg mb-4">{pitch.elevator_pitch}</p>
-			<p className="mb-4">{pitch.detailed_pitch}</p>
+			<p className="mb-6">{pitch.detailed_pitch}</p>
 
 			<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-				<div>
+				<div className="space-y-2">
 					<p>
 						<strong>Status:</strong> {pitch.status}
 					</p>
 					<p>
-						<strong>Target Investment:</strong> £{pitch.target_amount}
+						<strong>Target Investment:</strong> £{pitch.target_amount.toLocaleString()}
 					</p>
 					<p>
-						<strong>Raised:</strong> £{pitch.raised_amount}
+						<strong>Raised:</strong> £{pitch.raised_amount.toLocaleString()}
 					</p>
 					<p>
 						<strong>Profit Share:</strong> {pitch.profit_share_percent}%
 					</p>
 				</div>
-				<div>
+				<div className="space-y-2">
 					<p>
 						<strong>Investment Start:</strong>{" "}
 						{pitch.investment_start_date.toDateString()}
@@ -71,14 +76,26 @@ export default function ViewPitchPage({
 				</div>
 			</div>
 
+			<div className="mb-8">
+              <p className="mb-2 text-sm font-medium">
+                Funding Progress ({progress.toFixed(1)}%)
+              </p>
+              <div className="w-full bg-base-300 rounded-full h-4 overflow-hidden">
+                <div 
+				className="bg-blue-500 h-4"
+                style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+
 			{pitch.investment_tiers && pitch.investment_tiers.length > 0 && (
 				<div className="mb-4">
-					<h2 className="text-xl font-semibold mb-2">Investment Tiers</h2>
-					<ul className="space-y-2">
+					<h2 className="text-xl font-semibold mb-4">Investment Tiers</h2>
+					<ul className="space-y-3">
 						{pitch.investment_tiers.map((tier: InvestmentTier) => (
 							<li
 								key={tier.tier_id}
-								className="p-3 border rounded-md bg-base-200"
+								className="p-4 border rounded-md bg-base-200"
 							>
 								<p>
 									<strong>{tier.name}</strong>
