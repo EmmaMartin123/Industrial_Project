@@ -24,10 +24,10 @@ func investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func update_investor_balance(user_id string, amount_pounds int64) error {
+func update_balance(user_id string, amount_pounds int64) error {
 	profile, err := utilsdb.GetUserProfile(user_id)
 	if err != nil {
-		return fmt.Errorf("investor profile not found: %w", err)
+		return fmt.Errorf("profile not found")
 	}
 
 	if profile.Role != "investor" {
@@ -120,7 +120,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := update_investor_balance(user_id, -req.Amount); err != nil {
+	if err := update_balance(user_id, -req.Amount); err != nil {
 		if err.Error() == "insufficient funds" {
 			http.Error(w, "Insufficient funds", http.StatusPaymentRequired)
 		} else {
@@ -140,14 +140,15 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 
 	result, err := utils.InsertData(investment, "investments")
 	if err != nil {
-		_ = update_investor_balance(user_id, req.Amount)
+		// Add amount back if insert fails
+		_ = update_balance(user_id, req.Amount)
 		http.Error(w, "Failed to create investment", http.StatusInternalServerError)
 		return
 	}
 
 	var inserted []model.Investment
 	if err := json.Unmarshal([]byte(result), &inserted); err != nil || len(inserted) == 0 {
-		_ = update_investor_balance(user_id, req.Amount)
+		_ = update_balance(user_id, req.Amount)
 		http.Error(w, "Failed to decode created investment", http.StatusInternalServerError)
 		return
 	}
@@ -277,7 +278,7 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := update_investor_balance(user_id, investment.Amount); err != nil {
+	if err := update_balance(user_id, investment.Amount); err != nil {
 		fmt.Printf("Warning: failed to refund investor balance: %v\n", err)
 		//TODO: We should rollback the change to the investment and give an error?
 	}
