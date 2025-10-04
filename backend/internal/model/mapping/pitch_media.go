@@ -5,7 +5,7 @@ import (
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/frontend"
 )
 
-func PitchMedia_ToDatabase(m frontend.PitchMedia, pitchID int) database.PitchMedia {
+func PitchMedia_ToDatabase(m frontend.PitchMedia, pitchID int64) database.PitchMedia {
 	return database.PitchMedia{
 		ID:                 m.ID,
 		PitchID:            pitchID,

@@ -18,9 +18,9 @@ func CORSAllowlist() map[string]bool {
 	return allowlist
 }
 
-func WriteError(w http.ResponseWriter, err error, code int) {
+func WriteError(w http.ResponseWriter, err error, code int64) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(int(code))
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
 

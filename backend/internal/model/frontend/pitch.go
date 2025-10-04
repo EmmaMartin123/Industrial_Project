@@ -5,7 +5,7 @@ import (
 )
 
 type Pitch struct {
-	PitchID             *int                   `json:"id,omitempty"`
+	PitchID             *int64                 `json:"id,omitempty"`
 	ProductTitle        string                 `json:"title"`
 	ElevatorPitch       string                 `json:"elevator_pitch"`
 	DetailedPitch       string                 `json:"detailed_pitch"`
@@ -15,6 +15,6 @@ type Pitch struct {
 	ProfitSharePercent  float64                `json:"profit_share_percent"`
 	InvestmentTiers     []model.InvestmentTier `json:"investment_tiers"`
 	UserID              *string                `json:"user_id,omitempty"`
-	RaisedAmount        *int                   `json:"raised_amount,omitempty"`
+	RaisedAmount        *int64                 `json:"raised_amount,omitempty"`
 	Media               []PitchMedia           `json:"media,omitempty"`
 }

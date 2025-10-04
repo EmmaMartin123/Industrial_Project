@@ -117,8 +117,8 @@ func TestPitchCRUD(t *testing.T) {
 		"SUPABASE_URL",
 		"SUPABASE_ANON_KEY",
 		"SUPABASE_SERVICE_ROLE_KEY",
-		"TEST_USER_EMAIL",
-		"TEST_USER_PASSWORD",
+		"TEST_BUSINESS_EMAIL",
+		"TEST_BUSINESS_PASSWORD",
 	}
 	for _, key := range required {
 		if os.Getenv(key) == "" {
@@ -131,8 +131,8 @@ func TestPitchCRUD(t *testing.T) {
 	}
 
 	access_token, err := login_to_supabase(
-		os.Getenv("TEST_USER_EMAIL"),
-		os.Getenv("TEST_USER_PASSWORD"),
+		os.Getenv("TEST_BUSINESS_EMAIL"),
+		os.Getenv("TEST_BUSINESS_PASSWORD"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to log in to Supabase: %v", err)
@@ -173,7 +173,7 @@ func TestPitchCRUD(t *testing.T) {
 	if !ok {
 		t.Fatalf("Missing or invalid 'id' in response: %v", created_pitch)
 	}
-	pitch_id := int(pitch_id_float)
+	pitch_id := int64(pitch_id_float)
 
 	defer func() {
 		delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)
@@ -290,8 +290,8 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 		"SUPABASE_URL",
 		"SUPABASE_ANON_KEY",
 		"SUPABASE_SERVICE_ROLE_KEY",
-		"TEST_USER_EMAIL",
-		"TEST_USER_PASSWORD",
+		"TEST_BUSINESS_EMAIL",
+		"TEST_BUSINESS_PASSWORD",
 	}
 	for _, key := range required {
 		if os.Getenv(key) == "" {
@@ -304,8 +304,8 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 	}
 
 	access_token, err := login_to_supabase(
-		os.Getenv("TEST_USER_EMAIL"),
-		os.Getenv("TEST_USER_PASSWORD"),
+		os.Getenv("TEST_BUSINESS_EMAIL"),
+		os.Getenv("TEST_BUSINESS_PASSWORD"),
 	)
 	if err != nil {
 		t.Fatalf("Failed to log in to Supabase: %v", err)
@@ -400,7 +400,7 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 	if !ok {
 		t.Fatalf("Missing or invalid 'id' in response: %v", created_pitch)
 	}
-	pitch_id := int(pitch_id_float)
+	pitch_id := int64(pitch_id_float)
 
 	defer func() {
 		delete_url := fmt.Sprintf("%s/api/pitch?id=%d", server.URL, pitch_id)

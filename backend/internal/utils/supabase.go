@@ -140,7 +140,7 @@ func GetDataByQuery(table string, query string) ([]byte, error) {
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 	url := fmt.Sprintf("%s/rest/v1/%s?%s", SUPABASE_URL, table, query) // SUPABASE_URL/rest/v1/table?query
-	fmt.Println("URL: ", url)
+	//fmt.Println("URL: ", url)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

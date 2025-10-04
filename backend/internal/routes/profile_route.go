@@ -52,7 +52,7 @@ func create_profile_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	balance := 0
+	balance := int64(0)
 	profile := model.Profile{
 		ID:               user_id,
 		Email:            email,
