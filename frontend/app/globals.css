@@ -10,17 +10,37 @@
 
 @plugin "daisyui/theme" {
   name: "light";
-  --color-primary: #0B3D91;  /* Deep Blue */
-  --color-secondary: #145DA0; /* Medium Blue */
-  --color-accent: #00A8CC;    /* Aqua */
-  --color-neutral: #2C3E50;   /* Dark Slate */
-  --color-base-100: #FFFFFF;  /* White */
-  --color-base-200: #F1F5F8;  /* Light Gray */
-  --color-base-300: #E1E8F0;  /* Soft Gray */
-  --color-info: #5BC0EB;      /* Sky Blue */
-  --color-success: #2ECC71;   /* Green */
-  --color-warning: #F1C40F;   /* Gold */
-  --color-error: #E74C3C;     /* Red */
+  
+/* === BRAND COLORS === */
+  --color-primary: #1E3A8A;      /* Royal navy — confident, stable */
+  --color-secondary: #2563EB;    /* Vibrant blue — modern highlight */
+  --color-accent: #06B6D4;       /* Cyan — innovation and clarity */
+
+  /* === BASE & NEUTRALS === */
+  --color-neutral: #0F172A;      /* Deep slate for contrast */
+  --color-base-100: #F9FAFB;     /* Paper white background */
+  --color-base-200: #F3F4F6;     /* Light gray surfaces */
+  --color-base-300: #E5E7EB;     /* Dividers / borders */
+
+  /* === FEEDBACK COLORS === */
+  --color-info: #3B82F6;         /* Accessible info blue */
+  --color-success: #16A34A;      /* Growth green */
+  --color-warning: #EAB308;      /* Gold amber */
+  --color-error: #DC2626;        /* Deep red */
+
+  /* === TEXT COLORS === */
+  --color-primary-content: #FFFFFF;
+  --color-secondary-content: #F8FAFC;
+  --color-accent-content: #022C3A;
+  --color-neutral-content: #E2E8F0;
+
+  /* === RADIUS & MOTION === */
+  --rounded-box: 1.25rem;
+  --rounded-btn: 0.75rem;
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  --btn-text-case: none;
+  --btn-focus-scale: 0.97;
 }
 
 @plugin "daisyui/theme" {

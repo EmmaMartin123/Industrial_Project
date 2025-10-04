@@ -7,6 +7,19 @@ import { getMyUserProfile } from "@/lib/api/profile";
 import ThemeToggler from "@/components/ThemeToggler";
 import * as Button from "@/components/Button";
 
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button as ShadcnButton } from "@/components/ui/button";
+import { LogOut, LayoutDashboard, User, Settings, Zap } from "lucide-react";
+
+
 export default function Navbar() {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -15,12 +28,12 @@ export default function Navbar() {
 	const [role, setRole] = useState<string | null>(null);
 	const [loadingRole, setLoadingRole] = useState(true);
 
-	// Check authentication on mount
+	// check authentication on mount
 	useEffect(() => {
 		checkAuth();
 	}, [checkAuth]);
 
-	// Fetch profile to get role
+	// fetch profile to get role
 	useEffect(() => {
 		const fetchRole = async () => {
 			const userId = getId();
@@ -48,54 +61,91 @@ export default function Navbar() {
 		router.push("/login");
 	};
 
+	const dashboardPath = role === "investor" ? "/investor/dashboard" : role === "business" ? "/business/dashboard" : "/";
+
 	return (
 		<nav className="navbar bg-base-200 shadow px-4">
 			<div className="flex-1">
 				<a
-					className="btn btn-ghost normal-case text-xl"
+					className="btn btn-ghost normal-case text-xl hover:shadow-md rounded-full"
 					onClick={() => router.push("/")}
 				>
 					Elevare
 				</a>
 			</div>
 
-			<div className="flex-none hidden md:flex space-x-2">
+			<div className="flex-none flex items-center space-x-2">
+				{/*
+				<div className="hidden md:block">
+					<ThemeToggler />
+				</div>
+				*/}
+
 				{authUser ? (
 					<>
-						{!loadingRole && role === "investor" && (
-							<a
-								className={`${Button.buttonClassName}`}
-								onClick={() => router.push("/investor/dashboard")}
-							>
-								Investor Dashboard
-							</a>
-						)}
-						{!loadingRole && role === "business" && (
-							<a
-								className={`${Button.buttonClassName}`}
-								onClick={() => router.push("/business/dashboard")}
-							>
-								Business Dashboard
-							</a>
-						)}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<ShadcnButton variant="ghost" className="relative h-10 w-10 rounded-full border-2 cursor-pointer hover:shadow-md">
+									<Avatar className="h-9 w-9">
+										<AvatarImage src="" alt="@username" />
+										<AvatarFallback>{authUser?.email ? authUser.email[0].toUpperCase() : 'U'}</AvatarFallback>
+									</Avatar>
+								</ShadcnButton>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent className="w-56" align="end" forceMount>
+								<DropdownMenuLabel className="font-normal">
+									<div className="flex flex-col space-y-1">
+										<p className="text-sm font-medium leading-none">{authUser.email}</p>
+										<p className="text-xs leading-none text-muted-foreground">
+											Role: {loadingRole ? "Loading..." : role || "Guest"}
+										</p>
+									</div>
+								</DropdownMenuLabel>
 
-						<ThemeToggler />
+								<DropdownMenuSeparator />
 
-						<button
-							className={`${Button.buttonOutlineClassName} border-red-500 text-red-500 hover:bg-red-100`}
-							onClick={handleLogout}
-						>
-							Logout
-						</button>
+								{!loadingRole && (role === "investor" || role === "business") && (
+									<DropdownMenuItem onClick={() => router.push(dashboardPath)}>
+										<LayoutDashboard className="mr-2 h-4 w-4" />
+										<span>Dashboard</span>
+									</DropdownMenuItem>
+								)}
+
+								<DropdownMenuItem onClick={() => router.push("/profile")}>
+									<User className="mr-2 h-4 w-4" />
+									<span>Profile</span>
+								</DropdownMenuItem>
+
+								{role === "business" && (
+									<DropdownMenuItem onClick={() => router.push("/business/pitches/manage")}>
+										<Zap className="mr-2 h-4 w-4" />
+										<span>My Pitches</span>
+									</DropdownMenuItem>
+								)}
+
+								<DropdownMenuItem onClick={() => router.push("/settings")}>
+									<Settings className="mr-2 h-4 w-4" />
+									<span>Settings</span>
+								</DropdownMenuItem>
+
+								<DropdownMenuSeparator />
+
+								{/* --- Logout Button --- */}
+								<DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:bg-red-50 focus:text-red-600">
+									<LogOut className="mr-2 h-4 w-4" />
+									<span>Log out</span>
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+
 					</>
 				) : (
 					pathname !== "/login" && (
-						<button
-							className={`${Button.buttonClassName}`}
+						<ShadcnButton
 							onClick={() => router.push("/login")}
 						>
 							Log in
-						</button>
+						</ShadcnButton>
 					)
 				)}
 			</div>
