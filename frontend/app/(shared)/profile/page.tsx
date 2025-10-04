@@ -16,7 +16,7 @@ export default function ProfilePage() {
 	const [activeTab, setActiveTab] = useState("overview");
 
 	const { getId } = useAuthStore();
-	const authUserId = getId();
+	const authUserId = getId(); // logged-in user ID
 
 	// fetch profile data
 	useEffect(() => {
@@ -37,12 +37,15 @@ export default function ProfilePage() {
 		return <p className="text-center mt-10">Loading profile...</p>;
 	}
 
+	// check if this profile is the logged in user's profile
+	const isMine = authUserId !== null && profile.id.toString() === authUserId;
+
 	return (
 		<div className="max-w-5xl mx-auto p-6 space-y-8">
 			{/* Profile Header */}
 			<Card className="p-6 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-sm">
 				<Avatar className="h-24 w-24">
-					<AvatarImage src={`https://i.pravatar.cc/300?u=${profile.id}`} alt="User" />
+					<AvatarImage src={``} alt="User" />
 					<AvatarFallback>{profile.display_name.slice(0, 2)}</AvatarFallback>
 				</Avatar>
 				<div className="flex-1 space-y-2 text-center md:text-left">
@@ -53,8 +56,12 @@ export default function ProfilePage() {
 						<Badge variant="outline">Active</Badge>
 					</div>
 					<div className="flex gap-3 justify-center md:justify-start mt-4">
-						<Button variant="default">Follow</Button>
-						<Button variant="outline">Message</Button>
+						<Button variant="default" disabled={isMine}>
+							Follow
+						</Button>
+						<Button variant="outline" disabled={isMine}>
+							Message
+						</Button>
 					</div>
 				</div>
 			</Card>
@@ -99,7 +106,6 @@ export default function ProfilePage() {
 						<CardContent>
 							<p className="text-muted-foreground leading-relaxed">
 								{profile.display_name} is a {profile.role}. Dashboard balance: ${profile.dashboard_balance}.
-								{/* You can replace with a bio field if you add it to your backend */}
 							</p>
 						</CardContent>
 					</Card>
@@ -126,13 +132,13 @@ export default function ProfilePage() {
 							<CardTitle>Settings</CardTitle>
 						</CardHeader>
 						<CardContent className="space-y-4">
-							<Button variant="default" className="w-full">
+							<Button variant="default" className="w-full" disabled={!isMine}>
 								Edit Profile
 							</Button>
-							<Button variant="outline" className="w-full">
+							<Button variant="outline" className="w-full" disabled={!isMine}>
 								Manage Subscription
 							</Button>
-							<Button variant="destructive" className="w-full">
+							<Button variant="destructive" className="w-full" disabled={!isMine}>
 								Log Out
 							</Button>
 						</CardContent>

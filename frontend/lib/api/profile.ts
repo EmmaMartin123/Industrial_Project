@@ -12,13 +12,10 @@ export const postUserProfile = async (data: ProfileData) => {
 	return response.data;
 };
 
-export const getMyUserProfile = async () => {
-	const { getId } = useAuthStore()
-
-	const userId = getId(); 
-	const response = await axios.get("/profile?id=" + userId);
-
-	return response.data;
+export const getMyUserProfile = async (userId: string | null) => {
+	if (!userId) throw new Error("User ID is missing");
+	const response = await axios.get(`/profile?id=${userId}`);
+	return response.data as ProfileData;
 };
 
 export const getUserProfile = async (id: number) => {

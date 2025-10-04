@@ -1,24 +1,52 @@
-"use client"
+"use client";
 
-import { useAuthStore } from "@/lib/store/authStore"
-import { useRouter, usePathname } from "next/navigation"
-import { useEffect } from "react"
-import ThemeToggler from "@/components/ThemeToggler"
-import * as Button from "@/components/Button"
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useAuthStore } from "@/lib/store/authStore";
+import { getMyUserProfile } from "@/lib/api/profile";
+import ThemeToggler from "@/components/ThemeToggler";
+import * as Button from "@/components/Button";
 
 export default function Navbar() {
-	const router = useRouter()
-	const pathname = usePathname()
-	const { authUser, logout, checkAuth } = useAuthStore()
+	const router = useRouter();
+	const pathname = usePathname();
+	const { authUser, logout, checkAuth, getId } = useAuthStore();
+
+	const [role, setRole] = useState<string | null>(null);
+	const [loadingRole, setLoadingRole] = useState(true);
+
+	// Check authentication on mount
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	// Fetch profile to get role
+	useEffect(() => {
+		const fetchRole = async () => {
+			const userId = getId();
+			if (!userId) {
+				setLoadingRole(false);
+				return;
+			}
+
+			try {
+				const profile = await getMyUserProfile(userId);
+				setRole(profile.role);
+			} catch (err) {
+				console.error("Failed to fetch profile:", err);
+				setRole(null);
+			} finally {
+				setLoadingRole(false);
+			}
+		};
+
+		fetchRole();
+	}, [authUser, getId]);
 
 	const handleLogout = async () => {
-		await logout()
-		router.push("/login")
-	}
-
-	useEffect(() => {
-		checkAuth()
-	}, [checkAuth])
+		await logout();
+		router.push("/login");
+	};
 
 	return (
 		<nav className="navbar bg-base-200 shadow px-4">
@@ -34,19 +62,22 @@ export default function Navbar() {
 			<div className="flex-none hidden md:flex space-x-2">
 				{authUser ? (
 					<>
-						<a
-							className={`${Button.buttonClassName}`}
-							onClick={() => router.push("/investor/dashboard")}
-						>
-							Investor dashboard
-						</a>
-
-						<a
-							className={`${Button.buttonClassName}`}
-							onClick={() => router.push("/business/dashboard")}
-						>
-							Business dashboard
-						</a>
+						{!loadingRole && role === "investor" && (
+							<a
+								className={`${Button.buttonClassName}`}
+								onClick={() => router.push("/investor/dashboard")}
+							>
+								Investor Dashboard
+							</a>
+						)}
+						{!loadingRole && role === "business" && (
+							<a
+								className={`${Button.buttonClassName}`}
+								onClick={() => router.push("/business/dashboard")}
+							>
+								Business Dashboard
+							</a>
+						)}
 
 						<ThemeToggler />
 
@@ -58,18 +89,16 @@ export default function Navbar() {
 						</button>
 					</>
 				) : (
-					<>
-						{/* only show if we're NOT on the login page */}
-						{pathname !== "/login" && (
-							<button
-								className={`${Button.buttonClassName}`}
-								onClick={() => router.push("/login")}>
-								Log in
-							</button>
-						)}
-					</>
+					pathname !== "/login" && (
+						<button
+							className={`${Button.buttonClassName}`}
+							onClick={() => router.push("/login")}
+						>
+							Log in
+						</button>
+					)
 				)}
 			</div>
 		</nav>
-	)
+	);
 }
