@@ -33,7 +33,7 @@ export default function BusinessPitchesPage() {
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | undefined;
+	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "targetDesc" | "targetAsc" | "newest" | "oldest" | undefined;
 	const [sortKey, setSortKey] = useState<SortKey>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -61,22 +61,20 @@ export default function BusinessPitchesPage() {
 			const statusFilter = selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined;
 
 			const sortKeyMap: Record<Exclude<SortKey, undefined>, string> = {
-				raisedDesc: "price:desc",
-				raisedAsc: "price:asc",
-				profitDesc: "price:desc",      // fallback: backend currently only supports price
-				profitAsc: "price:asc",
-				newest: "price:desc",           // fallback
-				oldest: "price:asc",            // fallback
+				raisedDesc: "raised_amount:desc",
+				raisedAsc: "raised_amount:asc",
+				profitDesc: "profit_share_percent:desc",      // fallback: backend currently only supports price
+				profitAsc: "profit_share_percent:asc",
+				targetDesc: "target_amount:desc",
+				targetAsc: "target_amount:asc",
+				newest: "investment_start_date:desc",           // fallback
+				oldest: "investment_start_date:asc",            // fallback
 			};
 
 			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
 
 			const data = await getPitches({
-				limit: pageSize,
-				offset,
-				search: searchQuery || undefined,
-				status: statusFilter,
-				sortKey
+				sortKey,
 			});
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
@@ -97,7 +95,7 @@ export default function BusinessPitchesPage() {
 				investment_tiers: p.investment_tiers as InvestmentTier[],
 			}));
 
-			console.log(mappedPitches);
+			console.log(data);
 			setPitches(mappedPitches);
 			setCurrentPage(page);
 		} catch (err) {
@@ -252,10 +250,12 @@ export default function BusinessPitchesPage() {
 								<DropdownMenuSeparator />
 
 								<DropdownMenuLabel>Sort By</DropdownMenuLabel>
-								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>Highest Raised</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>Lowest Raised</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>Highest Raised Amount</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>Lowest Raised Amount</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("profitDesc")}>Highest Profit Share</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("profitAsc")}>Lowest Profit Share</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("targetDesc")}>Highest Target Amount</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("targetAsc")}>Lowest Target Amount</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("newest")}>Newest</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("oldest")}>Oldest</DropdownMenuItem>
 							</DropdownMenuContent>

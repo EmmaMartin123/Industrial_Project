@@ -16,7 +16,7 @@ interface GetPitchesOptions {
 	offset?: number;
 	search?: string;
 	status?: string;
-	sortKey?: "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest";
+	sortKey?: "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | "targetDesc" | "targetAsc";
 }
 
 export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch[]> => {
@@ -34,22 +34,28 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 		let backendSort: string | undefined;
 		switch (sortKey) {
 			case "raisedDesc":
-				backendSort = "price:desc";
+				backendSort = "raised_amount:desc";
 				break;
 			case "raisedAsc":
-				backendSort = "price:asc";
+				backendSort = "raised_amount:asc";
 				break;
 			case "profitDesc":
-				backendSort = "price:desc"; // fallback: backend only supports price
+				backendSort = "profit_share_percent:desc"; // fallback: backend only supports price
 				break;
 			case "profitAsc":
-				backendSort = "price:asc";
+				backendSort = "profit_share_percent:asc";
 				break;
 			case "newest":
-				backendSort = "price:desc"; // fallback
+				backendSort = "investment_start_date:desc"; // fallback
 				break;
 			case "oldest":
-				backendSort = "price:asc"; // fallback
+				backendSort = "investment_start_date:asc"; // fallback
+				break;
+			case "targetDesc":
+				backendSort = "price:desc";
+				break;
+			case "targetAsc":
+				backendSort = "price:asc";
 				break;
 		}
 		if (backendSort) params.append("sort", backendSort);
