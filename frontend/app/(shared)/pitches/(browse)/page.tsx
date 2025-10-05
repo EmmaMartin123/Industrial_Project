@@ -26,7 +26,7 @@ import {
 	PaginationPrevious,
 	PaginationEllipsis,
 } from "@/components/ui/pagination";
-import * as Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
 
 export default function BusinessPitchesPage() {
 	const router = useRouter();
@@ -96,7 +96,7 @@ export default function BusinessPitchesPage() {
 
 	useEffect(() => {
 		if (!isCheckingAuth && authUser) fetchPitches(1);
-	}, [authUser, isCheckingAuth, selectedStatuses, sortKey, searchQuery]);
+	}, [authUser, isCheckingAuth, selectedStatuses, sortKey]);
 
 	const handleSearchKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") fetchPitches(1);
@@ -199,7 +199,7 @@ export default function BusinessPitchesPage() {
 			<div className="max-w-7xl mx-auto">
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
 					<div>
-						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">All Pitches</h1>
+						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">Browse Pitches</h1>
 						<p className="text-gray-600 dark:text-gray-400 mt-2">
 							Explore all pitches available on the platform.
 						</p>
@@ -216,9 +216,9 @@ export default function BusinessPitchesPage() {
 
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<button className={`${Button.buttonClassName} w-full md:w-auto`}>
+								<Button className="w-full md:w-auto">
 									Filter & Sort
-								</button>
+								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-56">
 								<DropdownMenuLabel>Filter by Status</DropdownMenuLabel>

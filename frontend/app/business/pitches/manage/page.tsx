@@ -25,9 +25,11 @@ export default function ManagePitchesPage() {
 
 	const router = useRouter();
 
-	if (userProfile?.role !== "business") {
-		router.push("/investor/dashboard");
-	}
+	useEffect(() => {
+		if (!isLoading && userProfile && userProfile.role !== "business") {
+			router.push("/investor/dashboard");
+		}
+	}, [isLoading, userProfile, router]);
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
@@ -78,7 +80,11 @@ export default function ManagePitchesPage() {
 		fetchUserPitches();
 	}, [userId]);
 
-	if (loading) return <LoaderComponent />;
+	// Use the `isLoading` state from `useProtect` to handle the initial loading/redirect state
+	if (isLoading) return <LoaderComponent />;
+
+	// Also, stop rendering the content if a redirect is imminent but the component hasn't unmounted yet
+	if (userProfile?.role !== "business") return <LoaderComponent />;
 
 	if (error) {
 		return (
@@ -206,17 +212,17 @@ export default function ManagePitchesPage() {
 												</Button>
 											)}
 
-											{/* declare profit button */}
+											{/* declare profit button - I am interpreting your intent here since you used handleEdit */}
 											{canDeclareProfit && (
 												<Button
 													className={`flex items-center gap-1 text-sm cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white`}
 													onClick={(e) =>
-														handleEdit(e, pitch.id, pitch.status)
+														handleDeclareProfit(e, pitch.id) // ⭐️ Use correct handler
 													}
 													disabled={pitch.status === "Funded"}
 													variant="outline"
 												>
-													<Pencil size={14} /> Declare Profit
+													<PiggyBank size={14} /> Declare Profit
 												</Button>
 											)}
 

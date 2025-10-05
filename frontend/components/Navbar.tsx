@@ -79,16 +79,18 @@ export default function Navbar() {
 			</div>
 
 			<div className="flex items-center space-x-4 justify-center">
+
+				<Button
+					variant="ghost"
+					className="rounded-md border-0 cursor-pointer font-bold"
+					onClick={() => router.push("/pitches")}
+				>
+					Browse
+				</Button>
+
 				{/* investor links */}
 				{!loadingRole && role === "investor" && (
 					<>
-						<Button
-							variant="ghost"
-							className="rounded-md border-0 cursor-pointer font-bold"
-							onClick={() => router.push("/pitches")}
-						>
-							Browse
-						</Button>
 						<Button
 							variant="ghost"
 							className="rounded-md border-0 cursor-pointer font-bold"
@@ -104,7 +106,7 @@ export default function Navbar() {
 							My Portfolio
 						</Button>
 						{/* display dashboard balance */}
-						<div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md font-semibold">
+						<div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md font-semibold cursor-pointer">
 							Balance: £{dashboardBalance?.toLocaleString()}
 						</div>
 					</>
@@ -145,7 +147,7 @@ export default function Navbar() {
 									<AvatarFallback>
 										{authUser?.email
 											? authUser.email[0].toUpperCase()
-											: "G" }
+											: "G"}
 									</AvatarFallback>
 								</Avatar>
 							</Button>
