@@ -6,6 +6,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
 import * as Button from "@/components/Button";
+import { useProtect } from "@/lib/auth/auth";
 
 // Reusable component for quick action buttons
 interface QuickActionButtonProps {
@@ -32,35 +33,9 @@ const QuickActionButton: React.FC<QuickActionButtonProps> = ({ title, descriptio
 };
 
 export default function InvestorDashboardPage() {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
-	// check auth on mount
-	useEffect(() => {
-		const verifyAuth = async () => {
-			await checkAuth();
-		};
-		verifyAuth();
-	}, [checkAuth]);
-
-	// redirect if not logged in
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) {
-			const timer = setTimeout(() => {
-				router.push("/login");
-			}, 100);
-			return () => clearTimeout(timer);
-		}
-	}, [authUser, isCheckingAuth, router]);
-
-	// show loader while checking auth
-	if (isCheckingAuth || !authUser) {
-		return (
-			<div className="flex items-center justify-center h-screen bg-base-200">
-				<Loader className="w-10 h-10 text-primary animate-spin" />
-			</div>
-		);
-	}
 
 	const handlePortfolio = () => {
 		router.push("/investor/portfolio");

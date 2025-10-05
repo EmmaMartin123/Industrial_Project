@@ -25,11 +25,6 @@ export default function Navbar() {
 	const [dashboardBalance, setDashboardBalance] = useState<number | null>(null);
 	const [loadingRole, setLoadingRole] = useState(true);
 
-	// check authentication on mount
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
 	// fetch profile to get role and balance
 	useEffect(() => {
 		const fetchProfile = async () => {

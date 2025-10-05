@@ -5,6 +5,7 @@ import { Loader, PieChart, TrendingUp, DollarSign, Search, Filter, RefreshCw, Ch
 import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect, useState, useMemo } from "react";
 import * as Button from "@/components/Button";
+import { useProtect } from "@/lib/auth/auth";
 
 // --- DUMMY DATA ---
 
@@ -48,26 +49,13 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, colorClas
 // --- MAIN COMPONENT ---
 
 export default function InvestorPortfolioPage() {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
 	const [investments, setInvestments] = useState<Investment[]>(DUMMY_INVESTMENTS);
 	const [filter, setFilter] = useState<'All' | 'Active' | 'Exited' | 'Pending'>('All');
 	const [sortBy, setSortBy] = useState<'return' | 'date' | 'capital'>('return');
-
-	// Auth Check Logic
-	useEffect(() => {
-		const verifyAuth = async () => { await checkAuth(); };
-		verifyAuth();
-	}, [checkAuth]);
-
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) {
-			const timer = setTimeout(() => {
-				router.push("/login");
-			}, 100);
-			return () => clearTimeout(timer);
-		}
-	}, [authUser, isCheckingAuth, router]);
 
 	// Derived Portfolio Metrics
 	const { totalCapital, totalCurrentValue, totalReturn, totalReturnPercentage } = useMemo(() => {
@@ -99,15 +87,6 @@ export default function InvestorPortfolioPage() {
 			return 0;
 		});
 	}, [investments, filter, sortBy]);
-
-	// Show loader while checking auth
-	if (isCheckingAuth || !authUser) {
-		return (
-			<div className="flex items-center justify-center h-screen bg-base-200">
-				<Loader className="w-10 h-10 text-primary animate-spin" />
-			</div>
-		);
-	}
 
 	// Formatting function for currency
 	const formatCurrency = (amount: number) => `£${new Intl.NumberFormat('en-GB').format(amount)}`;
