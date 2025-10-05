@@ -3,8 +3,11 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"net/url"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,7 +35,7 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-const SOFT_MAX_MEDIA_RAM = 50 << 20 // 50 MB limit for storing parsed media in ram, >500MB store using temp files
+const SOFT_MAX_MEDIA_RAM = 50 << 20
 
 func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitch_id_str := r.URL.Query().Get("id")
@@ -111,22 +114,18 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
-
 	var pitch frontend.Pitch
 	var err error
-
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(SOFT_MAX_MEDIA_RAM); err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
-
 		pitchData := r.FormValue("pitch")
 		if pitchData == "" {
 			http.Error(w, "No pitch data provided", http.StatusBadRequest)
 			return
 		}
-
 		if err := json.Unmarshal([]byte(pitchData), &pitch); err != nil {
 			http.Error(w, "Invalid pitch data", http.StatusBadRequest)
 			return
@@ -138,46 +137,38 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
-
 	uid, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	// Check that the user has a "business" role
 	if ok, _ := utilsdb.CheckUserRole(w, uid, "business"); !ok {
 		return
 	}
-
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
 	result, err := utils.InsertData(db_pitch, "pitch")
-
 	if err != nil {
 		fmt.Printf("Error inserting pitch: %v\n", err)
 		http.Error(w, "Error creating pitch", http.StatusInternalServerError)
 		return
 	}
-
 	var ids []model.ID
 	err = json.Unmarshal([]byte(result), &ids)
-	if err != nil {
-		http.Error(w, "Error decoding IDs", http.StatusInternalServerError)
+	if err != nil || len(ids) == 0 {
+		http.Error(w, "Error decoding pitch ID", http.StatusInternalServerError)
 		return
 	}
-
 	pitch_id := ids[0].ID
 
 	for _, tier := range pitch.InvestmentTiers {
 		tier.PitchID = pitch_id
 		_, invest_err := utils.InsertData(tier, "investment_tier")
 		if invest_err != nil {
-			fmt.Printf("Error inserting investment tier: %v\n", invest_err)
+			fmt.Printf("Warning: failed to insert investment tier: %v\n", invest_err)
 		}
 	}
 
 	var media_files []frontend.PitchMedia
-
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		files := r.MultipartForm.File["media"]
 		for i, fileHeader := range files {
@@ -186,50 +177,40 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Error opening file: %v\n", err)
 				continue
 			}
-
 			ext := filepath.Ext(fileHeader.Filename)
 			mediaType := "application/octet-stream"
 			if contentTypes, ok := fileHeader.Header["Content-Type"]; ok && len(contentTypes) > 0 {
 				mediaType = contentTypes[0]
 			}
-
 			fileName := utils.GenerateUniqueFileName(fmt.Sprintf("pitch_%d", pitch_id), ext)
-
 			fileURL, err := utils.UploadFileToS3(file, fileName, mediaType)
 			file.Close()
-
 			if err != nil {
 				fmt.Printf("Error uploading file: %v\n", err)
 				continue
 			}
-
 			mediaEntry := frontend.PitchMedia{
 				PitchID:            &pitch_id,
 				URL:                fileURL,
 				MediaType:          mediaType,
-				OrderInDescription: int64(i + 1), // 1-based index for ordering
+				OrderInDescription: int64(i + 1),
 			}
-
 			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, pitch_id)
 			_, err = utils.InsertData(dbMedia, "pitch_media")
 			if err != nil {
 				fmt.Printf("Error saving media metadata: %v\n", err)
 				continue
 			}
-
 			media_files = append(media_files, mediaEntry)
 		}
 	} else if len(pitch.Media) > 0 {
 		for i, media := range pitch.Media {
 			if media.URL == "" {
-				fmt.Printf("Skipping empty media entry\n")
 				continue
 			}
-
 			if media.OrderInDescription == 0 {
 				media.OrderInDescription = int64(i + 1)
 			}
-
 			media.PitchID = &pitch_id
 			dbMedia := mapping.PitchMedia_ToDatabase(media, pitch_id)
 			_, err = utils.InsertData(dbMedia, "pitch_media")
@@ -237,14 +218,52 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("Error saving media metadata: %v\n", err)
 				continue
 			}
-
 			media_files = append(media_files, media)
+		}
+	}
+
+	for _, tagName := range pitch.Tags {
+		tagName = strings.TrimSpace(tagName)
+		if tagName == "" {
+			continue
+		}
+		tagQuery := fmt.Sprintf("name=eq.%s", url.QueryEscape(tagName))
+		tagRes, err := utils.GetDataByQuery("tags", tagQuery)
+		var tagID int64
+		if err == nil && len(tagRes) > 2 {
+			var tags []struct {
+				ID int64 `json:"id"`
+			}
+			if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
+				tagID = tags[0].ID
+			}
+		}
+		if tagID == 0 {
+			createRes, err := utils.InsertData(map[string]interface{}{"name": tagName}, "tags")
+			if err != nil {
+				fmt.Printf("Failed to create tag '%s': %v\n", tagName, err)
+				continue
+			}
+			var newTags []struct {
+				ID int64 `json:"id"`
+			}
+			if json.Unmarshal([]byte(createRes), &newTags) == nil && len(newTags) > 0 {
+				tagID = newTags[0].ID
+			} else {
+				continue
+			}
+		}
+		_, err = utils.InsertData(map[string]interface{}{
+			"pitch_id": pitch_id,
+			"tag_id":   tagID,
+		}, "pitch_tags")
+		if err != nil {
+			fmt.Printf("Failed to link pitch %d to tag %d: %v\n", pitch_id, tagID, err)
 		}
 	}
 
 	pitch.PitchID = &pitch_id
 	pitch.Media = media_files
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(pitch)
@@ -279,9 +298,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	sort := r.URL.Query().Get("sort")
 
 	if pitchID == "" {
-
 		var queryParams []string
-		var tagIDs []int64
 
 		if user_id != "" {
 			queryParams = append(queryParams, fmt.Sprintf("user_id=eq.%s", user_id))
@@ -319,14 +336,60 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 				tagList[i] = strings.TrimSpace(tagList[i])
 			}
 
-			tagIDs = getTagIDsByNames(tagList)
-
-			if len(tagIDs) > 0 {
-				tagConditions := make([]string, len(tagIDs))
-				for i, id := range tagIDs {
-					tagConditions[i] = fmt.Sprintf("tags_id.eq.%d", id)
+			var validTagIDs []string
+			for _, name := range tagList {
+				if name == "" {
+					continue
 				}
-				queryParams = append(queryParams, fmt.Sprintf("or=(%s)", strings.Join(tagConditions, ",")))
+				q := fmt.Sprintf("name=eq.%s", url.QueryEscape(name))
+				res, err := utils.GetDataByQuery("tags", q)
+				if err != nil {
+					continue
+				}
+				var t []struct {
+					ID int64 `json:"id"`
+				}
+				if json.Unmarshal(res, &t) == nil && len(t) > 0 {
+					validTagIDs = append(validTagIDs, strconv.FormatInt(t[0].ID, 10))
+				}
+			}
+
+			if len(validTagIDs) > 0 {
+				var pitchIDs []string
+				for _, tid := range validTagIDs {
+					linkRes, err := utils.GetDataByQuery("pitch_tags", "tag_id=eq."+tid)
+					if err != nil {
+						continue
+					}
+					var links []struct {
+						PitchID int64 `json:"pitch_id"`
+					}
+					if json.Unmarshal(linkRes, &links) == nil {
+						for _, l := range links {
+							pitchIDs = append(pitchIDs, strconv.FormatInt(l.PitchID, 10))
+						}
+					}
+				}
+
+				if len(pitchIDs) == 0 {
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode([]frontend.Pitch{})
+					return
+				}
+
+				seen := make(map[string]bool)
+				var unique []string
+				for _, id := range pitchIDs {
+					if !seen[id] {
+						seen[id] = true
+						unique = append(unique, id)
+					}
+				}
+				queryParams = append(queryParams, "id=in.("+strings.Join(unique, ",")+")")
+			} else {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode([]frontend.Pitch{})
+				return
 			}
 		}
 
@@ -365,14 +428,31 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 				media = []frontend.PitchMedia{}
 			}
 
-			pitches_to_send = append(pitches_to_send, mapping.Pitch_ToFrontend(pitch, investment_tiers, media))
+			tagLinkRes, _ := utils.GetDataByQuery("pitch_tags", fmt.Sprintf("pitch_id=eq.%d", *pitch.PitchID))
+			var links []struct {
+				TagID int64 `json:"tag_id"`
+			}
+			json.Unmarshal(tagLinkRes, &links)
+			var tagNames []string
+			for _, l := range links {
+				tagRes, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
+				var tags []struct {
+					Name string `json:"name"`
+				}
+				if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
+					tagNames = append(tagNames, tags[0].Name)
+				}
+			}
+
+			front := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
+			front.Tags = tagNames
+			pitches_to_send = append(pitches_to_send, front)
 		}
 
 		if sort != "" {
 			parts := strings.Split(sort, ":")
 			if len(parts) == 2 && parts[0] == "price" {
 				isAscending := parts[1] == "asc"
-
 				sortPitchesByPrice(pitches_to_send, isAscending)
 			}
 		}
@@ -414,7 +494,24 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		media = []frontend.PitchMedia{}
 	}
 
+	tagLinkRes, _ := utils.GetDataByQuery("pitch_tags", fmt.Sprintf("pitch_id=eq.%d", *pitch.PitchID))
+	var links []struct {
+		TagID int64 `json:"tag_id"`
+	}
+	json.Unmarshal(tagLinkRes, &links)
+	var tagNames []string
+	for _, l := range links {
+		tagRes, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
+		var tags []struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
+			tagNames = append(tagNames, tags[0].Name)
+		}
+	}
+
 	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
+	pitch_to_send.Tags = tagNames
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pitch_to_send)
@@ -434,36 +531,6 @@ func getMinimumTierPrice(tiers []model.InvestmentTier) float64 {
 	}
 
 	return minPrice
-}
-
-func getTagIDsByNames(tagNames []string) []int64 {
-	var tagIDs []int64
-
-	for _, name := range tagNames {
-		if name == "" {
-			continue
-		}
-
-		query := fmt.Sprintf("name=eq.%s", name)
-		result, err := utils.GetDataByQuery("tag", query)
-
-		if err != nil {
-			fmt.Printf("Error fetching tag with name %s: %v\n", name, err)
-			continue
-		}
-
-		var tags []database.Tag
-		if err := json.Unmarshal([]byte(result), &tags); err != nil {
-			fmt.Printf("Error unmarshaling tag: %v\n", err)
-			continue
-		}
-
-		if len(tags) > 0 {
-			tagIDs = append(tagIDs, tags[0].ID)
-		}
-	}
-
-	return tagIDs
 }
 
 func sortPitchesByPrice(pitches []frontend.Pitch, ascending bool) {
@@ -491,205 +558,215 @@ func sortPitchesByPrice(pitches []frontend.Pitch, ascending bool) {
 }
 
 func update_pitch_route(w http.ResponseWriter, r *http.Request) {
-	pitchID := r.URL.Query().Get("id")
-
-	if pitchID == "" {
+	pitchIDStr := r.URL.Query().Get("id")
+	if pitchIDStr == "" {
 		http.Error(w, "Pitch not specified", http.StatusBadRequest)
 		return
 	}
+	pitchID, err := strconv.ParseInt(pitchIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid pitch ID", http.StatusBadRequest)
+		return
+	}
 
-	result, err := utils.GetDataByID("pitch", pitchID)
+	result, err := utils.GetDataByID("pitch", pitchIDStr)
 	if err != nil {
 		http.Error(w, "Pitch not found", http.StatusNotFound)
 		return
 	}
-
 	var pitches []database.Pitch
-	if err := json.Unmarshal([]byte(result), &pitches); err != nil {
+	if err := json.Unmarshal([]byte(result), &pitches); err != nil || len(pitches) != 1 {
 		http.Error(w, "Error decoding pitch", http.StatusInternalServerError)
-		fmt.Println("Body: ", string(result))
 		return
 	}
-
 	old_pitch := pitches[0]
-
-	old_investment_tiers, invest_err := get_investment_tiers(old_pitch)
-	if invest_err != nil {
-		http.Error(w, "Error decoding investment tiers", http.StatusInternalServerError)
-		return
-	}
-
-	old_media, media_err := utils.GetPitchMedia(*old_pitch.PitchID)
-	if media_err != nil {
-		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *old_pitch.PitchID, media_err)
-		old_media = []frontend.PitchMedia{}
-	}
-
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || user_id != old_pitch.UserID {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	// Check that the user has a "business" role
 	if ok, _ := utilsdb.CheckUserRole(w, user_id, "business"); !ok {
 		return
 	}
 
+	old_tiers, _ := get_investment_tiers(old_pitch)
+	old_media, _ := utils.GetPitchMedia(pitchID)
+
 	contentType := r.Header.Get("Content-Type")
 	var new_pitch frontend.Pitch
-
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		if err := r.ParseMultipartForm(SOFT_MAX_MEDIA_RAM); err != nil {
 			http.Error(w, "Error parsing form", http.StatusBadRequest)
 			return
 		}
-
 		pitchData := r.FormValue("pitch")
-		if pitchData == "" {
-			http.Error(w, "No pitch data provided", http.StatusBadRequest)
-			return
-		}
-
 		if err := json.Unmarshal([]byte(pitchData), &new_pitch); err != nil {
 			http.Error(w, "Invalid pitch data", http.StatusBadRequest)
 			return
 		}
 	} else {
 		if err := json.NewDecoder(r.Body).Decode(&new_pitch); err != nil {
-			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
 			return
 		}
 		defer r.Body.Close()
 	}
 
-	to_db_pitch := mapping.Pitch_ToDatabase(new_pitch, user_id)
-
-	for _, tier := range old_investment_tiers {
-		id := tier.ID
-		invest_err := utils.DeleteByID("investment_tier", strconv.Itoa(int(*id)))
-		if invest_err != nil {
-			fmt.Printf("Error deleting investment tier %d: %v\n", *id, invest_err)
-		}
+	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
+	to_db.PitchID = &pitchID
+	_, err = utils.ReplaceByID("pitch", pitchIDStr, to_db)
+	if err != nil {
+		http.Error(w, "Failed to update pitch", http.StatusInternalServerError)
+		return
 	}
 
-	for _, tier := range new_pitch.InvestmentTiers {
-		tier.PitchID = *old_pitch.PitchID
-		_, invest_err := utils.InsertData(tier, "investment_tier")
-		if invest_err != nil {
-			fmt.Printf("Error inserting investment tier: %v\n", invest_err)
+	for _, t := range old_tiers {
+		if t.ID != nil {
+			utils.DeleteByID("investment_tier", strconv.FormatInt(*t.ID, 10))
 		}
+	}
+	for _, tier := range new_pitch.InvestmentTiers {
+		tier.PitchID = pitchID
+		utils.InsertData(tier, "investment_tier")
+	}
+
+	utils.DeletePitchTags(pitchID)
+	for _, tagName := range new_pitch.Tags {
+		tagName = strings.TrimSpace(tagName)
+		if tagName == "" {
+			continue
+		}
+		tagQuery := fmt.Sprintf("name=eq.%s", url.QueryEscape(tagName))
+		tagRes, err := utils.GetDataByQuery("tags", tagQuery)
+		var tagID int64
+		if err == nil && len(tagRes) > 2 {
+			var tags []struct {
+				ID int64 `json:"id"`
+			}
+			if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
+				tagID = tags[0].ID
+			}
+		}
+		if tagID == 0 {
+			createRes, err := utils.InsertData(map[string]interface{}{"name": tagName}, "tags")
+			if err != nil {
+				continue
+			}
+			var newTags []struct {
+				ID int64 `json:"id"`
+			}
+			if json.Unmarshal([]byte(createRes), &newTags) == nil && len(newTags) > 0 {
+				tagID = newTags[0].ID
+			} else {
+				continue
+			}
+		}
+		utils.InsertData(map[string]interface{}{
+			"pitch_id": pitchID,
+			"tag_id":   tagID,
+		}, "pitch_tags")
 	}
 
 	keep_media_ids := make(map[int64]bool)
-	for _, media := range new_pitch.Media {
-		if media.ID != nil {
-			keep_media_ids[*media.ID] = true
+	for _, m := range new_pitch.Media {
+		if m.ID != nil {
+			keep_media_ids[*m.ID] = true
 		}
 	}
-
-	for _, media := range old_media {
-		if media.ID != nil && !keep_media_ids[*media.ID] {
-			if err := utils.DeleteFileFromS3(media.URL); err != nil {
-				fmt.Printf("Warning: failed to delete file from S3: %v\n", err)
-			}
-
-			if err := utils.DeleteByID("pitch_media", strconv.Itoa(int(*media.ID))); err != nil {
-				fmt.Printf("Warning: failed to delete media %d from database: %v\n", *media.ID, err)
-			}
+	for _, m := range old_media {
+		if m.ID != nil && !keep_media_ids[*m.ID] {
+			utils.DeleteFileFromS3(m.URL)
+			utils.DeleteByID("pitch_media", strconv.FormatInt(*m.ID, 10))
 		}
 	}
 
 	var media_files []frontend.PitchMedia
-
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		files := r.MultipartForm.File["media"]
-		for i, fileHeader := range files {
-			file, err := fileHeader.Open()
-			if err != nil {
-				fmt.Printf("Error opening file: %v\n", err)
-				continue
+		for i, fh := range files {
+			file, _ := fh.Open()
+			ext := filepath.Ext(fh.Filename)
+			mediaType := "image/jpeg"
+			if ct, ok := fh.Header["Content-Type"]; ok && len(ct) > 0 {
+				mediaType = ct[0]
 			}
-
-			ext := filepath.Ext(fileHeader.Filename)
-			mediaType := "application/octet-stream"
-			if contentTypes, ok := fileHeader.Header["Content-Type"]; ok && len(contentTypes) > 0 {
-				mediaType = contentTypes[0]
-			}
-
-			fileName := utils.GenerateUniqueFileName(fmt.Sprintf("pitch_%d", *old_pitch.PitchID), ext)
-
-			fileURL, err := utils.UploadFileToS3(file, fileName, mediaType)
+			fileName := utils.GenerateUniqueFileName(fmt.Sprintf("pitch_%d", pitchID), ext)
+			url, _ := utils.UploadFileToS3(file, fileName, mediaType)
 			file.Close()
-
-			if err != nil {
-				fmt.Printf("Error uploading file: %v\n", err)
-				continue
-			}
-
-			mediaEntry := frontend.PitchMedia{
-				PitchID:            old_pitch.PitchID,
-				URL:                fileURL,
+			entry := frontend.PitchMedia{
+				PitchID:            &pitchID,
+				URL:                url,
 				MediaType:          mediaType,
 				OrderInDescription: int64(i + 1),
 			}
-
-			dbMedia := mapping.PitchMedia_ToDatabase(mediaEntry, *old_pitch.PitchID)
-			_, err = utils.InsertData(dbMedia, "pitch_media")
-			if err != nil {
-				fmt.Printf("Error saving media metadata: %v\n", err)
-				continue
-			}
-
-			media_files = append(media_files, mediaEntry)
+			utils.InsertData(mapping.PitchMedia_ToDatabase(entry, pitchID), "pitch_media")
+			media_files = append(media_files, entry)
 		}
 	}
-
-	for i, media := range new_pitch.Media {
-		if media.ID != nil && keep_media_ids[*media.ID] {
-			media_files = append(media_files, media)
+	for i, m := range new_pitch.Media {
+		if m.ID != nil && keep_media_ids[*m.ID] {
+			media_files = append(media_files, m)
 			continue
 		}
-
-		if media.URL == "" {
+		if m.URL == "" {
 			continue
 		}
-
-		if strings.HasPrefix(media.URL, "data:") {
-			fmt.Printf("Base64 image uploads no longer supported\n")
-			continue
+		if m.OrderInDescription == 0 {
+			m.OrderInDescription = int64(i + 1)
 		}
-
-		if media.OrderInDescription == 0 {
-			media.OrderInDescription = int64(i + 1)
-		}
-
-		media.PitchID = old_pitch.PitchID
-		dbMedia := mapping.PitchMedia_ToDatabase(media, *old_pitch.PitchID)
-		result, err := utils.InsertData(dbMedia, "pitch_media")
-		if err != nil {
-			fmt.Printf("Error saving media metadata: %v\n", err)
-			continue
-		}
-
+		m.PitchID = &pitchID
+		res, _ := utils.InsertData(mapping.PitchMedia_ToDatabase(m, pitchID), "pitch_media")
 		var ids []model.ID
-		if err = json.Unmarshal([]byte(result), &ids); err == nil && len(ids) > 0 {
-			mediaID := ids[0].ID
-			media.ID = &mediaID
+		if json.Unmarshal([]byte(res), &ids) == nil && len(ids) > 0 {
+			m.ID = &ids[0].ID
 		}
-
-		media_files = append(media_files, media)
+		media_files = append(media_files, m)
 	}
 
-	_, update_err := utils.UpdateByID("pitch", strconv.Itoa(int(*old_pitch.PitchID)), to_db_pitch)
-	if update_err != nil {
-		fmt.Printf("Error updating pitch: %v\n", update_err)
-		http.Error(w, "Error updating pitch", http.StatusInternalServerError)
-		return
+	tagLinkRes, _ := utils.GetDataByQuery("pitch_tags", fmt.Sprintf("pitch_id=eq.%d", pitchID))
+	var links []struct {
+		TagID int64 `json:"tag_id"`
+	}
+	json.Unmarshal(tagLinkRes, &links)
+	var tagNames []string
+	for _, l := range links {
+		tagRes, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
+		var tags []struct {
+			Name string `json:"name"`
+		}
+		if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
+			tagNames = append(tagNames, tags[0].Name)
+		}
 	}
 
-	new_pitch.Media = media_files
+	response := new_pitch
+	response.PitchID = &pitchID
+	response.Media = media_files
+	response.Tags = tagNames
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mapping.Pitch_ToFrontend(to_db_pitch, new_pitch.InvestmentTiers, media_files))
+	json.NewEncoder(w).Encode(response)
+}
+
+func DeletePitchTags(pitchID int64) error {
+	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
+	url := fmt.Sprintf("%s/rest/v1/pitch_tags?%s", os.Getenv("SUPABASE_URL"), query)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	key := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
+	req.Header.Set("apikey", key)
+	req.Header.Set("Authorization", "Bearer "+key)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("delete pitch_tags failed: %d, body: %s", resp.StatusCode, string(body))
+	}
+	return nil
 }

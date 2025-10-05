@@ -17,4 +17,5 @@ type Pitch struct {
 	UserID              *string                `json:"user_id,omitempty"`
 	RaisedAmount        *int64                 `json:"raised_amount,omitempty"`
 	Media               []PitchMedia           `json:"media,omitempty"`
+	Tags                []string               `json:"tags,omitempty"`
 }
