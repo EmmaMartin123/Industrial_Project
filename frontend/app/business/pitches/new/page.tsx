@@ -2,7 +2,21 @@
 
 import { useState, useMemo, useEffect } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash, FileText, Image as ImageIcon, Video, X, Calendar as CalendarIcon, DollarSign, Percent, FileTextIcon, Wallet, Layers, GalleryVertical } from "lucide-react";
+import {
+	Plus,
+	Trash,
+	FileText,
+	Image as ImageIcon,
+	Video,
+	X,
+	Calendar as CalendarIcon,
+	DollarSign,
+	Percent,
+	FileTextIcon,
+	Wallet,
+	Layers,
+	GalleryVertical,
+} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NewPitch } from "@/lib/types/pitch";
@@ -10,23 +24,25 @@ import { postPitch } from "@/lib/api/pitch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Tier type
 type TierState = {
 	name: string;
 	min_amount: number | "";
-	max_amount?: number | "" | null | undefined;
+	max_amount: number | "";
 	multiplier: number | "";
 };
 
-// helper function to determine the icon for a generic file type
+// File icon selector
 const getFileIcon = (mimeType: string) => {
-	if (mimeType.startsWith('image/')) return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
-	if (mimeType.startsWith('video/')) return <Video className="w-4 h-4 mr-2 text-purple-500" />;
+	if (mimeType.startsWith("image/"))
+		return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
+	if (mimeType.startsWith("video/"))
+		return <Video className="w-4 h-4 mr-2 text-purple-500" />;
 	return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
 };
 
@@ -37,139 +53,128 @@ export default function NewPitchPage() {
 	const [targetAmount, setTargetAmount] = useState<number | "">("");
 	const [profitShare, setProfitShare] = useState<number | "">("");
 	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-
-	const investmentStartDate = new Date();
 	const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 	const [tiers, setTiers] = useState<TierState[]>([
 		{ name: "", min_amount: "", multiplier: "", max_amount: "" },
 	]);
 	const [loading, setLoading] = useState(false);
 	const [activeTab, setActiveTab] = useState("content");
+	const investmentStartDate = new Date();
 
-	const mediaPreviews = useMemo(() => {
-		return mediaFiles.map(file => ({
-			name: file.name,
-			type: file.type,
-			url: URL.createObjectURL(file),
-		}));
+	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+	const [aiLoading, setAiLoading] = useState(false);
+
+	const mediaPreviews = useMemo(
+		() =>
+			mediaFiles.map((file) => ({
+				name: file.name,
+				type: file.type,
+				url: URL.createObjectURL(file),
+			})),
+		[mediaFiles]
+	);
+
+	useEffect(() => {
+		return () => {
+			mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+		};
 	}, [mediaFiles]);
 
-	// cleanup hook basically just revokes object urls on state change or unmount to prevent memory leaks
-	useEffect(() => {
-		// okay so this has to run when the component unmounts or when the dependencies change
-		return () => {
-			// revoke all urls from the previous mediapreviews state
-			mediaPreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-		};
-	}, [mediaFiles]); // depend only on mediafiles to correctly track file array changes
+	const handleAiAnalysis = async () => {
+		try {
+			setAiLoading(true);
+			setAiAnalysis(null);
 
+			// 🔥 Placeholder for API call (to be implemented later)
+			// Example:
+			// const res = await axios.post("/api/ai", { title, elevator, detailedPitchContent, tiers });
+			// setAiAnalysis(res.data.analysis);
 
-	// handlers
+			// Temporary mock for now:
+			await new Promise((r) => setTimeout(r, 1500));
+			setAiAnalysis(
+				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
+			);
+		} catch (err) {
+			console.error(err);
+			toast.error("AI analysis failed.");
+		} finally {
+			setAiLoading(false);
+		}
+	};
 
 	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newFiles = e.target.files;
-
 		if (newFiles && newFiles.length > 0) {
-			// use functional update to correctly append new files to the state
-			setMediaFiles((prevFiles) => [
-				...prevFiles,
-				...Array.from(newFiles)
-			]);
-
-			// clear the input value instantly HOURS BRO HOURS TO FIGURE THIS OUT but yeah that forces the browser to re fire the change event next time
-			e.target.value = '';
-
+			setMediaFiles((prev) => [...prev, ...Array.from(newFiles)]);
+			e.target.value = "";
 			toast.success(`Added ${newFiles.length} new file(s).`);
 		}
 	};
 
-	const removeMediaFile = (fileIndex: number) => {
-		if (mediaPreviews[fileIndex]?.url) {
-			URL.revokeObjectURL(mediaPreviews[fileIndex].url);
-		}
-		setMediaFiles(prevFiles => prevFiles.filter((_, i) => i !== fileIndex));
-		toast.success(`Removed file.`);
+	const removeMediaFile = (i: number) => {
+		URL.revokeObjectURL(mediaPreviews[i].url);
+		setMediaFiles((prev) => prev.filter((_, idx) => idx !== i));
+		toast.success("Removed file.");
 	};
 
-	const handleTierChange = (index: number, field: keyof TierState, value: string | number) => {
-		const newTiers = [...tiers];
-		if (field === "name") {
-			newTiers[index][field] = value as string;
-		} else {
-			newTiers[index][field] = value === "" ? "" : Number(value);
-		}
-		setTiers(newTiers);
+	const handleTierChange = (i: number, field: keyof TierState, value: any) => {
+		const updated = [...tiers];
+		updated[i][field] = value === "" ? "" : field === "name" ? value : Number(value);
+		setTiers(updated);
 	};
 
-	const addTier = () => {
-		setTiers([...tiers, { name: "", min_amount: "", multiplier: "", max_amount: "" }]);
-	};
+	const addTier = () => setTiers([...tiers, { name: "", min_amount: "", multiplier: "", max_amount: "" }]);
+	const removeTierHandler = (i: number) => setTiers(tiers.filter((_, idx) => idx !== i));
 
-	const removeTierHandler = (index: number) => {
-		const newTiers = tiers.filter((_, i) => i !== index);
-		setTiers(newTiers);
-	};
-
-	// validation / navigation logic
-	const validateStep = (step: string): boolean => {
+	const validateStep = (step: string) => {
 		if (step === "content") {
 			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
-				toast.error("Please complete the **Title**, **Elevator Pitch**, and **Detailed Pitch**.");
+				toast.error("Please complete all text fields before proceeding.");
 				return false;
-			}
-		} else if (step === "media") {
-			if (mediaFiles.length === 0) {
-				toast.success("Tip: Adding media greatly improves your pitch visibility!");
 			}
 		}
-		else if (step === "financials") {
-			// check for empty string / undefined / null for required fields
+		if (step === "financials") {
 			if (targetAmount === "" || profitShare === "" || !endDate) {
-				toast.error("Please provide valid numbers and select an **End Date**.");
+				toast.error("Please complete all financial fields.");
 				return false;
 			}
-			// check for valid numeric valuesv
-			if (typeof targetAmount !== 'number' || typeof profitShare !== 'number' || targetAmount <= 0 || profitShare < 0) {
-				toast.error("Target Amount and Profit Share must be positive numbers.");
+			if (typeof targetAmount !== "number" || targetAmount <= 0) {
+				toast.error("Target Amount must be positive.");
 				return false;
 			}
-			if (endDate! <= investmentStartDate) {
-				toast.error("The End Date must be after today's Start Date.");
+			if (endDate <= investmentStartDate) {
+				toast.error("End date must be in the future.");
 				return false;
 			}
-		} else if (step === "tiers") {
-			const allTiersValid = tiers.every(
-				(t) => t.name.trim() && t.min_amount !== "" && t.multiplier !== ""
+		}
+		if (step === "tiers") {
+			const valid = tiers.every(
+				(t) =>
+					t.name.trim() &&
+					t.min_amount !== "" &&
+					t.multiplier !== "" &&
+					Number(t.min_amount) > 0 &&
+					Number(t.multiplier) > 0
 			);
-			if (!allTiersValid) {
-				toast.error("Please ensure all tiers have a **Name**, **Min Amount**, and **Multiplier**.");
-				return false;
-			}
-			const numericTiersValid = tiers.every(
-				(t) => Number(t.min_amount) > 0 && Number(t.multiplier) > 0 && (t.max_amount === "" || t.max_amount === null || Number(t.max_amount) > Number(t.min_amount))
-			);
-			if (!numericTiersValid) {
-				toast.error("Tier amounts and multipliers must be positive, and Max Amount must be greater than Min Amount.");
+			if (!valid) {
+				toast.error("All tiers must have valid values.");
 				return false;
 			}
 		}
 		return true;
-	}
+	};
 
-	const handleNext = (currentStep: string, nextStep: string) => {
-		if (validateStep(currentStep)) {
-			setActiveTab(nextStep);
+	const handleNext = (current: string, next: string) => {
+		if (validateStep(current)) {
+			setActiveTab(next);
 			window.scrollTo(0, 0);
 		}
 	};
 
-
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-
-		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) {
-			return;
-		}
+		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) return;
 
 		const pitchPayload: NewPitch = {
 			title,
@@ -180,367 +185,347 @@ export default function NewPitchPage() {
 			investment_end_date: endDate!.toISOString(),
 			profit_share_percent: Number(profitShare),
 			investment_tiers: tiers.map((t) => ({
-				name: t.name || "Tier",
+				name: t.name,
 				min_amount: Number(t.min_amount),
-				max_amount: t.max_amount === "" || t.max_amount === undefined || t.max_amount === null
-					? null
-					: Number(t.max_amount),
+				max_amount:
+					t.max_amount === "" || t.max_amount === undefined || t.max_amount === null
+						? null
+						: Number(t.max_amount),
 				multiplier: Number(t.multiplier),
 			})),
 		};
 
 		const formData = new FormData();
 		formData.append("pitch", JSON.stringify(pitchPayload));
-		if (mediaFiles.length > 0) {
-			mediaFiles.forEach((file) => {
-				formData.append("media", file);
-			});
-		}
+		mediaFiles.forEach((f) => formData.append("media", f));
 
 		try {
 			setLoading(true);
 			await postPitch(formData);
 			toast.success("Pitch submitted successfully! 🚀");
-			// redirect here
-			// router.push('/dashboard'); 
-		} catch (err: any) {
+		} catch (err) {
 			console.error(err);
-			toast.error("Failed to submit pitch. Check console for details.");
+			toast.error("Submission failed.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
-
 	return (
-		<div className="flex justify-center p-8 bg-gray-50 min-h-screen">
-			<Card className="w-full max-w-4xl shadow-2xl">
-				<CardHeader>
-					<CardTitle className="text-4xl font-extrabold text-gray-900">Create New Pitch</CardTitle>
-					<CardDescription className="text-lg">
-						Follow the steps below to define your investment proposal.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					{/* tabs component wrapper */}
-					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+		<div className="max-w-3xl mx-auto px-4 py-12 space-y-10">
+			<div>
+				<h1 className="text-3xl font-semibold tracking-tight">Create New Pitch</h1>
+				<p className="text-muted-foreground mt-1">
+					Follow the steps below to describe and submit your investment proposal.
+				</p>
+			</div>
 
-						{/* tab navigation list 4 tabs */}
-						<TabsList className="grid w-full grid-cols-4 mb-6 h-auto p-1">
-							<TabsTrigger value="content" className="flex items-center space-x-1 text-xs sm:text-sm">
-								<FileTextIcon className="w-4 h-4" />
-								<span>1. Content</span>
-							</TabsTrigger>
-							<TabsTrigger value="media" className="flex items-center space-x-1 text-xs sm:text-sm">
-								<GalleryVertical className="w-4 h-4" />
-								<span>2. Media</span>
-							</TabsTrigger>
-							<TabsTrigger value="financials" className="flex items-center space-x-1 text-xs sm:text-sm">
-								<Wallet className="w-4 h-4" />
-								<span>3. Financials</span>
-							</TabsTrigger>
-							<TabsTrigger value="tiers" className="flex items-center space-x-1 text-xs sm:text-sm">
-								<Layers className="w-4 h-4" />
-								<span>4. Tiers</span>
-							</TabsTrigger>
-						</TabsList>
+			<Tabs value={activeTab} onValueChange={setActiveTab}>
+				<TabsList className="w-full justify-start border-b rounded-none p-0 mb-8 bg-transparent">
+					<TabsTrigger
+						value="content"
+						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
+					>
+						<FileTextIcon className="w-4 h-4 mr-2" /> Content
+					</TabsTrigger>
+					<TabsTrigger
+						value="media"
+						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
+					>
+						<GalleryVertical className="w-4 h-4 mr-2" /> Media
+					</TabsTrigger>
+					<TabsTrigger
+						value="financials"
+						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
+					>
+						<Wallet className="w-4 h-4 mr-2" /> Financials
+					</TabsTrigger>
+					<TabsTrigger
+						value="tiers"
+						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
+					>
+						<Layers className="w-4 h-4 mr-2" /> Tiers
+					</TabsTrigger>
+					<TabsTrigger
+						value="overview"
+						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
+					>
+						<FileText className="w-4 h-4 mr-2" /> Overview
+					</TabsTrigger>
+				</TabsList>
 
-						<form onSubmit={handleSubmit}>
+				<form onSubmit={handleSubmit} className="space-y-12">
+					{/* Content */}
+					<TabsContent value="content" className="space-y-6">
+						<div className="space-y-4">
+							<Label>Title</Label>
+							<Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AI Farming Revolution" />
+						</div>
 
-							{/* tab 1: content */}
-							<TabsContent value="content" className="space-y-8">
-								<h4 className="text-xl font-semibold text-indigo-700">1. Pitch Summary</h4>
+						<div className="space-y-4">
+							<Label>Elevator Pitch</Label>
+							<Textarea value={elevator} onChange={(e) => setElevator(e.target.value)} rows={3} />
+						</div>
 
-								{/* title */}
-								<div className="space-y-2">
-									<Label htmlFor="title">Title</Label>
-									<Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., Revolutionary AI-Powered Farming" required />
-								</div>
+						<div className="space-y-4">
+							<Label>Detailed Pitch</Label>
+							<Textarea value={detailedPitchContent} onChange={(e) => setDetailedPitchContent(e.target.value)} rows={10} />
+						</div>
 
-								{/* elevator pitch */}
-								<div className="space-y-2">
-									<Label htmlFor="elevator">Elevator Pitch (Short Summary)</Label>
-									<Textarea id="elevator" value={elevator} onChange={(e) => setElevator(e.target.value)} placeholder="A short, catchy summary for quick interest." required rows={3} maxLength={250} />
-								</div>
+						<div className="flex justify-end">
+							<Button type="button" onClick={() => handleNext("content", "media")}>
+								Next: Media
+							</Button>
+						</div>
+					</TabsContent>
 
-								{/* detailed pitch */}
-								<div className="space-y-2">
-									<Label htmlFor="detailed">Detailed Pitch Content</Label>
-									<Textarea
-										id="detailed"
-										value={detailedPitchContent}
-										onChange={(e) => setDetailedPitchContent(e.target.value)}
-										placeholder="Provide the full, comprehensive description. Use Markdown (*bold*, # headings, - lists) for formatting."
-										required
-										rows={12}
-										className="resize-y"
-									/>
-									<p className="text-sm text-muted-foreground">This field supports Markdown for rich formatting.</p>
-								</div>
+					{/* Media */}
+					<TabsContent value="media" className="space-y-6">
+						<div
+							onClick={() => document.getElementById("media-input")?.click()}
+							className="border border-dashed border-gray-300 rounded-md p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50"
+						>
+							<Plus className="w-6 h-6 text-primary mb-2" />
+							<p className="font-medium">Upload Media Files</p>
+							<p className="text-sm text-muted-foreground">Images or videos supported</p>
+						</div>
+						<Input id="media-input" type="file" className="hidden" multiple onChange={handleMediaChange} />
 
-								{/* navigation button */}
-								<div className="flex justify-end pt-4">
-									<Button type="button" onClick={() => handleNext("content", "media")} className="bg-indigo-600 hover:bg-indigo-700">
-										Next: Media & Visuals
+						{mediaPreviews.length > 0 && (
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+								{mediaPreviews.map((preview, i) => (
+									<div key={i} className="relative group">
+										{preview.type.startsWith("image/") ? (
+											<img src={preview.url} className="w-full h-32 object-cover rounded-md" />
+										) : (
+											<video src={preview.url} className="w-full h-32 object-cover rounded-md bg-black" />
+										)}
+										<Button
+											size="icon"
+											type="button"
+											onClick={() => removeMediaFile(i)}
+											className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition"
+										>
+											<X className="w-4 h-4" />
+										</Button>
+									</div>
+								))}
+							</div>
+						)}
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("content")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("media", "financials")}>
+								Next: Financials
+							</Button>
+						</div>
+					</TabsContent>
+
+					{/* Financials */}
+					<TabsContent value="financials" className="space-y-6">
+						<div className="grid gap-4">
+							<div>
+								<Label className="pb-3">Target Amount (£)</Label>
+								<Input type="number" value={targetAmount} onChange={(e) => setTargetAmount(Number(e.target.value) || "")} />
+							</div>
+							<div>
+								<Label className="pb-3">Profit Share (%)</Label>
+								<Input type="number" value={profitShare} onChange={(e) => setProfitShare(Number(e.target.value) || "")} />
+							</div>
+							<div>
+								<Label className="pb-3">Start Date</Label>
+								<Input value={format(investmentStartDate, "PPP")} readOnly />
+							</div>
+							<div>
+								<Label className="pb-3">End Date</Label>
+								<Popover>
+									<PopoverTrigger asChild>
+										<Button variant="outline" className="w-full justify-start">
+											{endDate ? format(endDate, "PPP") : "Select date"}
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="p-0 w-auto">
+										<Calendar mode="single" selected={endDate} onSelect={setEndDate} fromDate={new Date()} />
+									</PopoverContent>
+								</Popover>
+							</div>
+						</div>
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("media")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("financials", "tiers")}>
+								Next: Tiers
+							</Button>
+						</div>
+					</TabsContent>
+
+					{/* Tiers */}
+					<TabsContent value="tiers" className="space-y-8">
+						{tiers.map((tier, i) => (
+							<div key={i} className="border-b pb-6 space-y-4">
+								<div className="flex justify-between items-center">
+									<h4 className="font-semibold text-sm">Tier {i + 1}</h4>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => removeTierHandler(i)}
+										disabled={tiers.length === 1}
+										className="text-red-500"
+									>
+										<Trash className="w-4 h-4 mr-1" /> Remove
 									</Button>
 								</div>
-							</TabsContent>
-
-							{/* tab 2: media & visuals */}
-							<TabsContent value="media" className="space-y-8">
-								<h4 className="text-xl font-semibold text-indigo-700">2. Media & Visuals</h4>
-
-								{/* media uploader */}
-								<Label htmlFor="media-files" className="cursor-pointer block">
-									<div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg hover:border-indigo-500 hover:bg-gray-100 transition-colors">
-										<Plus className="w-6 h-6 mb-2 text-indigo-500" />
-										<span className="font-semibold text-lg text-gray-700">Click here to add more files</span>
-										<p className="text-sm text-muted-foreground mt-1">You can select **multiple** images or videos at once.</p>
-									</div>
-								</Label>
-								<Input
-									id="media-files"
-									type="file"
-									// ENABLE MULTIPLE SELECTION like bro i cant believe how long i spent on this
-									multiple
-									accept="image/*,video/*"
-									onChange={handleMediaChange}
-									className="hidden"
-								/>
-
-								{/* TODO: display selected files with previews */}
-								{mediaPreviews.length > 0 && (
-									<div className="space-y-4 pt-2">
-										<p className="text-lg font-semibold">Selected Files ({mediaPreviews.length}):</p>
-										<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-											{mediaPreviews.map((preview, index) => (
-												<Card key={index} className="p-2 relative group overflow-hidden">
-													{preview.type.startsWith('image/') && (
-														<img
-															src={preview.url}
-															alt={`Media Preview ${index}`}
-															className="w-full h-24 object-cover rounded-md"
-														/>
-													)}
-													{preview.type.startsWith('video/') && (
-														<video
-															src={preview.url}
-															className="w-full h-24 object-cover rounded-md bg-black"
-															muted
-															playsInline
-														>
-															Your browser does not support the video tag.
-														</video>
-													)}
-													{/* fallback for non-visual files */}
-													{!preview.type.startsWith('image/') && !preview.type.startsWith('video/') && (
-														<div className="w-full h-24 flex items-center justify-center text-gray-500 bg-gray-100 rounded-md">
-															<FileText className="w-6 h-6" />
-														</div>
-													)}
-
-													{/* file name overlay */}
-													<p className="text-xs font-medium truncate mt-2 px-1">{preview.name}</p>
-
-													{/* remove button overlay */}
-													<Button
-														type="button"
-														size="icon"
-														onClick={() => removeMediaFile(index)}
-														className="absolute top-4 right-4 w-6 h-6 p-0 text-white bg-red-500 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-													>
-														<X className="w-4 h-4" />
-													</Button>
-												</Card>
-											))}
-										</div>
-									</div>
-								)}
-
-								{/* navigation buttons */}
-								<div className="flex justify-between pt-4">
-									<Button type="button" variant="outline" onClick={() => setActiveTab("content")}>
-										Previous
-									</Button>
-									<Button type="button" onClick={() => handleNext("media", "financials")} className="bg-indigo-600 hover:bg-indigo-700">
-										Next: Financial Goals
-									</Button>
-								</div>
-							</TabsContent>
-
-							{/* tab 3: financial goals */}
-							<TabsContent value="financials" className="space-y-8">
-								<h4 className="text-xl font-semibold text-teal-700">3. Set Funding Targets and Timeline</h4>
-
-								{/* target amount */}
-								<div className="space-y-2">
-									<Label htmlFor="targetAmount">Target Amount</Label>
-									<div className="flex items-center">
-										<span className="text-gray-500 mr-2"><DollarSign className="w-5 h-5" /></span>
-										<Input type="number" id="targetAmount" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value === "" ? "" : Number(e.target.value))} placeholder="100,000" required min={1} />
-									</div>
-								</div>
-
-								{/* profit share */}
-								<div className="space-y-2">
-									<Label htmlFor="profitShare">Profit Share Percentage</Label>
-									<div className="flex items-center">
-										<span className="text-gray-500 mr-2"><Percent className="w-5 h-5" /></span>
-										<Input type="number" id="profitShare" value={profitShare} onChange={(e) => setProfitShare(e.target.value === "" ? "" : Number(e.target.value))} placeholder="10" required min={0} max={100} />
-									</div>
-								</div>
-
-								{/* investment start date (read-only) */}
-								<div className="space-y-2">
-									<Label htmlFor="startDate">Start Date</Label>
-									<div className="flex items-center">
-										<span className="text-gray-500 mr-2"><CalendarIcon className="w-5 h-5" /></span>
-										<Input
-											id="startDate"
-											value={format(investmentStartDate, "PPP")}
-											readOnly
-											className="bg-gray-100 cursor-not-allowed"
+								<div className="grid sm:grid-cols-4 gap-3">
+									<div>
+										<Label className="pb-3">Name</Label>
+										<Input value={tier.name} onChange={(e) => handleTierChange(i, "name", e.target.value)}
+											placeholder="e.g. Silver"
 										/>
 									</div>
-									<p className="text-xs text-muted-foreground ml-7">Automatically set to today.</p>
-								</div>
-
-								{/* end date */}
-								{/* TODO: change this immediately it looks garbage */}
-								<div className="space-y-2">
-									<Label htmlFor="endDate">Investment End Date</Label>
-									<div className="flex items-center">
-										<span className="text-gray-500 mr-2"><CalendarIcon className="w-5 h-5" /></span>
-										<Popover>
-											<PopoverTrigger asChild>
-												<Button
-													variant={"outline"}
-													className={cn(
-														"w-full justify-start text-left font-normal",
-														!endDate && "text-muted-foreground"
-													)}
-												>
-													{endDate ? format(endDate, "PPP") : <span>Pick an end date</span>}
-												</Button>
-											</PopoverTrigger>
-											<PopoverContent className="w-auto p-0" align="start">
-												<Calendar
-													mode="single"
-													selected={endDate}
-													onSelect={setEndDate}
-													initialFocus
-													// ensure the end date is at least one day after today
-													fromDate={new Date(investmentStartDate.getTime() + 24 * 60 * 60 * 1000)}
-												/>
-											</PopoverContent>
-										</Popover>
+									<div>
+										<Label className="pb-3">Min (£)</Label>
+										<Input
+											type="number"
+											value={tier.min_amount}
+											onChange={(e) => handleTierChange(i, "min_amount", e.target.value)}
+											placeholder="e.g. 1"
+										/>
+									</div>
+									<div>
+										<Label className="pb-3">Max (£)</Label>
+										<Input
+											type="number"
+											value={tier.max_amount}
+											onChange={(e) => handleTierChange(i, "max_amount", e.target.value)}
+											placeholder="e.g. 1000"
+										/>
+									</div>
+									<div>
+										<Label className="pb-3">Multiplier</Label>
+										<Input
+											type="number"
+											value={tier.multiplier}
+											onChange={(e) => handleTierChange(i, "multiplier", e.target.value)}
+											placeholder="e.g. 1.5"
+										/>
 									</div>
 								</div>
+							</div>
+						))}
 
-								{/* navigation buttons */}
-								<div className="flex justify-between pt-4">
-									<Button type="button" variant="outline" onClick={() => setActiveTab("media")}>
-										Previous
-									</Button>
-									<Button type="button" onClick={() => handleNext("financials", "tiers")} className="bg-teal-600 hover:bg-teal-700">
-										Next: Investment Tiers
-									</Button>
-								</div>
-							</TabsContent>
+						<Button variant="outline" type="button" onClick={addTier} className="w-full">
+							<Plus className="w-4 h-4 mr-2" /> Add Tier
+						</Button>
 
-							{/* tab 4: investment tiers */}
-							<TabsContent value="tiers" className="space-y-8">
-								<h4 className="text-xl font-semibold text-blue-700">4. Define Investment Levels</h4>
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("financials")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("tiers", "overview")}>
+								Next: Overview
+							</Button>
+						</div>
+					</TabsContent>
 
-								<div className="space-y-4">
-									{tiers.map((tier, index) => (
-										<Card key={index} className="p-4 border-l-4 border-blue-500 bg-blue-50 shadow-sm">
-											<div className="flex justify-between items-start mb-2">
-												<p className="font-bold text-lg text-blue-800">Tier {index + 1}</p>
-												<Button
-													type="button"
-													variant="ghost"
-													size="sm"
-													onClick={() => removeTierHandler(index)}
-													disabled={tiers.length === 1}
-													className="text-red-500 hover:text-red-700 p-1 h-auto"
-												>
-													<Trash className="w-4 h-4 mr-1" /> Remove
-												</Button>
+					{/* Overview */}
+					<TabsContent value="overview" className="space-y-8">
+						<div className="space-y-6">
+							<h3 className="text-xl font-semibold">Review Your Pitch</h3>
+							<p className="text-muted-foreground">
+								Please review all your details before submitting your pitch.
+							</p>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Content</h4>
+								<p><strong>Title:</strong> {title || "—"}</p>
+								<p><strong>Elevator Pitch:</strong> {elevator || "—"}</p>
+								<p><strong>Detailed Pitch:</strong> {detailedPitchContent || "—"}</p>
+							</div>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Media</h4>
+								{mediaPreviews.length > 0 ? (
+									<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+										{mediaPreviews.map((m, i) => (
+											<div key={i}>
+												{m.type.startsWith("image/") ? (
+													<img src={m.url} alt="" className="w-full h-24 object-cover rounded-md" />
+												) : (
+													<video src={m.url} className="w-full h-24 object-cover rounded-md" />
+												)}
+												<p className="text-xs mt-1 truncate">{m.name}</p>
 											</div>
+										))}
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground">No media uploaded.</p>
+								)}
+							</div>
 
-											<div className="space-y-3">
-												<div className="space-y-1">
-													<Label htmlFor={`tier-name-${index}`}>Name</Label>
-													<Input
-														id={`tier-name-${index}`}
-														value={tier.name}
-														onChange={(e) => handleTierChange(index, "name", e.target.value)}
-														placeholder="e.g., Early Bird Investor"
-														required
-													/>
-												</div>
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Financials</h4>
+								<p><strong>Target Amount:</strong> ${targetAmount || "—"}</p>
+								<p><strong>Profit Share:</strong> {profitShare ? `${profitShare}%` : "—"}</p>
+								<p><strong>Start Date:</strong> {format(investmentStartDate, "PPP")}</p>
+								<p><strong>End Date:</strong> {endDate ? format(endDate, "PPP") : "—"}</p>
+							</div>
 
-												<div className="grid grid-cols-3 gap-2">
-													<div className="space-y-1 col-span-1">
-														<Label htmlFor={`tier-min-${index}`}>Min ($)</Label>
-														<Input
-															type="number"
-															id={`tier-min-${index}`}
-															value={tier.min_amount}
-															onChange={(e) => handleTierChange(index, "min_amount", e.target.value)}
-															placeholder="Min"
-															required
-															min={1}
-														/>
-													</div>
-													<div className="space-y-1 col-span-1">
-														<Label htmlFor={`tier-max-${index}`}>Max ($) (Opt)</Label>
-														<Input
-															type="number"
-															id={`tier-max-${index}`}
-															value={tier.max_amount === null ? "" : tier.max_amount}
-															onChange={(e) => handleTierChange(index, "max_amount", e.target.value)}
-															placeholder="Max"
-															min={tier.min_amount === "" ? 1 : Number(tier.min_amount) + 1}
-														/>
-													</div>
-													<div className="space-y-1 col-span-1">
-														<Label htmlFor={`tier-mult-${index}`}>Multiplier</Label>
-														<Input
-															type="number"
-															id={`tier-mult-${index}`}
-															value={tier.multiplier}
-															onChange={(e) => handleTierChange(index, "multiplier", e.target.value)}
-															placeholder="x"
-															required
-															min={1}
-														/>
-													</div>
-												</div>
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Tiers</h4>
+								{tiers.length > 0 ? (
+									<div className="space-y-3">
+										{tiers.map((t, i) => (
+											<div key={i} className="border p-3 rounded-md">
+												<p><strong>Tier {i + 1}: </strong>{t.name || "—"}</p>
+												<p>Min: £{t.min_amount || "—"} {t.max_amount ? `| Max: £${t.max_amount}` : ""}</p>
+												<p>Multiplier: x{t.multiplier || "—"}</p>
 											</div>
-										</Card>
-									))}
-								</div>
+										))}
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground">No tiers defined.</p>
+								)}
+							</div>
+						</div>
 
-								<Button type="button" onClick={addTier} variant="outline" className="w-full border-blue-500 text-blue-600 hover:bg-blue-100">
-									<Plus className="w-4 h-4 mr-2" /> Add Investment Tier
+						{/* AI Analysis */}
+						<div className="border rounded-lg p-6 space-y-4">
+							<div className="flex justify-between items-center">
+								<h4 className="font-medium text-lg">AI Analysis</h4>
+								<Button
+									type="button"
+									variant="secondary"
+									onClick={handleAiAnalysis}
+									disabled={aiLoading}
+								>
+									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
 								</Button>
+							</div>
 
-								{/* navigation and submit buttons */}
-								<div className="flex justify-between pt-4">
-									<Button type="button" variant="outline" onClick={() => setActiveTab("financials")}>
-										Previous
-									</Button>
-									<Button type="submit" className="h-10 text-base bg-blue-600 hover:bg-blue-700" disabled={loading}>
-										{loading ? "Submitting Pitch..." : "Submit Final Pitch"}
-									</Button>
-								</div>
-							</TabsContent>
-						</form>
-					</Tabs>
-				</CardContent>
-			</Card>
+							{aiAnalysis ? (
+								<p className="text-sm whitespace-pre-line">{aiAnalysis}</p>
+							) : (
+								<p className="text-sm text-muted-foreground">
+									Click the button above to get AI feedback on your pitch.
+								</p>
+							)}
+						</div>
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("tiers")}>
+								Previous
+							</Button>
+							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
+								{loading ? "Submitting..." : "Submit Pitch"}
+							</Button>
+						</div>
+					</TabsContent>
+				</form>
+			</Tabs>
 		</div>
 	);
 }

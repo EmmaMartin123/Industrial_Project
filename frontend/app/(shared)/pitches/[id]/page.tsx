@@ -39,7 +39,6 @@ const calculateDaysRemaining = (endDate: Date): number | null => {
 	return diffDays;
 };
 
-
 interface ViewPitchPageProps {
 	params: Promise<{ id: string }>;
 }
@@ -130,7 +129,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			: (pitch.raised_amount / pitch.target_amount) * 100;
 
 	const handleInvest = () => {
-		toast("Proceeding to investment checkout! 🎉");
+		router.push(`/pitches/${pitch.pitch_id}/invest`);
 	};
 
 	const DateDisplay = () => {

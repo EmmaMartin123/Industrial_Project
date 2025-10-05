@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { useAuthStore } from "@/lib/store/authStore"
 import { supabase } from "@/lib/supabaseClient"
 import { LoaderPinwheel } from "lucide-react"
-import * as Button from "@/components/Button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -52,6 +52,7 @@ export default function LoginPage() {
 
 	return (
 		<div className="flex min-h-screen">
+			<div className="absolute left-[60%] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent backdrop-blur-sm"></div>
 			{/* Left Section (Visual / Brand area) */}
 			<div className="hidden lg:flex w-[60%] bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-background items-center justify-center relative overflow-hidden">
 				<div className="max-w-lg text-left px-12 space-y-4">
@@ -98,9 +99,9 @@ export default function LoginPage() {
 							/>
 						</div>
 
-						<button
+						<Button
 							type="submit"
-							className={`${Button.buttonClassName} w-full`}
+							className={`w-full`}
 							disabled={isLoggingIn}
 						>
 							{isLoggingIn ? (
@@ -108,7 +109,7 @@ export default function LoginPage() {
 							) : (
 								"Log In"
 							)}
-						</button>
+						</Button>
 					</form>
 
 					<p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">

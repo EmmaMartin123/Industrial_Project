@@ -166,7 +166,7 @@ func GetDataByQuery(table string, query string) ([]byte, error) {
 	return body, nil
 }
 
-func ReplaceByID(table string, id string, data any) ([]byte, error) {
+func UpdateByID(table string, id string, data any) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
 

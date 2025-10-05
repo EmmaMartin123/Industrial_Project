@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Pencil, Eye, DollarSign, Plus } from "lucide-react";
+import { Pencil, DollarSign, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
@@ -18,6 +18,7 @@ export default function ManagePitchesPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
+	// Get user session
 	useEffect(() => {
 		const getSession = async () => {
 			setLoading(true);
@@ -36,6 +37,7 @@ export default function ManagePitchesPage() {
 		getSession();
 	}, []);
 
+	// Fetch pitches for the user
 	useEffect(() => {
 		if (!userId) return;
 
@@ -89,6 +91,10 @@ export default function ManagePitchesPage() {
 		);
 	}
 
+	const handleCardClick = (pitchId: number) => {
+		router.push(`/pitches/${pitchId}`);
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
 			<div className="max-w-7xl mx-auto">
@@ -113,9 +119,20 @@ export default function ManagePitchesPage() {
 					{pitches.map((pitch) => (
 						<div
 							key={pitch.pitch_id}
-							className="group bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-200 flex flex-col justify-between"
+							className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
+							onClick={() => handleCardClick(pitch.pitch_id)}
 						>
-							<div>
+							{/* Full-width Thumbnail */}
+							<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
+								<div className="pt-[56.25%] flex items-center justify-center">
+									<span className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
+										Thumbnail
+									</span>
+								</div>
+							</div>
+
+							{/* Pitch Info */}
+							<div className="p-6 flex flex-col justify-between">
 								<h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-primary transition">
 									{pitch.title}
 								</h2>
@@ -123,10 +140,10 @@ export default function ManagePitchesPage() {
 									<span className="font-medium text-gray-800 dark:text-gray-200">Status:</span>{" "}
 									<span
 										className={`${pitch.status === "Funded"
-												? "text-green-600 dark:text-green-400"
-												: pitch.status === "Draft"
-													? "text-gray-500"
-													: "text-yellow-600 dark:text-yellow-400"
+											? "text-green-600 dark:text-green-400"
+											: pitch.status === "Draft"
+												? "text-gray-500"
+												: "text-yellow-600 dark:text-yellow-400"
 											}`}
 									>
 										{pitch.status}
@@ -140,39 +157,37 @@ export default function ManagePitchesPage() {
 									<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
 									{pitch.profit_share_percent}%
 								</p>
-							</div>
 
-							{/* Actions */}
-							<div className="mt-6 flex flex-wrap gap-2">
-								<button
-									className={`${Button.buttonOutlineClassName}`}
-									onClick={() => {
-										if (pitch.status === "Funded") {
-											toast.error("Cannot edit a funded pitch");
-											return;
-										}
-										router.push(`/business/manage-pitches/${pitch.pitch_id}/edit`);
-									}}
-									disabled={pitch.status === "Funded"}
-								>
-									<Pencil size={16} /> Edit
-								</button>
-								<button
-									className={`${Button.buttonOutlineClassName}`}
-									onClick={() => router.push(`/pitches/${pitch.pitch_id}`)}
-								>
-									<Eye size={16} /> View
-								</button>
-								{pitch.status === "Funded" && (
+								{/* Actions */}
+								<div className="mt-4 flex flex-wrap gap-2">
 									<button
-										className={`${Button.buttonOutlineClassName}`}
-										onClick={() =>
-											router.push(`/business/profit-distribution?pitchId=${pitch.pitch_id}`)
-										}
+										className={`${Button.buttonOutlineClassName}` + " w-full"}
+										onClick={(e) => {
+											e.stopPropagation();
+											if (pitch.status === "Funded") {
+												toast.error("Cannot edit a funded pitch");
+												return;
+											}
+											router.push(`/business/manage-pitches/${pitch.pitch_id}/edit`);
+										}}
+										disabled={pitch.status === "Funded"}
 									>
-										<DollarSign size={16} /> Distribute
+										<Pencil size={16} /> Edit
 									</button>
-								)}
+									{pitch.status === "Funded" && (
+										<button
+											className={`${Button.buttonOutlineClassName}`}
+											onClick={(e) => {
+												e.stopPropagation();
+												router.push(
+													`/business/profit-distribution?pitchId=${pitch.pitch_id}`
+												);
+											}}
+										>
+											<DollarSign size={16} /> Distribute
+										</button>
+									)}
+								</div>
 							</div>
 						</div>
 					))}
