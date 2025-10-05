@@ -11,15 +11,49 @@ export const getAllPitches = async (userId?: string): Promise<Pitch[]> => {
 	return response.data;
 };
 
-export const getPitches = async (
-	limit?: number,
-	offset?: number,
-	search?: string | null
-): Promise<Pitch[]> => {
+interface GetPitchesOptions {
+	limit?: number;
+	offset?: number;
+	search?: string;
+	status?: string;
+	sortKey?: "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest";
+}
+
+export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch[]> => {
+	const { limit, offset, search, status, sortKey } = options;
+
 	const params = new URLSearchParams();
-	if (limit !== undefined) params.append("limit", limit.toString());
-	if (offset !== undefined) params.append("offset", offset.toString());
-	if (search && search.trim() !== "") params.append("search", search.trim());
+
+	if (limit) params.append("limit", limit.toString());
+	if (offset) params.append("offset", offset.toString());
+	if (search) params.append("search", search);
+	if (status) params.append("status", status);
+
+	// map frontend sortkey to backend query format
+	if (sortKey) {
+		let backendSort: string | undefined;
+		switch (sortKey) {
+			case "raisedDesc":
+				backendSort = "price:desc";
+				break;
+			case "raisedAsc":
+				backendSort = "price:asc";
+				break;
+			case "profitDesc":
+				backendSort = "price:desc"; // fallback: backend only supports price
+				break;
+			case "profitAsc":
+				backendSort = "price:asc";
+				break;
+			case "newest":
+				backendSort = "price:desc"; // fallback
+				break;
+			case "oldest":
+				backendSort = "price:asc"; // fallback
+				break;
+		}
+		if (backendSort) params.append("sort", backendSort);
+	}
 
 	const response = await axios.get(`/pitch?${params.toString()}`);
 	return response.data;

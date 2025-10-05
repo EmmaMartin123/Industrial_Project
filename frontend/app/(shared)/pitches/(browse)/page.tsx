@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState, KeyboardEvent } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 import { getPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -21,11 +20,11 @@ import { Input } from "@/components/ui/input";
 import {
 	Pagination,
 	PaginationContent,
-	PaginationEllipsis,
 	PaginationItem,
 	PaginationLink,
 	PaginationNext,
 	PaginationPrevious,
+	PaginationEllipsis,
 } from "@/components/ui/pagination";
 import * as Button from "@/components/Button";
 
@@ -33,10 +32,9 @@ export default function BusinessPitchesPage() {
 	const router = useRouter();
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [filterStatus, setFilterStatus] = useState<string | null>(null);
-	const [sortKey, setSortKey] = useState<
-		"raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | null
-	>(null);
+	const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | undefined;
+	const [sortKey, setSortKey] = useState<SortKey>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string>("");
 
 	const [currentPage, setCurrentPage] = useState<number>(1);
@@ -54,23 +52,37 @@ export default function BusinessPitchesPage() {
 		if (!isCheckingAuth && !authUser) router.push("/login");
 	}, [authUser, isCheckingAuth, router]);
 
-	// fetch pitches with pagination
-	const fetchPitches = async (page = 1, search?: string) => {
+	// fetch pitches with filters, search, sort, pagination
+	const fetchPitches = async (page = 1) => {
 		try {
 			setLoading(true);
-
-			const limit = pageSize;
 			const offset = (page - 1) * pageSize;
 
-			let data: Pitch[];
+			const statusFilter = selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined;
 
-			data = await getPitches(limit, offset, search);
+			const sortKeyMap: Record<Exclude<SortKey, undefined>, string> = {
+				raisedDesc: "price:desc",
+				raisedAsc: "price:asc",
+				profitDesc: "price:desc",      // fallback: backend currently only supports price
+				profitAsc: "price:asc",
+				newest: "price:desc",           // fallback
+				oldest: "price:asc",            // fallback
+			};
 
-			// assume totalPages = currentPage + 1 if full page received
+			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
+
+			const data = await getPitches({
+				limit: pageSize,
+				offset,
+				search: searchQuery || undefined,
+				status: statusFilter,
+				sortKey
+			});
+
 			setTotalPages(data.length < pageSize ? page : page + 1);
 			setPitches(
-				data.map((p: any) => ({
-					pitch_id: p.id,
+				data.map((p) => ({
+					pitch_id: p.pitch_id,
 					title: p.title,
 					elevator_pitch: p.elevator_pitch,
 					detailed_pitch: p.detailed_pitch,
@@ -95,74 +107,18 @@ export default function BusinessPitchesPage() {
 		}
 	};
 
-	const getPageNumbers = (current: number, total: number, maxVisible = 5) => {
-		const half = Math.floor(maxVisible / 2);
-		let start = Math.max(1, current - half);
-		let end = Math.min(total, current + half);
-
-		if (end - start + 1 < maxVisible) {
-			if (start === 1) end = Math.min(total, start + maxVisible - 1);
-			else if (end === total) start = Math.max(1, end - maxVisible + 1);
-		}
-
-		return { start, end };
-	};
-
-	const { start, end } = getPageNumbers(currentPage, totalPages, 5);
-
 	useEffect(() => {
-		if (!isCheckingAuth && authUser) fetchPitches();
-	}, [authUser, isCheckingAuth, filterStatus, sortKey]);
-
-	// filter and sort in frontend
-	const getFilteredSortedPitches = () => {
-		let temp = [...pitches];
-
-		if (filterStatus) {
-			temp = temp.filter((p) => p.status === filterStatus);
-		}
-
-		if (sortKey) {
-			switch (sortKey) {
-				case "raisedDesc":
-					temp.sort((a, b) => b.raised_amount - a.raised_amount);
-					break;
-				case "raisedAsc":
-					temp.sort((a, b) => a.raised_amount - b.raised_amount);
-					break;
-				case "profitDesc":
-					temp.sort((a, b) => b.profit_share_percent - a.profit_share_percent);
-					break;
-				case "profitAsc":
-					temp.sort((a, b) => a.profit_share_percent - b.profit_share_percent);
-					break;
-				case "newest":
-					temp.sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
-					break;
-				case "oldest":
-					temp.sort((a, b) => a.created_at.getTime() - b.created_at.getTime());
-					break;
-			}
-		}
-
-		return temp;
-	};
+		if (!isCheckingAuth && authUser) fetchPitches(1);
+	}, [authUser, isCheckingAuth, selectedStatuses, sortKey, searchQuery]);
 
 	const handleSearchKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === "Enter") fetchPitches(1, searchQuery);
+		if (e.key === "Enter") fetchPitches(1);
 	};
-
-	if (isCheckingAuth || !authUser || loading) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<LoaderPinwheel className="w-10 h-10 animate-spin" />
-			</div>
-		);
-	}
 
 	const handleView = (pitchId: number) => router.push(`/pitches/${pitchId}`);
 	const getFundingPercentage = (raised: number, target: number) =>
 		target === 0 ? 0 : Math.min(Math.round((raised / target) * 100), 100);
+
 	const getStatusClasses = (status: string) => {
 		switch (status) {
 			case "Active":
@@ -176,6 +132,12 @@ export default function BusinessPitchesPage() {
 			default:
 				return "bg-gray-500 text-white";
 		}
+	};
+
+	const toggleStatus = (status: string) => {
+		setSelectedStatuses((prev) =>
+			prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+		);
 	};
 
 	const renderPitchCard = (pitch: Pitch) => (
@@ -222,7 +184,28 @@ export default function BusinessPitchesPage() {
 		</div>
 	);
 
-	const filteredSortedPitches = getFilteredSortedPitches();
+	const getPageNumbers = (current: number, total: number, maxVisible = 5) => {
+		const half = Math.floor(maxVisible / 2);
+		let start = Math.max(1, current - half);
+		let end = Math.min(total, current + half);
+
+		if (end - start + 1 < maxVisible) {
+			if (start === 1) end = Math.min(total, start + maxVisible - 1);
+			else if (end === total) start = Math.max(1, end - maxVisible + 1);
+		}
+
+		return { start, end };
+	};
+
+	const { start, end } = getPageNumbers(currentPage, totalPages, 5);
+
+	if (isCheckingAuth || !authUser || loading) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<LoaderPinwheel className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
@@ -252,63 +235,45 @@ export default function BusinessPitchesPage() {
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-56">
 								<DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-								<DropdownMenuItem onClick={() => setFilterStatus(null)}>All</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setFilterStatus("Active")}>
-									Active
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setFilterStatus("Funded")}>
-									Funded
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setFilterStatus("Draft")}>
-									Draft
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setFilterStatus("Closed")}>
-									Closed
-								</DropdownMenuItem>
+								{["Active", "Funded", "Draft", "Closed"].map((status) => (
+									<DropdownMenuItem key={status} onClick={() => toggleStatus(status)}>
+										<input
+											type="checkbox"
+											checked={selectedStatuses.includes(status)}
+											readOnly
+											className="mr-2"
+										/>
+										{status}
+									</DropdownMenuItem>
+								))}
 
 								<DropdownMenuSeparator />
 
 								<DropdownMenuLabel>Sort By</DropdownMenuLabel>
-								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>
-									Highest Raised
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>
-									Lowest Raised
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("profitDesc")}>
-									Highest Profit Share
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("profitAsc")}>
-									Lowest Profit Share
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("newest")}>
-									Newest
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("oldest")}>
-									Oldest
-								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>Highest Raised</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>Lowest Raised</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("profitDesc")}>Highest Profit Share</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("profitAsc")}>Lowest Profit Share</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("newest")}>Newest</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("oldest")}>Oldest</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					</div>
 				</div>
 
-				{filteredSortedPitches.length === 0 ? (
+				{pitches.length === 0 ? (
 					<p className="text-gray-600 dark:text-gray-400">No pitches available.</p>
 				) : (
 					<>
-						{/* Uniform Grid */}
 						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-							{filteredSortedPitches.map((pitch) => renderPitchCard(pitch))}
+							{pitches.map((pitch) => renderPitchCard(pitch))}
 						</div>
 
-						{/* Pagination */}
 						<div className="flex justify-center mt-10">
 							<Pagination>
-								<PaginationContent>
-									<PaginationItem className="cursor-pointer">
-										<PaginationPrevious
-											onClick={() => currentPage > 1 && fetchPitches(currentPage - 1)}
-										/>
+								<PaginationContent className="cursor-pointer">
+									<PaginationItem>
+										<PaginationPrevious onClick={() => currentPage > 1 && fetchPitches(currentPage - 1)} />
 									</PaginationItem>
 
 									{start > 1 && (
@@ -338,19 +303,13 @@ export default function BusinessPitchesPage() {
 										<>
 											{end < totalPages - 1 && <PaginationEllipsis />}
 											<PaginationItem>
-												<PaginationLink onClick={() => fetchPitches(totalPages)}>
-													{totalPages}
-												</PaginationLink>
+												<PaginationLink onClick={() => fetchPitches(totalPages)}>{totalPages}</PaginationLink>
 											</PaginationItem>
 										</>
 									)}
 
 									<PaginationItem className="cursor-pointer">
-										<PaginationNext
-											onClick={() =>
-												currentPage < totalPages && fetchPitches(currentPage + 1)
-											}
-										/>
+										<PaginationNext onClick={() => currentPage < totalPages && fetchPitches(currentPage + 1)} />
 									</PaginationItem>
 								</PaginationContent>
 							</Pagination>
