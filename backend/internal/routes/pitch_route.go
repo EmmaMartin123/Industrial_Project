@@ -444,8 +444,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			front := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
-			front.Tags = tagNames
+			front := mapping.Pitch_ToFrontend(pitch, investment_tiers, media, tagNames)
 			pitches_to_send = append(pitches_to_send, front)
 		}
 
@@ -499,19 +498,18 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		TagID int64 `json:"tag_id"`
 	}
 	json.Unmarshal(tagLinkRes, &links)
-	var tagNames []string
+	var tag_names []string
 	for _, l := range links {
-		tagRes, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
+		tag_res, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
 		var tags []struct {
 			Name string `json:"name"`
 		}
-		if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
-			tagNames = append(tagNames, tags[0].Name)
+		if json.Unmarshal(tag_res, &tags) == nil && len(tags) > 0 {
+			tag_names = append(tag_names, tags[0].Name)
 		}
 	}
 
-	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers, media)
-	pitch_to_send.Tags = tagNames
+	pitch_to_send := mapping.Pitch_ToFrontend(pitch, investment_tiers, media, tag_names)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(pitch_to_send)
@@ -589,9 +587,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	old_tiers, _ := get_investment_tiers(old_pitch)
-	old_media, _ := utils.GetPitchMedia(pitchID)
-
+	// Parse new pitch data
 	contentType := r.Header.Get("Content-Type")
 	var new_pitch frontend.Pitch
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -612,22 +608,32 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 	}
 
+	if old_pitch.Status != "Draft" {
+		old_tiers, _ := get_investment_tiers(old_pitch)
+		new_pitch.InvestmentTiers = old_tiers
+	}
+
+	old_tiers, _ := get_investment_tiers(old_pitch)
+	old_media, _ := utils.GetPitchMedia(pitchID)
+
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
 	to_db.PitchID = &pitchID
-	_, err = utils.ReplaceByID("pitch", pitchIDStr, to_db)
+	_, err = utils.UpdateByID("pitch", pitchIDStr, to_db)
 	if err != nil {
 		http.Error(w, "Failed to update pitch", http.StatusInternalServerError)
 		return
 	}
 
-	for _, t := range old_tiers {
-		if t.ID != nil {
-			utils.DeleteByID("investment_tier", strconv.FormatInt(*t.ID, 10))
+	if old_pitch.Status == "Draft" {
+		for _, t := range old_tiers {
+			if t.ID != nil {
+				utils.DeleteByID("investment_tier", strconv.FormatInt(*t.ID, 10))
+			}
 		}
-	}
-	for _, tier := range new_pitch.InvestmentTiers {
-		tier.PitchID = pitchID
-		utils.InsertData(tier, "investment_tier")
+		for _, tier := range new_pitch.InvestmentTiers {
+			tier.PitchID = pitchID
+			utils.InsertData(tier, "investment_tier")
+		}
 	}
 
 	utils.DeletePitchTags(pitchID)
