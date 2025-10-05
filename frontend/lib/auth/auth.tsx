@@ -33,5 +33,7 @@ export const useProtect = () => {
 		}
 	}, [authUser, isCheckingAuth, router]);
 
+	console.log("userProfile", userProfile);
+
 	return { userProfile, isLoading: isCheckingAuth || loadingUserProfile };
 };

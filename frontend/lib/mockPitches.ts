@@ -2,7 +2,7 @@ import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 
 export const mockPitches: Pitch[] = [
 	{
-		pitch_id: 1,
+		id: 1,
 		title: "Solar Smart Panel",
 		elevator_pitch: "Energy efficient solar panels for urban homes.",
 		detailed_pitch:
@@ -37,7 +37,7 @@ export const mockPitches: Pitch[] = [
 		],
 	},
 	{
-		pitch_id: 2,
+		id: 2,
 		title: "Eco-Friendly Sneakers",
 		elevator_pitch: "Sustainable sneakers made from recycled materials.",
 		detailed_pitch:
@@ -72,7 +72,7 @@ export const mockPitches: Pitch[] = [
 		],
 	},
 	{
-		pitch_id: 3,
+		id: 3,
 		title: "Smart Garden System",
 		elevator_pitch: "Automated gardening system for small apartments.",
 		detailed_pitch:

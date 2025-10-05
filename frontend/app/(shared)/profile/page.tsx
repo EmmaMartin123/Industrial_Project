@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { useProtect } from "@/lib/auth/auth";
 
 export default function ProfilePage() {

@@ -1,8 +1,8 @@
 import axios from "@/lib/axios"
 import { useAuthStore } from "@/lib/store/authStore"
-import { Profile } from "@/lib/types/profile"
+import { Profile, ProfileToSend } from "@/lib/types/profile"
 
-export const postUserProfile = async (data: Profile) => {
+export const postUserProfile = async (data: ProfileToSend) => {
 	const response = await axios.post("/profile", data);
 
 	return response.data;

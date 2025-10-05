@@ -7,7 +7,7 @@ import { Pencil, DollarSign, Plus, PiggyBank } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
-import * as Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import LoaderComponent from "@/components/Loader";
 import {
 	Table,
@@ -24,6 +24,10 @@ export default function ManagePitchesPage() {
 	const { userProfile, isLoading } = useProtect();
 
 	const router = useRouter();
+
+	if (userProfile?.role !== "business") {
+		router.push("/investor/dashboard");
+	}
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
@@ -81,12 +85,12 @@ export default function ManagePitchesPage() {
 			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 				<h1 className="text-3xl font-bold text-red-600 mb-2">Error</h1>
 				<p className="text-gray-600 dark:text-gray-400">{error}</p>
-				<button
-					className={`${Button.buttonClassName} mt-6`}
+				<Button
+					className={`mt-6`}
 					onClick={() => window.location.reload()}
 				>
 					Try Again
-				</button>
+				</Button>
 			</div>
 		);
 	}
@@ -100,12 +104,12 @@ export default function ManagePitchesPage() {
 				<p className="text-gray-600 dark:text-gray-400 mb-6">
 					You currently have no pitches created yet.
 				</p>
-				<button
-					className={`${Button.buttonClassName} flex items-center gap-2`}
+				<Button
+					className={`flex items-center gap-2`}
 					onClick={() => router.push("/business/pitches/new")}
 				>
 					<Plus size={18} /> Create New Pitch
-				</button>
+				</Button>
 			</div>
 		);
 	}
@@ -142,12 +146,12 @@ export default function ManagePitchesPage() {
 							View, edit, and manage your active investment pitches.
 						</p>
 					</div>
-					<button
-						className={`${Button.buttonClassName} mt-6 md:mt-0 flex items-center gap-2`}
+					<Button
+						className={`mt-6 md:mt-0 flex items-center gap-2 cursor-pointer`}
 						onClick={() => router.push("/business/pitches/new")}
 					>
 						<Plus size={18} /> New Pitch
-					</button>
+					</Button>
 				</div>
 
 				{/* ✅ Data Table */}
@@ -155,7 +159,7 @@ export default function ManagePitchesPage() {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Title</TableHead>
+								<TableHead className="pl-4">Title</TableHead>
 								<TableHead>Status</TableHead>
 								<TableHead>Raised</TableHead>
 								<TableHead>Target</TableHead>
@@ -172,17 +176,17 @@ export default function ManagePitchesPage() {
 								return (
 									<TableRow
 										key={pitch.id}
-										className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+										className="hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
 										onClick={() => router.push(`/pitches/${pitch.id}`)}
 									>
-										<TableCell className="font-medium">{pitch.title}</TableCell>
+										<TableCell className="pl-4 font-medium">{pitch.title}</TableCell>
 										<TableCell>
 											<span
 												className={`${pitch.status === "Funded"
-														? "text-green-600 dark:text-green-400"
-														: pitch.status === "Draft"
-															? "text-gray-500"
-															: "text-yellow-600 dark:text-yellow-400"
+													? "text-green-600 dark:text-green-400"
+													: pitch.status === "Draft"
+														? "text-gray-500"
+														: "text-yellow-600 dark:text-yellow-400"
 													}`}
 											>
 												{pitch.status}
@@ -192,37 +196,41 @@ export default function ManagePitchesPage() {
 										<TableCell>£{pitch.target_amount}</TableCell>
 										<TableCell>{pitch.profit_share_percent}%</TableCell>
 										<TableCell className="text-right flex justify-end gap-2">
-											{/* Edit Button */}
-											<button
-												className={`${Button.buttonOutlineClassName} flex items-center gap-1 text-sm`}
+											{/* distribute button */}
+											{pitch.status === "Funded" && (
+												<Button
+													className={`flex items-center gap-1 text-sm`}
+													onClick={(e) => handleDistribute(e, pitch.id)}
+												>
+													<DollarSign size={14} /> Distribute
+												</Button>
+											)}
+
+											{/* declare profit button */}
+											{canDeclareProfit && (
+												<Button
+													className={`flex items-center gap-1 text-sm cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white`}
+													onClick={(e) =>
+														handleEdit(e, pitch.id, pitch.status)
+													}
+													disabled={pitch.status === "Funded"}
+													variant="outline"
+												>
+													<Pencil size={14} /> Declare Profit
+												</Button>
+											)}
+
+											{/* edit button */}
+											<Button
+												className={`flex items-center gap-1 text-sm cursor-pointer`}
 												onClick={(e) =>
 													handleEdit(e, pitch.id, pitch.status)
 												}
 												disabled={pitch.status === "Funded"}
+												variant="outline"
 											>
 												<Pencil size={14} /> Edit
-											</button>
-
-											{/* Distribute Button */}
-											{pitch.status === "Funded" && (
-												<button
-													className={`${Button.buttonOutlineClassName} flex items-center gap-1 text-sm`}
-													onClick={(e) => handleDistribute(e, pitch.id)}
-												>
-													<DollarSign size={14} /> Distribute
-												</button>
-											)}
-
-											{canDeclareProfit && (
-												<button
-													className="flex items-center gap-1 text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md transition"
-													onClick={(e) =>
-														handleDeclareProfit(e, pitch.id)
-													}
-												>
-													<PiggyBank size={14} /> Declare Profit
-												</button>
-											)}
+											</Button>
 										</TableCell>
 									</TableRow>
 								);

@@ -16,6 +16,7 @@ import {
 	Wallet,
 	Layers,
 	GalleryVertical,
+	BrainCircuit,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -29,7 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/lib/store/authStore";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 import { useProtect } from "@/lib/auth/auth";
 
 // Tier type
@@ -51,6 +52,12 @@ const getFileIcon = (mimeType: string) => {
 
 export default function NewPitchPage() {
 	const { userProfile, isLoading } = useProtect();
+
+	const router = useRouter();
+
+	if (userProfile?.role !== "business") {
+		router.push("/investor/dashboard");
+	}
 
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
@@ -91,11 +98,6 @@ export default function NewPitchPage() {
 			setAiAnalysis(null);
 
 			// 🔥 Placeholder for API call (to be implemented later)
-			// Example:
-			// const res = await axios.post("/api/ai", { title, elevator, detailedPitchContent, tiers });
-			// setAiAnalysis(res.data.analysis);
-
-			// Temporary mock for now:
 			await new Promise((r) => setTimeout(r, 1500));
 			setAiAnalysis(
 				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
@@ -227,35 +229,23 @@ export default function NewPitchPage() {
 
 			<Tabs value={activeTab} onValueChange={setActiveTab}>
 				<TabsList className="w-full justify-start border-b rounded-none p-0 mb-8 bg-transparent">
-					<TabsTrigger
-						value="content"
-						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
-					>
+					<TabsTrigger value="content" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
 						<FileTextIcon className="w-4 h-4 mr-2" /> Content
 					</TabsTrigger>
-					<TabsTrigger
-						value="media"
-						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
-					>
+					<TabsTrigger value="media" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
 						<GalleryVertical className="w-4 h-4 mr-2" /> Media
 					</TabsTrigger>
-					<TabsTrigger
-						value="financials"
-						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
-					>
+					<TabsTrigger value="financials" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
 						<Wallet className="w-4 h-4 mr-2" /> Financials
 					</TabsTrigger>
-					<TabsTrigger
-						value="tiers"
-						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
-					>
+					<TabsTrigger value="tiers" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
 						<Layers className="w-4 h-4 mr-2" /> Tiers
 					</TabsTrigger>
-					<TabsTrigger
-						value="overview"
-						className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm"
-					>
+					<TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
 						<FileText className="w-4 h-4 mr-2" /> Overview
+					</TabsTrigger>
+					<TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<BrainCircuit className="w-4 h-4 mr-2" /> AI Analysis
 					</TabsTrigger>
 				</TabsList>
 
@@ -387,36 +377,19 @@ export default function NewPitchPage() {
 								<div className="grid sm:grid-cols-4 gap-3">
 									<div>
 										<Label className="pb-3">Name</Label>
-										<Input value={tier.name} onChange={(e) => handleTierChange(i, "name", e.target.value)}
-											placeholder="e.g. Silver"
-										/>
+										<Input value={tier.name} onChange={(e) => handleTierChange(i, "name", e.target.value)} placeholder="e.g. Silver" />
 									</div>
 									<div>
 										<Label className="pb-3">Min (£)</Label>
-										<Input
-											type="number"
-											value={tier.min_amount}
-											onChange={(e) => handleTierChange(i, "min_amount", e.target.value)}
-											placeholder="e.g. 1"
-										/>
+										<Input type="number" value={tier.min_amount} onChange={(e) => handleTierChange(i, "min_amount", e.target.value)} placeholder="e.g. 1" />
 									</div>
 									<div>
 										<Label className="pb-3">Max (£)</Label>
-										<Input
-											type="number"
-											value={tier.max_amount}
-											onChange={(e) => handleTierChange(i, "max_amount", e.target.value)}
-											placeholder="e.g. 1000"
-										/>
+										<Input type="number" value={tier.max_amount} onChange={(e) => handleTierChange(i, "max_amount", e.target.value)} placeholder="e.g. 1000" />
 									</div>
 									<div>
 										<Label className="pb-3">Multiplier</Label>
-										<Input
-											type="number"
-											value={tier.multiplier}
-											onChange={(e) => handleTierChange(i, "multiplier", e.target.value)}
-											placeholder="e.g. 1.5"
-										/>
+										<Input type="number" value={tier.multiplier} onChange={(e) => handleTierChange(i, "multiplier", e.target.value)} placeholder="e.g. 1.5" />
 									</div>
 								</div>
 							</div>
@@ -440,9 +413,7 @@ export default function NewPitchPage() {
 					<TabsContent value="overview" className="space-y-8">
 						<div className="space-y-6">
 							<h3 className="text-xl font-semibold">Review Your Pitch</h3>
-							<p className="text-muted-foreground">
-								Please review all your details before submitting your pitch.
-							</p>
+							<p className="text-muted-foreground">Please review all your details before submitting your pitch.</p>
 
 							<div className="border rounded-lg p-6 space-y-4">
 								<h4 className="font-medium text-lg">Content</h4>
@@ -473,7 +444,7 @@ export default function NewPitchPage() {
 
 							<div className="border rounded-lg p-6 space-y-4">
 								<h4 className="font-medium text-lg">Financials</h4>
-								<p><strong>Target Amount:</strong> ${targetAmount || "—"}</p>
+								<p><strong>Target Amount:</strong> £{targetAmount || "—"}</p>
 								<p><strong>Profit Share:</strong> {profitShare ? `${profitShare}%` : "—"}</p>
 								<p><strong>Start Date:</strong> {format(investmentStartDate, "PPP")}</p>
 								<p><strong>End Date:</strong> {endDate ? format(endDate, "PPP") : "—"}</p>
@@ -497,16 +468,22 @@ export default function NewPitchPage() {
 							</div>
 						</div>
 
-						{/* AI Analysis */}
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("tiers")}>
+								Previous
+							</Button>
+							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
+								{loading ? "Submitting..." : "Submit Pitch"}
+							</Button>
+						</div>
+					</TabsContent>
+
+					{/* AI Analysis */}
+					<TabsContent value="ai" className="space-y-6">
 						<div className="border rounded-lg p-6 space-y-4">
 							<div className="flex justify-between items-center">
 								<h4 className="font-medium text-lg">AI Analysis</h4>
-								<Button
-									type="button"
-									variant="secondary"
-									onClick={handleAiAnalysis}
-									disabled={aiLoading}
-								>
+								<Button type="button" variant="secondary" onClick={handleAiAnalysis} disabled={aiLoading}>
 									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
 								</Button>
 							</div>
@@ -520,12 +497,9 @@ export default function NewPitchPage() {
 							)}
 						</div>
 
-						<div className="flex justify-between">
-							<Button variant="outline" type="button" onClick={() => setActiveTab("tiers")}>
+						<div className="flex justify-start">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("overview")}>
 								Previous
-							</Button>
-							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
-								{loading ? "Submitting..." : "Submit Pitch"}
 							</Button>
 						</div>
 					</TabsContent>

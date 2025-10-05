@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { LogOut, User, Settings } from "lucide-react";
+import ThemeToggler from "./ThemeToggler";
 
 export default function Navbar() {
 	const router = useRouter();
@@ -46,7 +47,12 @@ export default function Navbar() {
 			}
 		};
 
-		fetchProfile();
+		// Only fetch profile if authUser exists, otherwise we're just showing the guest view
+		if (authUser) {
+			fetchProfile();
+		} else {
+			setLoadingRole(false);
+		}
 	}, [authUser, getId]);
 
 	const handleLogout = async () => {
@@ -58,11 +64,13 @@ export default function Navbar() {
 		role === "investor"
 			? "/investor/dashboard"
 			: role === "business"
-			? "/business/dashboard"
-			: "/";
+				? "/business/dashboard"
+				: "/";
 
 	return (
-		<nav className="navbar bg-base-200 shadow px-4">
+		// Changed navbar classes to use flex and justify-between
+		<nav className="navbar bg-base-200 shadow px-4 flex justify-between items-center w-full">
+			{/* Left Section: Logo */}
 			<div className="flex-1">
 				<a
 					className="border-0 text-xl font-bold cursor-pointer ml-3"
@@ -72,7 +80,9 @@ export default function Navbar() {
 				</a>
 			</div>
 
-			<div className="flex-none flex items-center space-x-4">
+			{/* Center Section: Role-Specific Links */}
+			{/* Added a new flex container to hold the center links */}
+			<div className="flex items-center space-x-4 justify-center">
 				{/* investor links */}
 				{!loadingRole && role === "investor" && (
 					<>
@@ -116,9 +126,12 @@ export default function Navbar() {
 						</Button>
 					</>
 				)}
+			</div>
 
-				{/* profile / logout dropdown */}
-				{authUser ? (
+			{/* Right Section: Profile/Logout and Login Button */}
+			<div className="flex-1 flex justify-end items-center space-x-4">
+				{/* The main logic change is here: Show the DropdownMenu if not on /login, regardless of authUser status */}
+				{pathname !== "/login" && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
@@ -130,58 +143,78 @@ export default function Navbar() {
 									<AvatarFallback>
 										{authUser?.email
 											? authUser.email[0].toUpperCase()
-											: "U"}
+											: "G" /* 'G' for Guest when not logged in */}
 									</AvatarFallback>
 								</Avatar>
 							</Button>
 						</DropdownMenuTrigger>
 
 						<DropdownMenuContent className="w-56" align="end" forceMount>
-							<DropdownMenuLabel className="font-normal">
-								<div className="flex flex-col space-y-1">
-									<p className="text-sm font-medium leading-none">
-										{authUser.email}
-									</p>
-									<p className="text-xs leading-none text-muted-foreground">
-										Role: {loadingRole ? "Loading..." : role || "Guest"}
-									</p>
-									{role === "investor" && dashboardBalance !== null && (
-										<p className="text-xs leading-none text-muted-foreground">
-											Balance: £{dashboardBalance.toLocaleString()}
+							{/* LOGGED IN VIEW */}
+							{authUser ? (
+								<>
+									<DropdownMenuLabel className="font-normal">
+										<div className="flex flex-col space-y-1">
+											<p className="text-sm font-medium leading-none">
+												{authUser.email}
+											</p>
+											<p className="text-xs leading-none text-muted-foreground">
+												Role: {loadingRole ? "Loading..." : role || "Guest"}
+											</p>
+											{role === "investor" && dashboardBalance !== null && (
+												<p className="text-xs leading-none text-muted-foreground">
+													Balance: £{dashboardBalance.toLocaleString()}
+												</p>
+											)}
+										</div>
+									</DropdownMenuLabel>
+
+									<DropdownMenuSeparator />
+
+									<DropdownMenuItem onClick={() => router.push("/profile")}>
+										<User className="mr-2 h-4 w-4" />
+										<span>Profile</span>
+									</DropdownMenuItem>
+
+									<DropdownMenuItem onClick={() => router.push("/settings")}>
+										<Settings className="mr-2 h-4 w-4" />
+										<span>Settings</span>
+									</DropdownMenuItem>
+
+									<DropdownMenuSeparator />
+
+									<DropdownMenuItem
+										onClick={handleLogout}
+										className="text-red-500 focus:bg-red-50 focus:text-red-600"
+									>
+										<LogOut className="mr-2 h-4 w-4" />
+										<span>Log out</span>
+									</DropdownMenuItem>
+								</>
+							) : (
+								// LOGGED OUT VIEW
+								<>
+									<DropdownMenuLabel className="font-normal">
+										<p className="text-sm font-medium leading-none">
+											Guest
 										</p>
-									)}
-								</div>
-							</DropdownMenuLabel>
+									</DropdownMenuLabel>
 
-							<DropdownMenuSeparator />
+									<DropdownMenuSeparator />
 
-							<DropdownMenuItem onClick={() => router.push("/profile")}>
-								<User className="mr-2 h-4 w-4" />
-								<span>Profile</span>
-							</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => router.push("/login")}>
+										<LogOut className="mr-2 h-4 w-4" />
+										<span>Log in</span>
+									</DropdownMenuItem>
 
-							<DropdownMenuItem onClick={() => router.push("/settings")}>
-								<Settings className="mr-2 h-4 w-4" />
-								<span>Settings</span>
-							</DropdownMenuItem>
-
-							<DropdownMenuSeparator />
-
-							<DropdownMenuItem
-								onClick={handleLogout}
-								className="text-red-500 focus:bg-red-50 focus:text-red-600"
-							>
-								<LogOut className="mr-2 h-4 w-4" />
-								<span>Log out</span>
-							</DropdownMenuItem>
+									<DropdownMenuItem onClick={() => router.push("/signup")}>
+										<User className="mr-2 h-4 w-4" />
+										<span>Sign up</span>
+									</DropdownMenuItem>
+								</>
+							)}
 						</DropdownMenuContent>
 					</DropdownMenu>
-				) : (
-					pathname !== "/login" && (
-						<Button className="" onClick={() => router.push("/login")}>
-							Log in
-						</Button>
-					)
 				)}
 			</div>
 		</nav>
