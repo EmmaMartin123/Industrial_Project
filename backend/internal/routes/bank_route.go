@@ -137,7 +137,7 @@ func patch_bank_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	payload := map[string]interface{}{"balance": req.Balance}
-	_, err = utils.ReplaceByID("bank_account", bank.ID, payload)
+	_, err = utils.UpdateByID("bank_account", bank.ID, payload)
 	if err != nil {
 		http.Error(w, "Failed to update bank balance", http.StatusInternalServerError)
 		return

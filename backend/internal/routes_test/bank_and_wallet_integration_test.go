@@ -50,7 +50,7 @@ func TestBankAndWalletIntegration(t *testing.T) {
 		t.Fatalf("Failed to extract user ID: %v", err)
 	}
 
-	_, err = utils.ReplaceByID("profile", user_id, map[string]interface{}{"dashboard_balance": 0})
+	_, err = utils.UpdateByID("profile", user_id, map[string]interface{}{"dashboard_balance": 0})
 	if err != nil {
 		t.Fatalf("Failed to reset wallet balance: %v", err)
 	}
