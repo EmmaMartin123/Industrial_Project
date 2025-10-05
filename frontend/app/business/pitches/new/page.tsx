@@ -28,6 +28,8 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthStore } from "@/lib/store/authStore";
+import router from "next/router";
 
 // Tier type
 type TierState = {
@@ -63,6 +65,17 @@ export default function NewPitchPage() {
 
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	const mediaPreviews = useMemo(
 		() =>

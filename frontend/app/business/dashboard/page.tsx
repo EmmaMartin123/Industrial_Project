@@ -10,9 +10,22 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { PlusCircle, Users, Coins } from "lucide-react";
+import { useAuthStore } from "@/lib/store/authStore";
+import { useEffect } from "react";
 
 export default function BusinessDashboard() {
 	const router = useRouter();
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	return (
 		<div className="min-h-screen bg-base-100 p-6 flex flex-col items-center gap-6">

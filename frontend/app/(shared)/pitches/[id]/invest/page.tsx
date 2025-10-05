@@ -28,28 +28,10 @@ export default function InvestPage() {
 
 		const fetchPitch = async () => {
 			try {
-				const pitchData = await getPitch(pitchId);
-				const finalPitchData = Array.isArray(pitchData) ? pitchData[0] : pitchData;
-				if (!finalPitchData) return;
+				const data = await getPitch(pitchId);
 
-				const mappedPitch: Pitch = {
-					pitch_id: finalPitchData.id || finalPitchData.pitch_id,
-					title: finalPitchData.title,
-					elevator_pitch: finalPitchData.elevator_pitch,
-					detailed_pitch: finalPitchData.detailed_pitch,
-					target_amount: finalPitchData.target_amount,
-					raised_amount: finalPitchData.raised_amount ?? 0,
-					profit_share_percent: finalPitchData.profit_share_percent,
-					status: "Active",
-					investment_start_date: new Date(finalPitchData.investment_start_date),
-					investment_end_date: new Date(finalPitchData.investment_end_date),
-					created_at: new Date(finalPitchData.created_at ?? Date.now()),
-					updated_at: new Date(finalPitchData.updated_at ?? Date.now()),
-					investment_tiers: (finalPitchData.investment_tiers || []) as InvestmentTier[],
-					media: (finalPitchData.media || []) as PitchMedia[],
-				};
-
-				setPitch(mappedPitch);
+				console.log(data);
+				setPitch(data);
 			} catch (err: any) {
 				console.error("Fetch pitch failed:", err);
 				toast.error("Failed to load pitch details.");
@@ -91,11 +73,11 @@ export default function InvestPage() {
 		setIsSubmitting(true);
 		try {
 			const res = await axios.post("/investment", {
-				pitch_id: pitch.pitch_id,
+				pitch_id: pitch.id,
 				amount,
 			});
 			toast.success("Investment successful!");
-			router.push(`/pitches/${pitch.pitch_id}`);
+			router.push(`/pitches/${pitch.id}`);
 		} catch (err: any) {
 			console.error(err);
 			if (err.response?.status === 402) {

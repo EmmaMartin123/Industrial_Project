@@ -10,13 +10,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/router";
 
 export default function ProfilePage() {
+	const router = useRouter();
+
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [activeTab, setActiveTab] = useState("overview");
 
 	const { getId } = useAuthStore();
-	const authUserId = getId(); // logged-in user ID
+	const authUserId = getId();
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	// fetch profile data
 	useEffect(() => {

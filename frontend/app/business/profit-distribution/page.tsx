@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { mockPitches } from "@/lib/mockPitches";
 import * as Button from "@/components/Button";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function ProfitDistributionPage({
 	searchParams,
@@ -15,11 +16,21 @@ export default function ProfitDistributionPage({
 	const pitchIdParam = searchParams.pitchId;
 	const pitchId = pitchIdParam ? Number(pitchIdParam) : null;
 
-	// Find pitch from mock data
-	const pitch = mockPitches.find((p) => p.pitch_id === pitchId);
+	const pitch = mockPitches.find((p) => p.id === pitchId);
 
 	const [profitAmount, setProfitAmount] = useState<number | "">("");
 	const [distributing, setDistributing] = useState(false);
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	if (!pitch) {
 		return (

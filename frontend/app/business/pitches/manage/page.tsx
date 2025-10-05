@@ -19,6 +19,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function ManagePitchesPage() {
 	const router = useRouter();
@@ -28,7 +29,18 @@ export default function ManagePitchesPage() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Get user session
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
+
+	// get user session
 	useEffect(() => {
 		const getSession = async () => {
 			setLoading(true);
@@ -50,7 +62,6 @@ export default function ManagePitchesPage() {
 		getSession();
 	}, []);
 
-	// Fetch pitches for the user
 	useEffect(() => {
 		if (!userId) return;
 

@@ -1,14 +1,43 @@
-import { Pitch, NewPitch, UpdatePitch } from "@/lib/types/pitch";
+import { Pitch, NewPitch, UpdatePitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import axios from "@/lib/axios";
 
+const mapPitch = (raw: any): Pitch => {
+	return {
+		id: raw.id,
+		title: raw.title,
+		elevator_pitch: raw.elevator_pitch,
+		detailed_pitch: raw.detailed_pitch,
+		target_amount: Number(raw.target_amount),
+		raised_amount: Number(raw.raised_amount),
+		profit_share_percent: Number(raw.profit_share_percent),
+		status: raw.status,
+		investment_start_date: new Date(raw.investment_start_date),
+		investment_end_date: new Date(raw.investment_end_date),
+		created_at: new Date(raw.created_at),
+		updated_at: new Date(raw.updated_at),
+		investment_tiers: raw.investment_tiers?.map((tier: any): InvestmentTier => ({
+			tier_id: tier.tier_id,
+			pitch_id: tier.pitch_id,
+			name: tier.name,
+			min_amount: Number(tier.min_amount),
+			max_amount: tier.max_amount !== null ? Number(tier.max_amount) : undefined,
+			multiplier: Number(tier.multiplier),
+			created_at: new Date(tier.created_at),
+		})) || [],
+		media: raw.media?.map((m: any): PitchMedia => ({
+			media_id: m.media_id,
+			pitch_id: m.pitch_id,
+			url: m.url,
+			media_type: m.media_type,
+			order_in_description: Number(m.order_in_description),
+		})) || [],
+	};
+};
+
 export const getAllPitches = async (userId?: string): Promise<Pitch[]> => {
-	// if a userid is provided append it as a query parameter
 	const query = userId ? `?user_id=${userId}` : "";
-
 	const response = await axios.get(`/pitch${query}`);
-
-	// the backend returns an array of pitches in this case
-	return response.data;
+	return Array.isArray(response.data) ? response.data.map(mapPitch) : [];
 };
 
 interface GetPitchesOptions {
@@ -29,62 +58,39 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 	if (search) params.append("search", search);
 	if (status) params.append("status", status);
 
-	// map frontend sortkey to backend query format
 	if (sortKey) {
 		let backendSort: string | undefined;
 		switch (sortKey) {
-			case "raisedDesc":
-				backendSort = "raised_amount:desc";
-				break;
-			case "raisedAsc":
-				backendSort = "raised_amount:asc";
-				break;
-			case "profitDesc":
-				backendSort = "profit_share_percent:desc"; // fallback: backend only supports price
-				break;
-			case "profitAsc":
-				backendSort = "profit_share_percent:asc";
-				break;
-			case "newest":
-				backendSort = "investment_start_date:desc"; // fallback
-				break;
-			case "oldest":
-				backendSort = "investment_start_date:asc"; // fallback
-				break;
-			case "targetDesc":
-				backendSort = "price:desc";
-				break;
-			case "targetAsc":
-				backendSort = "price:asc";
-				break;
+			case "raisedDesc": backendSort = "raised_amount:desc"; break;
+			case "raisedAsc": backendSort = "raised_amount:asc"; break;
+			case "profitDesc": backendSort = "profit_share_percent:desc"; break;
+			case "profitAsc": backendSort = "profit_share_percent:asc"; break;
+			case "newest": backendSort = "investment_start_date:desc"; break;
+			case "oldest": backendSort = "investment_start_date:asc"; break;
+			case "targetDesc": backendSort = "target_amount:desc"; break;
+			case "targetAsc": backendSort = "target_amount:asc"; break;
 		}
 		if (backendSort) params.append("sort", backendSort);
 	}
 
 	const response = await axios.get(`/pitch?${params.toString()}`);
-	return response.data;
+	return Array.isArray(response.data) ? response.data.map(mapPitch) : [];
 };
 
 export const getPitch = async (id: number): Promise<Pitch> => {
 	const response = await axios.get(`/pitch?id=${id}`);
-	return response.data;
+	return mapPitch(response.data);
 };
 
 export const postPitch = async (data: NewPitch | FormData): Promise<Pitch> => {
-	// if it's formdata make axios not to set content type letting the browser handle multipart boundary
-	const headers = data instanceof FormData ? {
-		'Content-Type': 'multipart/form-data'
-	} : {};
-
-	const response = await axios.post("/pitch", data, {
-		headers: headers,
-	});
-	return response.data;
+	const headers = data instanceof FormData ? { "Content-Type": "multipart/form-data" } : {};
+	const response = await axios.post("/pitch", data, { headers });
+	return mapPitch(response.data);
 };
 
 export const updatePitch = async (id: number, data: UpdatePitch): Promise<Pitch> => {
 	const response = await axios.put(`/pitch?id=${id}`, data);
-	return response.data;
+	return mapPitch(response.data);
 };
 
 export const deletePitch = async (id: number): Promise<void> => {

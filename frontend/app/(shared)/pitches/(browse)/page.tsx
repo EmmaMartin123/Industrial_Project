@@ -36,12 +36,11 @@ export default function BusinessPitchesPage() {
 	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "targetDesc" | "targetAsc" | "newest" | "oldest" | undefined;
 	const [sortKey, setSortKey] = useState<SortKey>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string>("");
-
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [totalPages, setTotalPages] = useState<number>(1);
-	const pageSize = 9;
-
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	const pageSize = 9;
 
 	// auth checks
 	useEffect(() => {
@@ -63,12 +62,12 @@ export default function BusinessPitchesPage() {
 			const sortKeyMap: Record<Exclude<SortKey, undefined>, string> = {
 				raisedDesc: "raised_amount:desc",
 				raisedAsc: "raised_amount:asc",
-				profitDesc: "profit_share_percent:desc",      // fallback: backend currently only supports price
+				profitDesc: "profit_share_percent:desc",
 				profitAsc: "profit_share_percent:asc",
 				targetDesc: "target_amount:desc",
 				targetAsc: "target_amount:asc",
-				newest: "investment_start_date:desc",           // fallback
-				oldest: "investment_start_date:asc",            // fallback
+				newest: "investment_start_date:desc",           
+				oldest: "investment_start_date:asc",            
 			};
 
 			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
@@ -79,24 +78,8 @@ export default function BusinessPitchesPage() {
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
 			
-			const mappedPitches = data.map((p) => ({
-				id: p.id,
-				title: p.title,
-				elevator_pitch: p.elevator_pitch,
-				detailed_pitch: p.detailed_pitch,
-				target_amount: p.target_amount,
-				raised_amount: p.raised_amount ?? 0,
-				profit_share_percent: p.profit_share_percent,
-				status: p.status,
-				investment_start_date: new Date(p.investment_start_date),
-				investment_end_date: new Date(p.investment_end_date),
-				created_at: new Date(p.created_at ?? Date.now()),
-				updated_at: new Date(p.updated_at ?? Date.now()),
-				investment_tiers: p.investment_tiers as InvestmentTier[],
-			}));
-
 			console.log(data);
-			setPitches(mappedPitches);
+			setPitches(data);
 			setCurrentPage(page);
 		} catch (err) {
 			console.error(err);

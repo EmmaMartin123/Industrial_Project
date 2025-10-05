@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function DeclareProfitPage() {
 	const router = useRouter();
@@ -22,6 +23,17 @@ export default function DeclareProfitPage() {
 
 	const [profitAmount, setProfitAmount] = useState("");
 	const [notes, setNotes] = useState("");
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	// Get user session
 	useEffect(() => {
