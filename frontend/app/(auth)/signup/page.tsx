@@ -64,8 +64,9 @@ export default function SignupPage() {
 			if (token) localStorage.setItem("token", token)
 
 			await postUserProfile({
-				display_name: name,
 				role,
+				display_name: name,
+				dashboard_balance: 0,
 			})
 
 			toast.success("Signup successful! Welcome.")
