@@ -10,7 +10,7 @@ import { postUserProfile } from "@/lib/api/profile"
 import { supabase } from "@/lib/supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import * as Button from "@/components/Button"
+import { Button } from "@/components/ui/button"
 
 const ROLES = {
 	INVESTOR: "investor",
@@ -64,8 +64,9 @@ export default function SignupPage() {
 			if (token) localStorage.setItem("token", token)
 
 			await postUserProfile({
-				display_name: name,
 				role,
+				display_name: name,
+				dashboard_balance: 0,
 			})
 
 			toast.success("Signup successful! Welcome.")
@@ -116,6 +117,7 @@ export default function SignupPage() {
 
 	return (
 		<div className="flex min-h-screen">
+			<div className="absolute right-[60%] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent backdrop-blur-sm"></div>
 			{/* LEFT SIDE (FORM) */}
 			<div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-12 bg-gray-50 dark:bg-gray-900 order-2 lg:order-1">
 				<div className="max-w-md w-full mx-auto">
@@ -182,9 +184,9 @@ export default function SignupPage() {
 							/>
 						</div>
 
-						<button
+						<Button
 							type="submit"
-							className={`${Button.buttonClassName} w-full`}
+							className={`w-full`}
 							disabled={isSigningUp}
 						>
 							{isSigningUp ? (
@@ -192,7 +194,7 @@ export default function SignupPage() {
 							) : (
 								"Sign Up"
 							)}
-						</button>
+						</Button>
 					</form>
 
 					<p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">

@@ -4,6 +4,7 @@ import { useAuthStore } from "@/lib/store/authStore"
 interface ProfileData {
 	role: string;
 	display_name: string;
+	dashboard_balance: number;
 };
 
 export const postUserProfile = async (data: ProfileData) => {
