@@ -31,44 +31,85 @@ export default function ManagePitchesPage() {
 
 	return (
 		<div className="min-h-screen bg-base-100 p-6">
-			<h1 className="text-3xl font-bold mb-6">Manage Pitches</h1>
-
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{pitches.map((pitch) => (
-					<div key={pitch.pitch_id} className="card shadow-lg bg-base-100 p-6 flex flex-col justify-between">
-						<div>
-							<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
-							<p className="opacity-70 mb-1">Status: {pitch.status}</p>
-							<p className="opacity-70 mb-1">
-								Raised: £{pitch.raised_amount} / £{pitch.target_amount}
-							</p>
-							<p className="opacity-70">Profit Share: {pitch.profit_share_percent}%</p>
-						</div>
-						<div className="mt-4 flex flex-wrap gap-2">
-							<button
-								className={`${Button.buttonOutlineClassName}`}
-								onClick={() => handleEdit(pitch.pitch_id)}
-							>
-								<Pencil /> Edit
-							</button>
-							<button
-								className={`${Button.buttonOutlineClassName}`}
-								onClick={() => handleView(pitch.pitch_id)}
-							>
-								<Eye /> View
-							</button>
-							{pitch.status === "Funded" && (
-								<button
-									className="flex items-center gap-1 btn-outline btn-sm"
-									onClick={() => handleProfit(pitch.pitch_id)}
-								>
-									<DollarSign /> Distribute Profit
-								</button>
-							)}
-						</div>
+		  <h1 className="text-3xl font-bold mb-6">Manage Pitches</h1>
+	
+		  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+			{pitches.map((pitch) => {
+			  const progress = Math.min(
+				(pitch.raised_amount / pitch.target_amount) * 100,
+				100
+			  );
+	
+			  return (
+				<div
+				  key={pitch.pitch_id}
+				  className="card shadow-md bg-base-100 border border-base-300 overflow-hidden flex flex-col">
+				  <div className="bg-gray-200 h-40 flex items-center justify-center text-gray-500 text-sm">
+					Project Image
+				  </div>
+				  <div className="p-6 flex flex-col flex-grow">
+					<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
+					<p className="text-sm text-gray-500 mb-4">{pitch.elevator_pitch}</p>
+					{/* Progress Bar */}
+					<div className="mb-3">
+					  <div className="w-full bg-base-300 rounded-full h-3 overflow-hidden">
+						<div
+						  className="bg-green-500 h-3"
+						  style={{ width: `${progress}%` }}
+						></div>
+					  </div>
+					  <p className="text-sm mt-1">
+						<strong>£{pitch.raised_amount.toLocaleString()}</strong> raised of £
+						{pitch.target_amount.toLocaleString()}
+					  </p>
 					</div>
-				))}
-			</div>
+	
+					{/* Status and profit share */}
+					<div className="flex justify-between items-center text-sm mb-4">
+					  <span
+						className={`px-2 py-1 rounded-md font-medium ${
+						    pitch.status === "Active"
+							? "bg-green-100 text-green-700"
+							: pitch.status === "Funded"
+							? "bg-blue-100 text-blue-700"
+							: "bg-yellow-100 text-yellow-700"
+						}`}
+					  >
+						{pitch.status}
+					  </span>
+					  <span className="text-gray-600">
+						Profit Share: {pitch.profit_share_percent}%
+					  </span>
+					</div>
+	
+					{/* Actions */}
+					<div className="mt-auto flex gap-2">
+					  <button
+						className={`${Button.buttonOutlineClassName} flex items-center gap-1 flex-1`}
+						onClick={() => handleEdit(pitch.pitch_id)}
+					  >
+						<Pencil className="w-4 h-4" /> Edit
+					  </button>
+					  <button
+						className={`${Button.buttonOutlineClassName} flex items-center gap-1 flex-1`}
+						onClick={() => handleView(pitch.pitch_id)}
+					  >
+						<Eye className="w-4 h-4" /> View
+					  </button>
+					  {pitch.status === "Funded" && (
+						<button
+						  className="flex items-center gap-1 btn-outline btn-sm flex-1"
+						  onClick={() => handleProfit(pitch.pitch_id)}
+						>
+						  <DollarSign className="w-4 h-4" /> Profit
+						</button>
+					  )}
+					</div>
+				  </div>
+				</div>
+			  );
+			})}
+		  </div>
 		</div>
 	);
 }
