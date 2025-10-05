@@ -61,6 +61,9 @@ export default function NewPitchPage() {
 	const [activeTab, setActiveTab] = useState("content");
 	const investmentStartDate = new Date();
 
+	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+	const [aiLoading, setAiLoading] = useState(false);
+
 	const mediaPreviews = useMemo(
 		() =>
 			mediaFiles.map((file) => ({
@@ -76,6 +79,29 @@ export default function NewPitchPage() {
 			mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
 		};
 	}, [mediaFiles]);
+
+	const handleAiAnalysis = async () => {
+		try {
+			setAiLoading(true);
+			setAiAnalysis(null);
+
+			// 🔥 Placeholder for API call (to be implemented later)
+			// Example:
+			// const res = await axios.post("/api/ai", { title, elevator, detailedPitchContent, tiers });
+			// setAiAnalysis(res.data.analysis);
+
+			// Temporary mock for now:
+			await new Promise((r) => setTimeout(r, 1500));
+			setAiAnalysis(
+				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
+			);
+		} catch (err) {
+			console.error(err);
+			toast.error("AI analysis failed.");
+		} finally {
+			setAiLoading(false);
+		}
+	};
 
 	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const newFiles = e.target.files;
@@ -466,11 +492,34 @@ export default function NewPitchPage() {
 							</div>
 						</div>
 
+						{/* AI Analysis */}
+						<div className="border rounded-lg p-6 space-y-4">
+							<div className="flex justify-between items-center">
+								<h4 className="font-medium text-lg">AI Analysis</h4>
+								<Button
+									type="button"
+									variant="secondary"
+									onClick={handleAiAnalysis}
+									disabled={aiLoading}
+								>
+									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
+								</Button>
+							</div>
+
+							{aiAnalysis ? (
+								<p className="text-sm whitespace-pre-line">{aiAnalysis}</p>
+							) : (
+								<p className="text-sm text-muted-foreground">
+									Click the button above to get AI feedback on your pitch.
+								</p>
+							)}
+						</div>
+
 						<div className="flex justify-between">
 							<Button variant="outline" type="button" onClick={() => setActiveTab("tiers")}>
 								Previous
 							</Button>
-							<Button type="submit" disabled={loading}>
+							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
 								{loading ? "Submitting..." : "Submit Pitch"}
 							</Button>
 						</div>
