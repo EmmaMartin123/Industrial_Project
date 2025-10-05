@@ -156,7 +156,7 @@ func update_profile_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := utils.ReplaceByID("profile", user_id, payload)
+	_, err := utils.UpdateByID("profile", user_id, payload)
 	if err != nil {
 		http.Error(w, "Failed to update profile", http.StatusInternalServerError)
 		return

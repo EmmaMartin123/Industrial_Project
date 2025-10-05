@@ -681,7 +681,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		media_files = append(media_files, media)
 	}
 
-	_, update_err := utils.ReplaceByID("pitch", strconv.Itoa(int(*old_pitch.PitchID)), to_db_pitch)
+	_, update_err := utils.UpdateByID("pitch", strconv.Itoa(int(*old_pitch.PitchID)), to_db_pitch)
 	if update_err != nil {
 		fmt.Printf("Error updating pitch: %v\n", update_err)
 		http.Error(w, "Error updating pitch", http.StatusInternalServerError)

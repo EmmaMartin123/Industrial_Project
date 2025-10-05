@@ -82,7 +82,7 @@ func patch_wallet_route(w http.ResponseWriter, r *http.Request) {
 	}
 	new_bank_balance := bank.Balance - req.Amount
 	bank_payload := map[string]interface{}{"balance": new_bank_balance}
-	_, err = utils.ReplaceByID("bank_account", bank.ID, bank_payload)
+	_, err = utils.UpdateByID("bank_account", bank.ID, bank_payload)
 	if err != nil {
 		http.Error(w, "Failed to debit bank account", http.StatusInternalServerError)
 		return

@@ -30,10 +30,6 @@ func update_balance(user_id string, amount_pounds int64) error {
 		return fmt.Errorf("profile not found")
 	}
 
-	if profile.Role != "investor" {
-		return fmt.Errorf("user is not an investor")
-	}
-
 	current_balance := int64(0)
 	if profile.DashboardBalance != nil {
 		current_balance = int64(*profile.DashboardBalance)
@@ -47,7 +43,7 @@ func update_balance(user_id string, amount_pounds int64) error {
 	payload := map[string]interface{}{
 		"dashboard_balance": int(new_balance),
 	}
-	_, err = utils.ReplaceByID("profile", user_id, payload)
+	_, err = utils.UpdateByID("profile", user_id, payload)
 	if err != nil {
 		return fmt.Errorf("failed to update balance: %w", err)
 	}
@@ -272,7 +268,7 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := map[string]interface{}{"refunded": true}
-	_, err = utils.ReplaceByID("investments", id_str, payload)
+	_, err = utils.UpdateByID("investments", id_str, payload)
 	if err != nil {
 		http.Error(w, "Failed to update investment", http.StatusInternalServerError)
 		return
