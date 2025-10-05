@@ -47,7 +47,6 @@ export default function Navbar() {
 			}
 		};
 
-		// Only fetch profile if authUser exists, otherwise we're just showing the guest view
 		if (authUser) {
 			fetchProfile();
 		} else {
@@ -68,9 +67,8 @@ export default function Navbar() {
 				: "/";
 
 	return (
-		// Changed navbar classes to use flex and justify-between
 		<nav className="navbar bg-base-200 shadow px-4 flex justify-between items-center w-full">
-			{/* Left Section: Logo */}
+			{/* left section: logo */}
 			<div className="flex-1">
 				<a
 					className="border-0 text-xl font-bold cursor-pointer ml-3"
@@ -80,12 +78,17 @@ export default function Navbar() {
 				</a>
 			</div>
 
-			{/* Center Section: Role-Specific Links */}
-			{/* Added a new flex container to hold the center links */}
 			<div className="flex items-center space-x-4 justify-center">
 				{/* investor links */}
 				{!loadingRole && role === "investor" && (
 					<>
+						<Button
+							variant="ghost"
+							className="rounded-md border-0 cursor-pointer font-bold"
+							onClick={() => router.push("/pitches")}
+						>
+							Browse
+						</Button>
 						<Button
 							variant="ghost"
 							className="rounded-md border-0 cursor-pointer font-bold"
@@ -100,7 +103,7 @@ export default function Navbar() {
 						>
 							My Portfolio
 						</Button>
-						{/* Display Dashboard Balance */}
+						{/* display dashboard balance */}
 						<div className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md font-semibold">
 							Balance: £{dashboardBalance?.toLocaleString()}
 						</div>
@@ -128,9 +131,8 @@ export default function Navbar() {
 				)}
 			</div>
 
-			{/* Right Section: Profile/Logout and Login Button */}
+			{/* right section: profile/logout and login button */}
 			<div className="flex-1 flex justify-end items-center space-x-4">
-				{/* The main logic change is here: Show the DropdownMenu if not on /login, regardless of authUser status */}
 				{pathname !== "/login" && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -143,14 +145,14 @@ export default function Navbar() {
 									<AvatarFallback>
 										{authUser?.email
 											? authUser.email[0].toUpperCase()
-											: "G" /* 'G' for Guest when not logged in */}
+											: "G" }
 									</AvatarFallback>
 								</Avatar>
 							</Button>
 						</DropdownMenuTrigger>
 
 						<DropdownMenuContent className="w-56" align="end" forceMount>
-							{/* LOGGED IN VIEW */}
+							{/* logged in view */}
 							{authUser ? (
 								<>
 									<DropdownMenuLabel className="font-normal">
@@ -192,7 +194,7 @@ export default function Navbar() {
 									</DropdownMenuItem>
 								</>
 							) : (
-								// LOGGED OUT VIEW
+								// logged out view
 								<>
 									<DropdownMenuLabel className="font-normal">
 										<p className="text-sm font-medium leading-none">

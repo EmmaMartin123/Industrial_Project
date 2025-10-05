@@ -27,11 +27,8 @@ import {
 	PaginationEllipsis,
 } from "@/components/ui/pagination";
 import * as Button from "@/components/Button";
-import { useProtect } from "@/lib/auth/auth";
 
 export default function BusinessPitchesPage() {
-	const { userProfile, isLoading } = useProtect();
-
 	const router = useRouter();
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -41,8 +38,18 @@ export default function BusinessPitchesPage() {
 	const [searchQuery, setSearchQuery] = useState<string>("");
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [totalPages, setTotalPages] = useState<number>(1);
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
 	const pageSize = 9;
+
+	// auth checks
+	useEffect(() => {
+		checkAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) router.push("/login");
+	}, [authUser, isCheckingAuth, router]);
 
 	// fetch pitches with filters, search, sort, pagination
 	const fetchPitches = async (page = 1) => {
@@ -59,18 +66,22 @@ export default function BusinessPitchesPage() {
 				profitAsc: "profit_share_percent:asc",
 				targetDesc: "target_amount:desc",
 				targetAsc: "target_amount:asc",
-				newest: "investment_start_date:desc",           
-				oldest: "investment_start_date:asc",            
+				newest: "investment_start_date:desc",
+				oldest: "investment_start_date:asc",
 			};
 
 			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
 
 			const data = await getPitches({
+				limit: pageSize,
+				offset: (page - 1) * pageSize,
+				search: searchQuery,
+				status: selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined,
 				sortKey,
 			});
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
-			
+
 			console.log(data);
 			setPitches(data);
 			setCurrentPage(page);
@@ -84,8 +95,8 @@ export default function BusinessPitchesPage() {
 	};
 
 	useEffect(() => {
-		if (userProfile) fetchPitches(1);
-	}, [selectedStatuses, sortKey, searchQuery]);
+		if (!isCheckingAuth && authUser) fetchPitches(1);
+	}, [authUser, isCheckingAuth, selectedStatuses, sortKey, searchQuery]);
 
 	const handleSearchKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") fetchPitches(1);
@@ -174,6 +185,14 @@ export default function BusinessPitchesPage() {
 	};
 
 	const { start, end } = getPageNumbers(currentPage, totalPages, 5);
+
+	if (isCheckingAuth || !authUser || loading) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<LoaderPinwheel className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}
 
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
