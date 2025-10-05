@@ -18,4 +18,6 @@ type Pitch struct {
 	RaisedAmount        *int64                 `json:"raised_amount,omitempty"`
 	Media               []PitchMedia           `json:"media,omitempty"`
 	Tags                []string               `json:"tags,omitempty"`
+	UpdatedAt           *string                `json:"updated_at,omitempty"`
+	Status              string                 `json:"status"`
 }
