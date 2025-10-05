@@ -80,23 +80,25 @@ export default function BusinessPitchesPage() {
 			});
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
-			setPitches(
-				data.map((p) => ({
-					pitch_id: p.pitch_id,
-					title: p.title,
-					elevator_pitch: p.elevator_pitch,
-					detailed_pitch: p.detailed_pitch,
-					target_amount: p.target_amount,
-					raised_amount: p.raised_amount ?? 0,
-					profit_share_percent: p.profit_share_percent,
-					status: p.status,
-					investment_start_date: new Date(p.investment_start_date),
-					investment_end_date: new Date(p.investment_end_date),
-					created_at: new Date(p.created_at ?? Date.now()),
-					updated_at: new Date(p.updated_at ?? Date.now()),
-					investment_tiers: p.investment_tiers as InvestmentTier[],
-				}))
-			);
+			
+			const mappedPitches = data.map((p) => ({
+				id: p.id,
+				title: p.title,
+				elevator_pitch: p.elevator_pitch,
+				detailed_pitch: p.detailed_pitch,
+				target_amount: p.target_amount,
+				raised_amount: p.raised_amount ?? 0,
+				profit_share_percent: p.profit_share_percent,
+				status: p.status,
+				investment_start_date: new Date(p.investment_start_date),
+				investment_end_date: new Date(p.investment_end_date),
+				created_at: new Date(p.created_at ?? Date.now()),
+				updated_at: new Date(p.updated_at ?? Date.now()),
+				investment_tiers: p.investment_tiers as InvestmentTier[],
+			}));
+
+			console.log(mappedPitches);
+			setPitches(mappedPitches);
 			setCurrentPage(page);
 		} catch (err) {
 			console.error(err);
@@ -142,9 +144,9 @@ export default function BusinessPitchesPage() {
 
 	const renderPitchCard = (pitch: Pitch) => (
 		<div
-			key={pitch.pitch_id}
+			key={pitch.id}
 			className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
-			onClick={() => handleView(pitch.pitch_id)}
+			onClick={() => handleView(pitch.id)}
 		>
 			<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
 				<div className="pt-[56.25%] flex items-center justify-center">

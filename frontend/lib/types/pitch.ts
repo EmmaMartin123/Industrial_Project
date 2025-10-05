@@ -8,7 +8,7 @@ export type PitchMedia = {
 
 // return from backend
 export type Pitch = {
-	pitch_id: number;
+	id: number;
 	title: string;
 	elevator_pitch: string;
 	detailed_pitch: string;

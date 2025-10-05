@@ -72,7 +72,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 				}
 
 				const mappedPitch: Pitch = {
-					pitch_id: finalPitchData.id || finalPitchData.pitch_id,
+					id: finalPitchData.id || finalPitchData.pitch_id,
 					title: finalPitchData.title,
 					elevator_pitch: finalPitchData.elevator_pitch,
 					detailed_pitch: finalPitchData.detailed_pitch,
@@ -129,7 +129,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			: (pitch.raised_amount / pitch.target_amount) * 100;
 
 	const handleInvest = () => {
-		router.push(`/pitches/${pitch.pitch_id}/invest`);
+		router.push(`/pitches/${pitch.id}/invest`);
 	};
 
 	const DateDisplay = () => {
