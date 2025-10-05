@@ -7,8 +7,11 @@ import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
 import { toast } from "sonner";
 import { getPitch } from "@/lib/api/pitch";
+import { useProtect } from "@/lib/auth/auth";
 
 export default function InvestPage() {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
 	const params = useParams();
 	const pitchId = Number(params?.id);

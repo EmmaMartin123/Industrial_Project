@@ -26,6 +26,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner"
 import { useAuthStore } from "@/lib/store/authStore";
+import { useProtect } from "@/lib/auth/auth";
 
 const calculateDaysRemaining = (endDate: Date): number | null => {
 	const today = new Date();
@@ -45,6 +46,8 @@ interface ViewPitchPageProps {
 }
 
 export default function ViewPitchPage({ params }: ViewPitchPageProps) {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
 	const resolved_params = use(params);
 	const pitchId = Number(resolved_params.id);
@@ -54,15 +57,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const [error, setError] = useState<string | null>(null);
 
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
-	// auth checks
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
 
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {

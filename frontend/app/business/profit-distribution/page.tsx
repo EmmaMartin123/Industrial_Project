@@ -6,12 +6,15 @@ import toast from "react-hot-toast";
 import { mockPitches } from "@/lib/mockPitches";
 import * as Button from "@/components/Button";
 import { useAuthStore } from "@/lib/store/authStore";
+import { useProtect } from "@/lib/auth/auth";
 
 export default function ProfitDistributionPage({
 	searchParams,
 }: {
 	searchParams: { [key: string]: string | string[] | undefined };
 }) {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
 	const pitchIdParam = searchParams.pitchId;
 	const pitchId = pitchIdParam ? Number(pitchIdParam) : null;
@@ -20,17 +23,6 @@ export default function ProfitDistributionPage({
 
 	const [profitAmount, setProfitAmount] = useState<number | "">("");
 	const [distributing, setDistributing] = useState(false);
-
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
-	// auth checks
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
 
 	if (!pitch) {
 		return (

@@ -30,6 +30,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/lib/store/authStore";
 import router from "next/router";
+import { useProtect } from "@/lib/auth/auth";
 
 // Tier type
 type TierState = {
@@ -49,6 +50,8 @@ const getFileIcon = (mimeType: string) => {
 };
 
 export default function NewPitchPage() {
+	const { userProfile, isLoading } = useProtect();
+
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
@@ -65,17 +68,6 @@ export default function NewPitchPage() {
 
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
-
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
-	// auth checks
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
 
 	const mediaPreviews = useMemo(
 		() =>

@@ -9,8 +9,6 @@ import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
 import * as Button from "@/components/Button";
 import LoaderComponent from "@/components/Loader";
-
-// ✅ shadcn table imports
 import {
 	Table,
 	TableBody,
@@ -20,25 +18,17 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useAuthStore } from "@/lib/store/authStore";
+import { useProtect } from "@/lib/auth/auth";
 
 export default function ManagePitchesPage() {
+	const { userProfile, isLoading } = useProtect();
+
 	const router = useRouter();
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
-	// auth checks
-	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
 
 	// get user session
 	useEffect(() => {
