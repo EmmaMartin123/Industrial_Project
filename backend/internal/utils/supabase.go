@@ -248,3 +248,26 @@ func GetAuthUserEmail(userID string) (string, error) {
 
 	return user.Email, nil
 }
+
+func DeletePitchTags(pitchID int64) error {
+	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
+	url := fmt.Sprintf("%s/rest/v1/pitch_tags?%s", os.Getenv("SUPABASE_URL"), query)
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return err
+	}
+	key := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
+	req.Header.Set("apikey", key)
+	req.Header.Set("Authorization", "Bearer "+key)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("delete pitch_tags failed: %d, body: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
