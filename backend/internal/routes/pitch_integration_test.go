@@ -152,6 +152,7 @@ func TestPitchCRUD(t *testing.T) {
 		"investment_start_date": "2025-01-01",
 		"investment_end_date":   "2025-12-31",
 		"profit_share_percent":  15.5,
+		"tags":                  []string{"Technology", "Sustainability"},
 		"investment_tiers": []map[string]interface{}{
 			{"name": "Bronze", "min_amount": 100, "multiplier": 1.1, "max_amount": 499},
 			{"name": "Silver", "min_amount": 500, "multiplier": 1.25, "max_amount": 999},
@@ -204,6 +205,35 @@ func TestPitchCRUD(t *testing.T) {
 		t.Errorf("Expected title 'Test Product', got %v", fetched_pitch["title"])
 	}
 
+	// Verify tags
+	tags_raw, ok := fetched_pitch["tags"].([]interface{})
+	if !ok {
+		t.Errorf("Expected tags array, got %T", fetched_pitch["tags"])
+	} else {
+		tags := make([]string, len(tags_raw))
+		for i, tag := range tags_raw {
+			if str, ok := tag.(string); ok {
+				tags[i] = str
+			}
+		}
+		if len(tags) != 2 {
+			t.Errorf("Expected 2 tags, got %v", tags)
+		}
+		foundTech := false
+		foundSustain := false
+		for _, tag := range tags {
+			if tag == "Technology" {
+				foundTech = true
+			}
+			if tag == "Sustainability" {
+				foundSustain = true
+			}
+		}
+		if !foundTech || !foundSustain {
+			t.Errorf("Missing expected tags: got %v", tags)
+		}
+	}
+
 	tiers, ok := fetched_pitch["investment_tiers"].([]interface{})
 	if !ok || len(tiers) != 2 {
 		t.Fatalf("Expected 2 investment tiers, got %v", tiers)
@@ -217,6 +247,7 @@ func TestPitchCRUD(t *testing.T) {
 		"investment_start_date": "2025-02-01",
 		"investment_end_date":   "2025-11-30",
 		"profit_share_percent":  18.0,
+		"tags":                  []string{"AI", "GreenTech"},
 		"investment_tiers": []map[string]interface{}{
 			{"name": "Gold", "min_amount": 1000, "multiplier": 1.5, "max_amount": 5000},
 		},
@@ -235,6 +266,35 @@ func TestPitchCRUD(t *testing.T) {
 
 	if updated_pitch["title"] != "Updated Product" {
 		t.Errorf("Expected updated title 'Updated Product', got %v", updated_pitch["title"])
+	}
+
+	// Verify updated tags
+	updated_tags_raw, ok := updated_pitch["tags"].([]interface{})
+	if !ok {
+		t.Errorf("Expected tags array after update, got %T", updated_pitch["tags"])
+	} else {
+		updated_tags := make([]string, len(updated_tags_raw))
+		for i, tag := range updated_tags_raw {
+			if str, ok := tag.(string); ok {
+				updated_tags[i] = str
+			}
+		}
+		if len(updated_tags) != 2 {
+			t.Errorf("Expected 2 tags after update, got %v", updated_tags)
+		}
+		foundAI := false
+		foundGreen := false
+		for _, tag := range updated_tags {
+			if tag == "AI" {
+				foundAI = true
+			}
+			if tag == "GreenTech" {
+				foundGreen = true
+			}
+		}
+		if !foundAI || !foundGreen {
+			t.Errorf("Missing expected updated tags: got %v", updated_tags)
+		}
 	}
 
 	updated_tiers, ok := updated_pitch["investment_tiers"].([]interface{})
@@ -260,6 +320,35 @@ func TestPitchCRUD(t *testing.T) {
 	final_tiers, ok := final_pitch["investment_tiers"].([]interface{})
 	if !ok || len(final_tiers) != 1 {
 		t.Fatalf("Final check: expected 1 tier, got %v", final_tiers)
+	}
+
+	// Verify final tags
+	final_tags_raw, ok := final_pitch["tags"].([]interface{})
+	if !ok {
+		t.Errorf("Expected tags array in final response, got %T", final_pitch["tags"])
+	} else {
+		final_tags := make([]string, len(final_tags_raw))
+		for i, tag := range final_tags_raw {
+			if str, ok := tag.(string); ok {
+				final_tags[i] = str
+			}
+		}
+		if len(final_tags) != 2 {
+			t.Errorf("Expected 2 tags in final response, got %v", final_tags)
+		}
+		foundAI := false
+		foundGreen := false
+		for _, tag := range final_tags {
+			if tag == "AI" {
+				foundAI = true
+			}
+			if tag == "GreenTech" {
+				foundGreen = true
+			}
+		}
+		if !foundAI || !foundGreen {
+			t.Errorf("Missing expected final tags: got %v", final_tags)
+		}
 	}
 }
 
@@ -337,6 +426,7 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 		"investment_start_date": "2025-03-01",
 		"investment_end_date":   "2025-09-30",
 		"profit_share_percent":  12.5,
+		"tags":                  []string{"Media", "Test"},
 		"investment_tiers": []map[string]interface{}{
 			{"name": "Supporter", "min_amount": 50, "multiplier": 1.05, "max_amount": 200},
 		},
@@ -432,6 +522,35 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 		t.Errorf("Expected order_in_description=1, got %v", media["order_in_description"])
 	}
 
+	// Verify tags in creation response
+	tags_raw, ok := created_pitch["tags"].([]interface{})
+	if !ok {
+		t.Errorf("Expected tags array in creation response, got %T", created_pitch["tags"])
+	} else {
+		tags := make([]string, len(tags_raw))
+		for i, tag := range tags_raw {
+			if str, ok := tag.(string); ok {
+				tags[i] = str
+			}
+		}
+		if len(tags) != 2 {
+			t.Errorf("Expected 2 tags in creation response, got %v", tags)
+		}
+		foundMedia := false
+		foundTest := false
+		for _, tag := range tags {
+			if tag == "Media" {
+				foundMedia = true
+			}
+			if tag == "Test" {
+				foundTest = true
+			}
+		}
+		if !foundMedia || !foundTest {
+			t.Errorf("Missing expected creation tags: got %v", tags)
+		}
+	}
+
 	file_url := media["url"].(string)
 	file_resp, err := http.Get(file_url)
 	if err != nil {
@@ -463,5 +582,34 @@ func TestPitchCRUDWithMedia(t *testing.T) {
 		t.Fatalf("Media missing in GET response: %v", fetched_pitch)
 	}
 
-	t.Logf("Media upload and retrieval successful")
+	// Verify tags in GET response
+	fetched_tags_raw, ok := fetched_pitch["tags"].([]interface{})
+	if !ok {
+		t.Errorf("Expected tags array in GET response, got %T", fetched_pitch["tags"])
+	} else {
+		fetched_tags := make([]string, len(fetched_tags_raw))
+		for i, tag := range fetched_tags_raw {
+			if str, ok := tag.(string); ok {
+				fetched_tags[i] = str
+			}
+		}
+		if len(fetched_tags) != 2 {
+			t.Errorf("Expected 2 tags in GET response, got %v", fetched_tags)
+		}
+		foundMedia := false
+		foundTest := false
+		for _, tag := range fetched_tags {
+			if tag == "Media" {
+				foundMedia = true
+			}
+			if tag == "Test" {
+				foundTest = true
+			}
+		}
+		if !foundMedia || !foundTest {
+			t.Errorf("Missing expected GET tags: got %v", fetched_tags)
+		}
+	}
+
+	t.Logf("Media upload and retrieval successful with tags")
 }
