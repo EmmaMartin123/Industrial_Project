@@ -77,7 +77,7 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 	return Array.isArray(response.data) ? response.data.map(mapPitch) : [];
 };
 
-export const getPitch = async (id: number): Promise<Pitch> => {
+export const getPitchById = async (id: number): Promise<Pitch> => {
 	const response = await axios.get(`/pitch?id=${id}`);
 	return mapPitch(response.data);
 };
@@ -88,7 +88,7 @@ export const postPitch = async (data: NewPitch | FormData): Promise<Pitch> => {
 	return mapPitch(response.data);
 };
 
-export const updatePitch = async (id: number, data: UpdatePitch): Promise<Pitch> => {
+export const putPitch = async (id: number, data: UpdatePitch): Promise<Pitch> => {
 	const response = await axios.put(`/pitch?id=${id}`, data);
 	return mapPitch(response.data);
 };

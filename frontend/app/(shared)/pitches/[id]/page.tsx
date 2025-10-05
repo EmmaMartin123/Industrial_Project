@@ -2,11 +2,10 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { getPitch } from "@/lib/api/pitch";
+import { getPitchById } from "@/lib/api/pitch";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
 import * as Button from "@/components/Button";
-// Import the required Icon from lucide-react
 import { Info } from "lucide-react";
 
 import {
@@ -26,7 +25,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner"
 import { useAuthStore } from "@/lib/store/authStore";
-import { useProtect } from "@/lib/auth/auth";
 
 const calculateDaysRemaining = (endDate: Date): number | null => {
 	const today = new Date();
@@ -46,8 +44,6 @@ interface ViewPitchPageProps {
 }
 
 export default function ViewPitchPage({ params }: ViewPitchPageProps) {
-	const { userProfile, isLoading } = useProtect();
-
 	const router = useRouter();
 	const resolved_params = use(params);
 	const pitchId = Number(resolved_params.id);
@@ -58,6 +54,14 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {
 			setError("Invalid Pitch ID format in URL.");
@@ -67,7 +71,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 		const fetchPitch = async () => {
 			try {
-				const pitchData = await getPitch(pitchId);
+				const pitchData = await getPitchById(pitchId);
 				const finalPitchData = Array.isArray(pitchData)
 					? pitchData[0]
 					: pitchData;

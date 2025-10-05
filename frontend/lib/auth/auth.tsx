@@ -1,3 +1,4 @@
+{ /* 
 "use client";
 
 import { useEffect, useState } from "react";
@@ -37,3 +38,6 @@ export const useProtect = () => {
 
 	return { userProfile, isLoading: isCheckingAuth || loadingUserProfile };
 };
+
+*/ }
+

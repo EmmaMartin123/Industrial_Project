@@ -1,22 +1,607 @@
 "use client";
 
-import { useProtect } from "@/lib/auth/auth";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import toast from "react-hot-toast";
+import {
+	Plus,
+	Trash,
+	FileText,
+	Image as ImageIcon,
+	Video,
+	X,
+	FileTextIcon,
+	Wallet,
+	Layers,
+	GalleryVertical,
+	BrainCircuit,
+} from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { NewPitch, Pitch as FetchedPitch } from "@/lib/types/pitch";
+import { postPitch, getPitchById } from "@/lib/api/pitch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
-export default function page() {
-	const { userProfile, isLoading } = useProtect();
+type TierState = {
+	name: string;
+	min_amount: number | "";
+	max_amount: number | "";
+	multiplier: number | "";
+};
 
+type MediaDisplayItem = {
+	id: string;
+	name: string; 
+	type: string;
+	url: string;
+	isNew: boolean; 
+};
+
+const getFileIcon = (mimeType: string) => {
+	if (mimeType.startsWith("image/"))
+		return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
+	if (mimeType.startsWith("video/"))
+		return <Video className="w-4 h-4 mr-2 text-purple-500" />;
+	return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
+};
+
+export default function EditPitchPage() {
 	const router = useRouter();
+	const params = useParams();
+	const pitchId = typeof params.id === 'string' ? params.id : undefined;
 
-	if (userProfile?.role !== "business") {
-		router.push("/investor/dashboard");
-	}
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-  return (
-    <div></div>
-  )
+	const [title, setTitle] = useState("");
+	const [elevator, setElevator] = useState("");
+	const [detailedPitchContent, setDetailedPitchContent] = useState("");
+	const [targetAmount, setTargetAmount] = useState<number | "">("");
+	const [profitShare, setProfitShare] = useState<number | "">("");
+	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+	const [fetchedMedia, setFetchedMedia] = useState<MediaDisplayItem[]>([]);
+
+	const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+	const [tiers, setTiers] = useState<TierState[]>([
+		{ name: "", min_amount: "", multiplier: "", max_amount: "" },
+	]);
+	const [loading, setLoading] = useState(false);
+	const [pageLoading, setPageLoading] = useState(!!pitchId);
+	const [activeTab, setActiveTab] = useState("content");
+	const investmentStartDate = useMemo(() => new Date(), []);
+
+	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+	const [aiLoading, setAiLoading] = useState(false);
+
+	const fetchAndSetPitch = useCallback(async (id: string) => {
+		setPageLoading(true);
+		try {
+			const pitchData: FetchedPitch = await getPitchById(parseInt(id));
+
+			setTitle(pitchData.title);
+			setElevator(pitchData.elevator_pitch);
+			setDetailedPitchContent(pitchData.detailed_pitch);
+			setTargetAmount(pitchData.target_amount);
+			setProfitShare(pitchData.profit_share_percent);
+			setEndDate(new Date(pitchData.investment_end_date));
+
+			setFetchedMedia(pitchData.media?.map(m => {
+				const fileName = m.url.split('/').pop() || "Existing File";
+
+				return {
+					id: m.media_id ? String(m.media_id) : fileName,
+					url: m.url,
+					type: m.media_type,
+					name: fileName,
+					isNew: false,
+				};
+			}) ?? []);
+
+			const tiersData = pitchData.investment_tiers ?? [];
+
+			setTiers(tiersData.map(t => ({
+				name: t.name,
+				min_amount: t.min_amount,
+				max_amount: t.max_amount ?? "",
+				multiplier: t.multiplier,
+			})));
+
+			toast.success("Pitch data loaded for editing.");
+		} catch (error) {
+			console.error("Error fetching pitch:", error);
+			toast.error("Failed to load pitch data.");
+			router.push("/business/dashboard");
+		} finally {
+			setPageLoading(false);
+		}
+	}, [router]);
+
+	useEffect(() => {
+		const verifyAuthAndFetch = async () => {
+			await checkAuth();
+		};
+
+		verifyAuthAndFetch();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (isCheckingAuth) {
+			return;
+		}
+
+		if (!authUser) {
+			toast.error("You must be logged in to create or edit a pitch.");
+			router.push("/");
+			return;
+		}
+
+		if (pitchId) {
+			console.log("debug");
+			fetchAndSetPitch(pitchId);
+		}
+
+	}, [authUser, isCheckingAuth, router, pitchId, pageLoading]);
+
+
+	const mediaPreviews = useMemo(
+		() =>
+			mediaFiles.map((file, index) => ({
+				id: `new-${index}-${file.name.replace(/[^a-zA-Z0-9]/g, '')}`,
+				name: file.name,
+				type: file.type,
+				url: URL.createObjectURL(file),
+				isNew: true,
+			})),
+		[mediaFiles]
+	);
+
+	const allMediaToDisplay: MediaDisplayItem[] = useMemo(
+		() => [...fetchedMedia, ...mediaPreviews],
+		[fetchedMedia, mediaPreviews]
+	);
+
+
+	useEffect(() => {
+		return () => {
+			mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+		};
+	}, [mediaFiles, mediaPreviews]);
+
+	const handleAiAnalysis = async () => {
+		try {
+			setAiLoading(true);
+			setAiAnalysis(null);
+			await new Promise((r) => setTimeout(r, 1500));
+			setAiAnalysis(
+				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
+			);
+		} catch (err) {
+			console.error(err);
+			toast.error("AI analysis failed.");
+		} finally {
+			setAiLoading(false);
+		}
+	};
+
+	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const newFiles = e.target.files;
+		if (newFiles && newFiles.length > 0) {
+			setMediaFiles((prev) => [...prev, ...Array.from(newFiles)]);
+			e.target.value = "";
+			toast.success(`Added ${newFiles.length} new file(s).`);
+		}
+	};
+
+	const removeMediaFile = (id: string, isNew: boolean, fileUrl: string) => {
+		if (isNew) {
+			const fileIndex = mediaFiles.findIndex(f => URL.createObjectURL(f) === fileUrl);
+			if (fileIndex !== -1) {
+				URL.revokeObjectURL(fileUrl);
+				setMediaFiles((prev) => prev.filter((_, idx) => idx !== fileIndex));
+			}
+		} else {
+			setFetchedMedia((prev) => prev.filter(m => m.id !== id));
+			toast.success("Existing file removed. Will be treated as deleted on next update.");
+		}
+		toast.success("Removed file.");
+	};
+
+
+	const handleTierChange = (i: number, field: keyof TierState, value: any) => {
+		const updated = [...tiers];
+		updated[i][field] = value === "" ? "" : field === "name" ? value : Number(value);
+		setTiers(updated);
+	};
+
+	const addTier = () => setTiers([...tiers, { name: "", min_amount: "", multiplier: "", max_amount: "" }]);
+	const removeTierHandler = (i: number) => setTiers(tiers.filter((_, idx) => idx !== i));
+
+	const validateStep = (step: string) => {
+		if (step === "content") {
+			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
+				toast.error("Please complete all text fields before proceeding.");
+				return false;
+			}
+		}
+		if (step === "financials") {
+			if (targetAmount === "" || profitShare === "" || !endDate) {
+				toast.error("Please complete all financial fields.");
+				return false;
+			}
+			if (typeof targetAmount !== "number" || targetAmount <= 0) {
+				toast.error("Target Amount must be positive.");
+				return false;
+			}
+			if (endDate <= investmentStartDate) {
+				toast.error("End date must be in the future.");
+				return false;
+			}
+		}
+		if (step === "tiers") {
+			const valid = tiers.every(
+				(t) =>
+					t.name.trim() &&
+					t.min_amount !== "" &&
+					t.multiplier !== "" &&
+					Number(t.min_amount) > 0 &&
+					Number(t.multiplier) > 0
+			);
+			if (!valid) {
+				toast.error("All tiers must have valid values.");
+				return false;
+			}
+		}
+		return true;
+	};
+
+	const handleNext = (current: string, next: string) => {
+		if (validateStep(current)) {
+			setActiveTab(next);
+			window.scrollTo(0, 0);
+		}
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) return;
+
+		const remainingMediaIds = fetchedMedia
+			.filter(m => !m.isNew && m.id)
+			.map(m => m.id);
+
+		const pitchPayload: NewPitch = {
+			title,
+			elevator_pitch: elevator,
+			detailed_pitch: detailedPitchContent,
+			target_amount: Number(targetAmount),
+			investment_start_date: investmentStartDate.toISOString(),
+			investment_end_date: endDate!.toISOString(),
+			profit_share_percent: Number(profitShare),
+			investment_tiers: tiers.map((t) => ({
+				name: t.name,
+				min_amount: Number(t.min_amount),
+				max_amount:
+					t.max_amount === "" || t.max_amount === undefined || t.max_amount === null
+						? null
+						: Number(t.max_amount),
+				multiplier: Number(t.multiplier),
+			})),
+		};
+
+		const formData = new FormData();
+		formData.append("pitch", JSON.stringify(pitchPayload));
+		mediaFiles.forEach((f) => formData.append("media", f));
+
+		try {
+			setLoading(true);
+
+			if (pitchId) {
+				await postPitch(formData); 
+				toast.success("Pitch updated successfully! 💾");
+				router.push("/business/dashboard");
+			} else {
+				await postPitch(formData);
+				toast.success("Pitch submitted successfully! 🚀");
+				router.push("/business/dashboard");
+			}
+
+		} catch (err) {
+			console.error(err);
+			toast.error("Submission failed.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const pageTitle = pitchId ? "Edit Pitch" : "Create New Pitch";
+
+	return (
+		<div className="max-w-3xl mx-auto px-4 py-12 space-y-10">
+			<div>
+				<h1 className="text-3xl font-semibold tracking-tight">{pageTitle}</h1>
+				<p className="text-muted-foreground mt-1">
+					{pitchId ? "Modify and update your investment proposal." : "Follow the steps below to describe and submit your investment proposal."}
+				</p>
+			</div>
+
+			<Tabs value={activeTab} onValueChange={setActiveTab}>
+				<TabsList className="w-full justify-start border-b rounded-none p-0 mb-8 bg-transparent">
+					<TabsTrigger value="content" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<FileTextIcon className="w-4 h-4 mr-2" /> Content
+					</TabsTrigger>
+					<TabsTrigger value="media" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<GalleryVertical className="w-4 h-4 mr-2" /> Media
+					</TabsTrigger>
+					<TabsTrigger value="financials" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<Wallet className="w-4 h-4 mr-2" /> Financials
+					</TabsTrigger>
+					<TabsTrigger value="tiers" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<Layers className="w-4 h-4 mr-2" /> Tiers
+					</TabsTrigger>
+					<TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<FileText className="w-4 h-4 mr-2" /> Overview
+					</TabsTrigger>
+					<TabsTrigger value="ai" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary px-4 py-2 text-sm">
+						<BrainCircuit className="w-4 h-4 mr-2" /> AI Analysis
+					</TabsTrigger>
+				</TabsList>
+
+				<form onSubmit={handleSubmit} className="space-y-12" key={pitchId || "new"}>
+					{/* Content Tab (Form fields remain the same) */}
+					<TabsContent value="content" className="space-y-6">
+						<div className="space-y-4">
+							<Label>Title</Label>
+							<Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AI Farming Revolution" />
+						</div>
+						<div className="space-y-4">
+							<Label>Elevator Pitch</Label>
+							<Textarea value={elevator} onChange={(e) => setElevator(e.target.value)} rows={3} />
+						</div>
+						<div className="space-y-4">
+							<Label>Detailed Pitch</Label>
+							<Textarea value={detailedPitchContent} onChange={(e) => setDetailedPitchContent(e.target.value)} rows={10} />
+						</div>
+						<div className="flex justify-end">
+							<Button type="button" onClick={() => handleNext("content", "media")}>
+								Next: Media
+							</Button>
+						</div>
+					</TabsContent>
+
+					{/* Media Tab (Use allMediaToDisplay) */}
+					<TabsContent value="media" className="space-y-6">
+						<div
+							onClick={() => document.getElementById("media-input")?.click()}
+							className="border border-dashed border-gray-300 rounded-md p-10 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50"
+						>
+							<Plus className="w-6 h-6 text-primary mb-2" />
+							<p className="font-medium">Upload Media Files</p>
+							<p className="text-sm text-muted-foreground">Images or videos supported</p>
+						</div>
+						<Input id="media-input" type="file" className="hidden" multiple onChange={handleMediaChange} />
+
+						{allMediaToDisplay.length > 0 && (
+							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+								{allMediaToDisplay.map((preview, i) => (
+									<div key={preview.id} className="relative group">
+										{preview.type.startsWith("image/") ? (
+											<img src={preview.url} alt={`Media Preview ${i + 1}`} className="w-full h-32 object-cover rounded-md" />
+										) : (
+											<video src={preview.url} className="w-full h-32 object-cover rounded-md bg-black" controls />
+										)}
+										<Button
+											size="icon"
+											type="button"
+											onClick={() => removeMediaFile(preview.id, preview.isNew, preview.url)}
+											className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition"
+										>
+											<X className="w-4 h-4" />
+										</Button>
+									</div>
+								))}
+							</div>
+						)}
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("content")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("media", "financials")}>
+								Next: Financials
+							</Button>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="financials" className="space-y-6">
+						<div className="grid gap-4">
+							<div>
+								<Label className="pb-3">Target Amount (£)</Label>
+								<Input type="number" value={targetAmount} onChange={(e) => setTargetAmount(Number(e.target.value) || "")} />
+							</div>
+							<div>
+								<Label className="pb-3">Profit Share (%)</Label>
+								<Input type="number" value={profitShare} onChange={(e) => setProfitShare(Number(e.target.value) || "")} />
+							</div>
+							<div>
+								<Label className="pb-3">Start Date</Label>
+								<Input value={format(investmentStartDate, "PPP")} readOnly />
+							</div>
+							<div>
+								<Label className="pb-3">End Date</Label>
+								<Popover>
+									<PopoverTrigger asChild>
+										<Button variant="outline" className="w-full justify-start">
+											{endDate ? format(endDate, "PPP") : "Select date"}
+										</Button>
+									</PopoverTrigger>
+									<PopoverContent className="p-0 w-auto">
+										<Calendar mode="single" selected={endDate} onSelect={setEndDate} fromDate={new Date()} />
+									</PopoverContent>
+								</Popover>
+							</div>
+						</div>
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("media")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("financials", "tiers")}>
+								Next: Tiers
+							</Button>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="tiers" className="space-y-8">
+						{tiers.map((tier, i) => (
+							<div key={i} className="border-b pb-6 space-y-4">
+								<div className="flex justify-between items-center">
+									<h4 className="font-semibold text-sm">Tier {i + 1}</h4>
+									<Button
+										variant="ghost"
+										size="sm"
+										onClick={() => removeTierHandler(i)}
+										disabled={tiers.length === 1}
+										className="text-red-500"
+									>
+										<Trash className="w-4 h-4 mr-1" /> Remove
+									</Button>
+								</div>
+								<div className="grid sm:grid-cols-4 gap-3">
+									<div>
+										<Label className="pb-3">Name</Label>
+										<Input value={tier.name} onChange={(e) => handleTierChange(i, "name", e.target.value)} placeholder="e.g. Silver" />
+									</div>
+									<div>
+										<Label className="pb-3">Min (£)</Label>
+										<Input type="number" value={tier.min_amount} onChange={(e) => handleTierChange(i, "min_amount", e.target.value)} placeholder="e.g. 1" />
+									</div>
+									<div>
+										<Label className="pb-3">Max (£)</Label>
+										<Input type="number" value={tier.max_amount} onChange={(e) => handleTierChange(i, "max_amount", e.target.value)} placeholder="e.g. 1000" />
+									</div>
+									<div>
+										<Label className="pb-3">Multiplier</Label>
+										<Input type="number" value={tier.multiplier} onChange={(e) => handleTierChange(i, "multiplier", e.target.value)} placeholder="e.g. 1.5" />
+									</div>
+								</div>
+							</div>
+						))}
+
+						<Button variant="outline" type="button" onClick={addTier} className="w-full">
+							<Plus className="w-4 h-4 mr-2" /> Add Tier
+						</Button>
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("financials")}>
+								Previous
+							</Button>
+							<Button type="button" onClick={() => handleNext("financials", "overview")}>
+								Next: Overview
+							</Button>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="overview" className="space-y-8">
+						<div className="space-y-6">
+							<h3 className="text-xl font-semibold">Review Your Pitch</h3>
+							<p className="text-muted-foreground">Please review all your details before submitting your pitch.</p>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Content</h4>
+								<p><strong>Title:</strong> {title || "—"}</p>
+								<p><strong>Elevator Pitch:</strong> {elevator || "—"}</p>
+								<p><strong>Detailed Pitch:</strong> {detailedPitchContent || "—"}</p>
+							</div>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Media</h4>
+								{allMediaToDisplay.length > 0 ? (
+									<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+										{allMediaToDisplay.map((m, i) => (
+											<div key={m.id}>
+												{m.type.startsWith("image/") ? (
+													<img src={m.url} alt="" className="w-full h-24 object-cover rounded-md" />
+												) : (
+													<video src={m.url} className="w-full h-24 object-cover rounded-md" />
+												)}
+												<p className="text-xs mt-1 truncate">{m.name} {m.isNew && <span className="text-blue-500">(New)</span>}</p>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground">No media uploaded.</p>
+								)}
+							</div>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Financials</h4>
+								<p><strong>Target Amount:</strong> £{targetAmount || "—"}</p>
+								<p><strong>Profit Share:</strong> {profitShare ? `${profitShare}%` : "—"}</p>
+								<p><strong>Start Date:</strong> {format(investmentStartDate, "PPP")}</p>
+								<p><strong>End Date:</strong> {endDate ? format(endDate, "PPP") : "—"}</p>
+							</div>
+
+							<div className="border rounded-lg p-6 space-y-4">
+								<h4 className="font-medium text-lg">Tiers</h4>
+								{tiers.length > 0 ? (
+									<div className="space-y-3">
+										{tiers.map((t, i) => (
+											<div key={i} className="border p-3 rounded-md">
+												<p><strong>Tier {i + 1}: </strong>{t.name || "—"}</p>
+												<p>Min: £{t.min_amount || "—"} {t.max_amount ? `| Max: £${t.max_amount}` : ""}</p>
+												<p>Multiplier: x{t.multiplier || "—"}</p>
+											</div>
+										))}
+									</div>
+								) : (
+									<p className="text-sm text-muted-foreground">No tiers defined.</p>
+								)}
+							</div>
+						</div>
+
+						<div className="flex justify-between">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("tiers")}>
+								Previous
+							</Button>
+							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
+								{loading ? (pitchId ? "Updating..." : "Submitting...") : (pitchId ? "Update Pitch" : "Submit Pitch")}
+							</Button>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="ai" className="space-y-6">
+						<div className="border rounded-lg p-6 space-y-4">
+							<div className="flex justify-between items-center">
+								<h4 className="font-medium text-lg">AI Analysis</h4>
+								<Button type="button" variant="secondary" onClick={handleAiAnalysis} disabled={aiLoading}>
+									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
+								</Button>
+							</div>
+
+							{aiAnalysis ? (
+								<p className="text-sm whitespace-pre-line">{aiAnalysis}</p>
+							) : (
+								<p className="text-sm text-muted-foreground">
+									Click the button above to get AI feedback on your pitch.
+								</p>
+							)}
+						</div>
+
+						<div className="flex justify-start">
+							<Button variant="outline" type="button" onClick={() => setActiveTab("overview")}>
+								Previous
+							</Button>
+						</div>
+					</TabsContent>
+				</form>
+			</Tabs>
+		</div>
+	);
 }
-
-

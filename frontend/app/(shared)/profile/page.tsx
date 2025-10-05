@@ -11,10 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
-import { useProtect } from "@/lib/auth/auth";
 
 export default function ProfilePage() {
-	const { userProfile, isLoading } = useProtect();
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
 	const router = useRouter();
 
@@ -22,7 +21,7 @@ export default function ProfilePage() {
 	const [activeTab, setActiveTab] = useState("overview");
 
 	// check if this profile is the logged in user's profile
-	const isMine = userProfile?.id !== null && profile?.id.toString() === userProfile?.id;
+	const isMine = authUser?.id !== null && profile?.id.toString() === authUser?.id;
 
 	return (
 		<div className="max-w-5xl mx-auto p-6 space-y-8">

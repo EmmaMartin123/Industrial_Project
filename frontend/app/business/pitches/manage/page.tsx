@@ -18,18 +18,25 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useAuthStore } from "@/lib/store/authStore";
-import { useProtect } from "@/lib/auth/auth";
 
 export default function ManagePitchesPage() {
-	const { userProfile, isLoading } = useProtect();
-
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
 
+	// check auth on mount
 	useEffect(() => {
-		if (!isLoading && userProfile && userProfile.role !== "business") {
-			router.push("/investor/dashboard");
+		const verifyAuth = async () => {
+			await checkAuth()
 		}
-	}, [isLoading, userProfile, router]);
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
@@ -79,12 +86,6 @@ export default function ManagePitchesPage() {
 
 		fetchUserPitches();
 	}, [userId]);
-
-	// Use the `isLoading` state from `useProtect` to handle the initial loading/redirect state
-	if (isLoading) return <LoaderComponent />;
-
-	// Also, stop rendering the content if a redirect is imminent but the component hasn't unmounted yet
-	if (userProfile?.role !== "business") return <LoaderComponent />;
 
 	if (error) {
 		return (

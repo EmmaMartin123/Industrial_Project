@@ -31,7 +31,6 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useRouter } from "next/navigation";
-import { useProtect } from "@/lib/auth/auth";
 
 // Tier type
 type TierState = {
@@ -51,13 +50,8 @@ const getFileIcon = (mimeType: string) => {
 };
 
 export default function NewPitchPage() {
-	const { userProfile, isLoading } = useProtect();
-
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
-
-	if (userProfile?.role !== "business") {
-		router.push("/investor/dashboard");
-	}
 
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
@@ -75,6 +69,21 @@ export default function NewPitchPage() {
 
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	const mediaPreviews = useMemo(
 		() =>
@@ -97,7 +106,6 @@ export default function NewPitchPage() {
 			setAiLoading(true);
 			setAiAnalysis(null);
 
-			// 🔥 Placeholder for API call (to be implemented later)
 			await new Promise((r) => setTimeout(r, 1500));
 			setAiAnalysis(
 				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."

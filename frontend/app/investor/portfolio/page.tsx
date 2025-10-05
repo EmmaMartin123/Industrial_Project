@@ -5,7 +5,6 @@ import { Loader, PieChart, TrendingUp, DollarSign, Search, Filter, RefreshCw, Ch
 import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect, useState, useMemo } from "react";
 import * as Button from "@/components/Button";
-import { useProtect } from "@/lib/auth/auth";
 
 // --- DUMMY DATA ---
 
@@ -49,13 +48,27 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, colorClas
 // --- MAIN COMPONENT ---
 
 export default function InvestorPortfolioPage() {
-	const { userProfile, isLoading } = useProtect();
-
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
 
 	const [investments, setInvestments] = useState<Investment[]>(DUMMY_INVESTMENTS);
 	const [filter, setFilter] = useState<'All' | 'Active' | 'Exited' | 'Pending'>('All');
 	const [sortBy, setSortBy] = useState<'return' | 'date' | 'capital'>('return');
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	// Derived Portfolio Metrics
 	const { totalCapital, totalCurrentValue, totalReturn, totalReturnPercentage } = useMemo(() => {

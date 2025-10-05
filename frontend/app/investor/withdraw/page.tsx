@@ -5,16 +5,29 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuthStore } from "@/lib/store/authStore";
 import * as Button from "@/components/Button";
-import { useProtect } from "@/lib/auth/auth";
 
 export default function WithdrawPage() {
-	const { userProfile, isLoading } = useProtect();
-
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
 
 	const [amount, setAmount] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [balance, setBalance] = useState(10000);
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	const handleWithdraw = () => {
 		const numAmount = Number(amount);

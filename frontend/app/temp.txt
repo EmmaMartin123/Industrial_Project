@@ -1,0 +1,30 @@
+const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+
+
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/investor/dashboard")
+	  }
+	}, [authUser, router])
+
+
+
+
+if (isCheckingAuth || !authUser || loading) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<LoaderPinwheel className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}

@@ -125,7 +125,7 @@ export default function Navbar() {
 						<Button
 							variant="ghost"
 							className="rounded-md border-0 cursor-pointer font-bold"
-							onClick={() => router.push("/business/manage")}
+							onClick={() => router.push("/business/pitches/manage")}
 						>
 							My Pitches
 						</Button>

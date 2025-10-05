@@ -121,6 +121,14 @@ export default function BusinessPitchesPage() {
 		}
 	};
 
+	if (isCheckingAuth || !authUser || loading) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<LoaderPinwheel className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}
+
 	const toggleStatus = (status: string) => {
 		setSelectedStatuses((prev) =>
 			prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
@@ -185,14 +193,6 @@ export default function BusinessPitchesPage() {
 	};
 
 	const { start, end } = getPageNumbers(currentPage, totalPages, 5);
-
-	if (isCheckingAuth || !authUser || loading) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<LoaderPinwheel className="w-10 h-10 animate-spin" />
-			</div>
-		);
-	}
 
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">

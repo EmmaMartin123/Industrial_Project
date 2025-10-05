@@ -9,23 +9,31 @@ import {
 	ItemDescription,
 	ItemTitle,
 } from "@/components/ui/item";
-import { PlusCircle, Users, Coins } from "lucide-react";
-import { useProtect } from "@/lib/auth/auth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/lib/store/authStore";
+import { getUserProfile } from "@/lib/api/profile";
 
 export default function BusinessDashboard() {
-	const { userProfile, isLoading } = useProtect();
 	const router = useRouter();
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const [userProfile, setUserProfile] = useState<any>(null);
 
 	useEffect(() => {
-		if (!isLoading && userProfile && userProfile.role !== "business") {
-			router.push("/investor/dashboard");
+		const verifyAuth = async () => {
+			await checkAuth();
+		};
+		verifyAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) {
+			router.push("/login");
 		}
-	}, [userProfile, isLoading, router]);
+	}, [authUser, isCheckingAuth, router]);
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-8">
-			{/* header */}
+			{/* Header */}
 			<header className="max-w-6xl mx-auto mb-10 text-center">
 				<h1 className="text-4xl md:text-5xl font-extrabold text-primary mb-2">
 					Welcome, {userProfile?.display_name || "Business Owner"}!
@@ -35,13 +43,15 @@ export default function BusinessDashboard() {
 				</p>
 			</header>
 
-			{/* dashboard cards */}
+			{/* Dashboard cards */}
 			<div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{/* new pitch */}
+				{/* New Pitch */}
 				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
 					<ItemContent className="flex items-center gap-4">
 						<div>
-							<ItemTitle className="text-lg font-semibold text-gray-800">New Pitch</ItemTitle>
+							<ItemTitle className="text-lg font-semibold text-gray-800">
+								New Pitch
+							</ItemTitle>
 							<ItemDescription className="text-gray-500">
 								Create a new pitch to attract investors.
 							</ItemDescription>
@@ -58,11 +68,13 @@ export default function BusinessDashboard() {
 					</ItemActions>
 				</Item>
 
-				{/* manage pitches */}
+				{/* Manage Pitches */}
 				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
 					<ItemContent className="flex items-center gap-4">
 						<div>
-							<ItemTitle className="text-lg font-semibold text-gray-800">Manage Pitches</ItemTitle>
+							<ItemTitle className="text-lg font-semibold text-gray-800">
+								Manage Pitches
+							</ItemTitle>
 							<ItemDescription className="text-gray-500">
 								Edit or review your existing pitches.
 							</ItemDescription>

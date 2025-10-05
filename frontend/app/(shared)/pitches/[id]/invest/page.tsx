@@ -6,11 +6,11 @@ import axios from "@/lib/axios";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
 import { toast } from "sonner";
-import { getPitch } from "@/lib/api/pitch";
-import { useProtect } from "@/lib/auth/auth";
+import { getPitchById } from "@/lib/api/pitch";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function InvestPage() {
-	const { userProfile, isLoading } = useProtect();
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
 	const router = useRouter();
 	const params = useParams();
@@ -22,6 +22,21 @@ export default function InvestPage() {
 	const [selectedTier, setSelectedTier] = useState<InvestmentTier | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
+
 	// fetch pitch data
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {
@@ -31,7 +46,7 @@ export default function InvestPage() {
 
 		const fetchPitch = async () => {
 			try {
-				const data = await getPitch(pitchId);
+				const data = await getPitchById(pitchId);
 
 				console.log(data);
 				setPitch(data);

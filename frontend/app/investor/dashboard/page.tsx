@@ -10,11 +10,43 @@ import {
 	ItemTitle,
 } from "@/components/ui/item";
 import { PlusCircle, Users, Coins } from "lucide-react";
-import { useProtect } from "@/lib/auth/auth";
+import { useAuthStore } from "@/lib/store/authStore";
+import { useEffect, useState } from "react";
+import { getUserProfile } from "@/lib/api/profile";
 
 export default function InvestorDashboard() {
-	const { userProfile, isLoading } = useProtect();
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
+	const [userProfile, setUserProfile] = useState<any>(null);
+
+	useEffect(() => {
+		const fetchProfile = async () => {
+			if (authUser?.id) {
+				try {
+					const profile = await getUserProfile(Number(authUser.id));
+					setUserProfile(profile);
+				} catch (err) {
+					console.error("Failed to fetch user profile:", err);
+				}
+			}
+		};
+		fetchProfile();
+	}, [authUser?.id]);
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-8">
@@ -24,14 +56,14 @@ export default function InvestorDashboard() {
 					Welcome, {userProfile?.display_name || "Business Owner"}!
 				</h1>
 				<p className="text-gray-600 text-lg md:text-xl">
-					
+
 				</p>
 			</header>
 
 			{/* dashboard cards */}
 			<div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-				
-				{ /* view portfolio */ }
+
+				{ /* view portfolio */}
 				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
 					<ItemContent className="flex items-center gap-4">
 						<div>
