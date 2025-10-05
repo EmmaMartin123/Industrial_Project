@@ -11,6 +11,20 @@ export const getAllPitches = async (userId?: string): Promise<Pitch[]> => {
 	return response.data;
 };
 
+export const getPitches = async (
+	limit?: number,
+	offset?: number,
+	search?: string | null
+): Promise<Pitch[]> => {
+	const params = new URLSearchParams();
+	if (limit !== undefined) params.append("limit", limit.toString());
+	if (offset !== undefined) params.append("offset", offset.toString());
+	if (search && search.trim() !== "") params.append("search", search.trim());
+
+	const response = await axios.get(`/pitch?${params.toString()}`);
+	return response.data;
+};
+
 export const getPitch = async (id: number): Promise<Pitch> => {
 	const response = await axios.get(`/pitch?id=${id}`);
 	return response.data;
