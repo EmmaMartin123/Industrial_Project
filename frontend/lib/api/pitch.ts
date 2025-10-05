@@ -88,8 +88,13 @@ export const postPitch = async (data: NewPitch | FormData): Promise<Pitch> => {
 	return mapPitch(response.data);
 };
 
-export const putPitch = async (id: number, data: UpdatePitch): Promise<Pitch> => {
-	const response = await axios.put(`/pitch?id=${id}`, data);
+export const patchPitch = async (id: number, data: UpdatePitch | FormData): Promise<Pitch> => {
+	// Check if data is FormData to set the correct content type header
+	const headers = data instanceof FormData ? { "Content-Type": "multipart/form-data" } : {};
+
+	// The axios.put call will now correctly handle both structured JSON data and FormData
+	const response = await axios.patch(`/pitch?id=${id}`, data, { headers });
+
 	return mapPitch(response.data);
 };
 

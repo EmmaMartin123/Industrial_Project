@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
 	Plus,
 	Trash,
@@ -18,7 +18,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { NewPitch, Pitch as FetchedPitch } from "@/lib/types/pitch";
-import { postPitch, getPitchById } from "@/lib/api/pitch";
+import { getPitchById, patchPitch } from "@/lib/api/pitch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,10 +113,10 @@ export default function EditPitchPage() {
 				multiplier: t.multiplier,
 			})));
 
-			toast.success("Pitch data loaded for editing.");
+			toast("Pitch data loaded for editing.");
 		} catch (error) {
 			console.error("Error fetching pitch:", error);
-			toast.error("Failed to load pitch data.");
+			toast("Failed to load pitch data.");
 			router.push("/business/dashboard");
 		} finally {
 			setPageLoading(false);
@@ -137,7 +137,7 @@ export default function EditPitchPage() {
 		}
 
 		if (!authUser) {
-			toast.error("You must be logged in to create or edit a pitch.");
+			toast("You must be logged in to create or edit a pitch.");
 			router.push("/");
 			return;
 		}
@@ -184,7 +184,7 @@ export default function EditPitchPage() {
 			);
 		} catch (err) {
 			console.error(err);
-			toast.error("AI analysis failed.");
+			toast("AI analysis failed.");
 		} finally {
 			setAiLoading(false);
 		}
@@ -195,7 +195,7 @@ export default function EditPitchPage() {
 		if (newFiles && newFiles.length > 0) {
 			setMediaFiles((prev) => [...prev, ...Array.from(newFiles)]);
 			e.target.value = "";
-			toast.success(`Added ${newFiles.length} new file(s).`);
+			toast(`Added ${newFiles.length} new file(s).`);
 		}
 	};
 
@@ -208,9 +208,9 @@ export default function EditPitchPage() {
 			}
 		} else {
 			setFetchedMedia((prev) => prev.filter(m => m.id !== id));
-			toast.success("Existing file removed. Will be treated as deleted on next update.");
+			toast("Existing file removed. Will be treated as deleted on next update.");
 		}
-		toast.success("Removed file.");
+		toast("Removed file.");
 	};
 
 
@@ -226,21 +226,21 @@ export default function EditPitchPage() {
 	const validateStep = (step: string) => {
 		if (step === "content") {
 			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
-				toast.error("Please complete all text fields before proceeding.");
+				toast("Please complete all text fields before proceeding.");
 				return false;
 			}
 		}
 		if (step === "financials") {
 			if (targetAmount === "" || profitShare === "" || !endDate) {
-				toast.error("Please complete all financial fields.");
+				toast("Please complete all financial fields.");
 				return false;
 			}
 			if (typeof targetAmount !== "number" || targetAmount <= 0) {
-				toast.error("Target Amount must be positive.");
+				toast("Target Amount must be positive.");
 				return false;
 			}
 			if (endDate <= investmentStartDate) {
-				toast.error("End date must be in the future.");
+				toast("End date must be in the future.");
 				return false;
 			}
 		}
@@ -254,7 +254,7 @@ export default function EditPitchPage() {
 					Number(t.multiplier) > 0
 			);
 			if (!valid) {
-				toast.error("All tiers must have valid values.");
+				toast("All tiers must have valid values.");
 				return false;
 			}
 		}
@@ -303,18 +303,15 @@ export default function EditPitchPage() {
 			setLoading(true);
 
 			if (pitchId) {
-				await postPitch(formData); 
-				toast.success("Pitch updated successfully! 💾");
+				console.log("form data: ", formData);
+				await patchPitch(Number(pitchId), formData);
+				toast("Pitch updated successfully! 💾");
 				router.push("/business/dashboard");
-			} else {
-				await postPitch(formData);
-				toast.success("Pitch submitted successfully! 🚀");
-				router.push("/business/dashboard");
-			}
+			} 
 
 		} catch (err) {
 			console.error(err);
-			toast.error("Submission failed.");
+			toast("Submission failed.");
 		} finally {
 			setLoading(false);
 		}
