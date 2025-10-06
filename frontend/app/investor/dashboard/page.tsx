@@ -21,9 +21,10 @@ export default function InvestorDashboard() {
 
 	useEffect(() => {
 		const fetchProfile = async () => {
+			console.log(authUser);
 			if (authUser?.id) {
 				try {
-					const profile = await getUserProfile(Number(authUser.id));
+					const profile = await getUserProfile(authUser.id);
 					setUserProfile(profile);
 				} catch (err) {
 					console.error("Failed to fetch user profile:", err);
@@ -41,9 +42,8 @@ export default function InvestorDashboard() {
 		verifyAuth()
 	}, [checkAuth])
 
-	// redirect if already logged in
 	useEffect(() => {
-		if (authUser) {
+		if (!authUser) {
 			router.push("/")
 		}
 	}, [authUser, router])

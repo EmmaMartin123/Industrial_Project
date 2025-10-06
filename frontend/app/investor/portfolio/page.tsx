@@ -65,7 +65,7 @@ export default function InvestorPortfolioPage() {
 
 	// redirect if already logged in
 	useEffect(() => {
-		if (authUser) {
+		if (!authUser) {
 			router.push("/")
 		}
 	}, [authUser, router])

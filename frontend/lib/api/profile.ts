@@ -14,7 +14,7 @@ export const getMyUserProfile = async (userId: string | null) => {
 	return response.data as Profile;
 };
 
-export const getUserProfile = async (id: number) => {
+export const getUserProfile = async (id: string) => {
 	const response = await axios.get("/profile?id=" + id);
 
 	return response.data;

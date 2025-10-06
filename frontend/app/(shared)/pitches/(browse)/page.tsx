@@ -3,7 +3,7 @@
 import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Pitch, InvestmentTier } from "@/lib/types/pitch";
+import { Pitch } from "@/lib/types/pitch";
 import { getPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
 import { LoaderPinwheel } from "lucide-react";
@@ -55,22 +55,6 @@ export default function BusinessPitchesPage() {
 	const fetchPitches = async (page = 1) => {
 		try {
 			setLoading(true);
-			const offset = (page - 1) * pageSize;
-
-			const statusFilter = selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined;
-
-			const sortKeyMap: Record<Exclude<SortKey, undefined>, string> = {
-				raisedDesc: "raised_amount:desc",
-				raisedAsc: "raised_amount:asc",
-				profitDesc: "profit_share_percent:desc",
-				profitAsc: "profit_share_percent:asc",
-				targetDesc: "target_amount:desc",
-				targetAsc: "target_amount:asc",
-				newest: "investment_start_date:desc",
-				oldest: "investment_start_date:asc",
-			};
-
-			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
 
 			const data = await getPitches({
 				limit: pageSize,
@@ -81,8 +65,6 @@ export default function BusinessPitchesPage() {
 			});
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
-
-			console.log(data);
 			setPitches(data);
 			setCurrentPage(page);
 		} catch (err) {
@@ -109,15 +91,15 @@ export default function BusinessPitchesPage() {
 	const getStatusClasses = (status: string) => {
 		switch (status) {
 			case "Active":
-				return "bg-green-500 text-white";
+				return "border-2 border-green-500 text-green-600";
 			case "Funded":
-				return "bg-blue-500 text-white";
+				return "border-2 border-blue-500 text-blue-600";
 			case "Draft":
-				return "bg-yellow-500 text-white";
+				return "border-2 border-yellow-500 text-yellow-500";
 			case "Closed":
-				return "bg-red-500 text-white";
+				return "border-2 border-red-500 text-red-600";
 			default:
-				return "bg-gray-500 text-white";
+				return "border-2 border-gray-500 text-gray-600";
 		}
 	};
 
@@ -163,13 +145,22 @@ export default function BusinessPitchesPage() {
 				</div>
 				<div className="flex flex-col gap-1">
 					<p className="text-sm text-gray-600 dark:text-gray-400">
-						<span className="font-medium text-gray-800 dark:text-gray-200">Raised:</span> £
-						{pitch.raised_amount} / £{pitch.target_amount}
-					</p>
-					<p className="text-sm text-gray-600 dark:text-gray-400">
 						<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
 						{pitch.profit_share_percent}%
 					</p>
+					<p className="text-sm text-gray-600 dark:text-gray-400">
+						<span className="font-medium text-gray-800 dark:text-gray-200">Raised: </span>
+						<strong>£{pitch.raised_amount}</strong> / £{pitch.target_amount}
+					</p>
+
+					{/* Elevator pitch: expand on hover but clamp to 4 lines max with ellipsis */}
+					<div className="overflow-hidden max-h-0 group-hover:max-h-32 transition-all duration-300">
+						<p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-4">
+							<span className="font-medium text-gray-800 dark:text-gray-200">
+								{pitch.elevator_pitch}
+							</span>
+						</p>
+					</div>
 				</div>
 				<Progress
 					value={getFundingPercentage(pitch.raised_amount, pitch.target_amount)}
@@ -254,7 +245,7 @@ export default function BusinessPitchesPage() {
 					<p className="text-gray-600 dark:text-gray-400">No pitches available.</p>
 				) : (
 					<>
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
 							{pitches.map((pitch) => renderPitchCard(pitch))}
 						</div>
 
