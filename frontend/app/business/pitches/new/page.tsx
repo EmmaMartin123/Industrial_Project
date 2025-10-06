@@ -80,7 +80,7 @@ export default function NewPitchPage() {
 
 	// redirect if already logged in
 	useEffect(() => {
-		if (authUser) {
+		if (!authUser) {
 			router.push("/")
 		}
 	}, [authUser, router])
@@ -199,6 +199,7 @@ export default function NewPitchPage() {
 			investment_start_date: investmentStartDate.toISOString(),
 			investment_end_date: endDate!.toISOString(),
 			profit_share_percent: Number(profitShare),
+			status: "Active",
 			investment_tiers: tiers.map((t) => ({
 				name: t.name,
 				min_amount: Number(t.min_amount),
@@ -217,7 +218,8 @@ export default function NewPitchPage() {
 		try {
 			setLoading(true);
 			await postPitch(formData);
-			toast.success("Pitch submitted successfully! 🚀");
+			toast("Pitch submitted successfully!");
+			router.push("/pitches");
 		} catch (err) {
 			console.error(err);
 			toast.error("Submission failed.");

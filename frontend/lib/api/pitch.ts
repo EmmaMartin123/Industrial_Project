@@ -8,7 +8,7 @@ const mapPitch = (raw: any): Pitch => {
 		elevator_pitch: raw.elevator_pitch,
 		detailed_pitch: raw.detailed_pitch,
 		target_amount: Number(raw.target_amount),
-		raised_amount: Number(raw.raised_amount),
+		raised_amount: isNaN(Number(raw.raised_amount)) ? 0 : Number(raw.raised_amount),
 		profit_share_percent: Number(raw.profit_share_percent),
 		status: raw.status,
 		investment_start_date: new Date(raw.investment_start_date),
