@@ -3,15 +3,23 @@
 import { useRouter } from "next/navigation";
 import { Wallet, CreditCard, PieChart, Loader } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
-import { useEffect } from "react";
+import { useEffect, useState} from "react";
 import toast from "react-hot-toast";
 import * as Button from "@/components/Button";
+
+//backend
+interface InvestorDashboardPage {
+	totalInvested: number;
+	expectedReturns: number;
+	activeProjects: number;
+}
 
 export default function InvestorDashboardPage() {
 	const router = useRouter();
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const [stats, setStats] = useState<InvestorDashboardPage | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
 
-	// TODO: use this everywhere
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
@@ -45,53 +53,70 @@ export default function InvestorDashboardPage() {
 	};
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6">
-			<h1 className="text-3xl font-bold mb-6">Investor Dashboard</h1>
+		<div className="min-h-screen bg-base-100 px-6 py-10">
+			<div className="max-w-5xl mx-auto mb-10 text-center">
+				<h1 className="text-4xl font-bold mb-3">Welcome to your investor dashboard, {authUser?.email?.split("@")[0]|| "Investor"}!</h1>
+				<p className="text-lg opacity-70">
+				    Track your investments, monitor growth, and identify new opportunities. 
+				</p>
+			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<PieChart className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Portfolio</h2>
-						<p className="text-center opacity-70">View all your current investments and performance.</p>
-					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handlePortfolio}
-						>
-							Go to Portfolio
-						</button>
-					</div>
+			<div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+				<div className="card bg-primary text-white shadow-lg p-6 rounded-xl">
+					<p className="opacity-80 text-sm mb-1">Total Invested</p>
+					<h2 className="text-2xl font-bold">£222,222</h2>
+				</div>
+				<div className="card bg-secondary text-white shadow-lg p-6 rounded-xl">
+					<p className="opacity-80 text-sm mb-1">Expected Returns</p>
+					<h2 className="text-2xl font-bold">£111,111</h2>
+				</div>
+				<div className="card bg-accent text-white shadow-lg p-6 rounded-xl">
+					<p className="opacity-80 text-sm mb-1">Active Projects</p>
+					<h2 className="text-2xl font-bold">11</h2>
+				</div>
+			</div>
+
+			<div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+				<div className="card bg-base-100 shadow-md hover:shadow-xl transition rounded-xl p-6 flex flex-col items-center text-center">
+					<PieChart className="w-12 h-12 text-primary mb-4" />
+					<h2 className="text-xl font-semibold mb-2">Portfolio</h2>
+					<p className="text-sm opacity-70 mb-6">
+						View all your current investments.
+					</p>
+					<button
+						className={`${Button.buttonClassName} w-full`}
+						onClick={handlePortfolio}
+					>
+						View Portfolio
+					</button>
 				</div>
 
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<CreditCard className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Withdraw Funds</h2>
-						<p className="text-center opacity-70">Transfer your earnings from the platform to your bank account.</p>
-					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={handleWithdraw}
-						>
-							Withdraw
-						</button>
-					</div>
+				<div className="card bg-base-100 shadow-md hover:shadow-xl transition rounded-xl p-6 flex flex-col items-center text-center">
+					<CreditCard className="w-12 h-12 text-primary mb-4" />
+					<h2 className="text-xl font-semibold mb-2">Withdraw Funds</h2>
+					<p className="text-sm opacity-70 mb-6">
+					    Transfer the money you make to your bank account.
+					</p>
+					<button
+						className={`${Button.buttonClassName} w-full`}
+						onClick={handleWithdraw}
+					>
+						Withdraw
+					</button>
 				</div>
 
-				<div className="card bg-base-100 shadow-lg p-6 flex flex-col justify-between">
-					<div className="flex flex-col items-center">
-						<Wallet className="w-12 h-12 text-primary mb-4" />
-						<h2 className="text-xl font-semibold mb-2">Invest</h2>
-						<p className="text-center opacity-70">Browse new investment opportunities and grow your portfolio.</p>
-					</div>
-					<div className="mt-4 flex justify-center">
-						<button
-							className={`${Button.buttonClassName}`}
-							onClick={() => router.push("/browse-pitches")}>Browse Pitches</button>
-					</div>
+				<div className="card bg-base-100 shadow-md hover:shadow-xl transition rounded-xl p-6 flex flex-col items-center text-center">
+					<Wallet className="w-12 h-12 text-primary mb-4" />
+					<h2 className="text-xl font-semibold mb-2">Invest</h2>
+					<p className="text-sm opacity-70 mb-6">
+					    Discover new investment opportunities.
+					</p>
+					<button
+						className={`${Button.buttonClassName} w-full`}
+						onClick={() => router.push("/browse-pitches")}
+					>
+						Browse Pitches
+					</button>
 				</div>
 			</div>
 		</div>

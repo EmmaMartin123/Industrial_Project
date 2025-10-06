@@ -1,18 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams} from "next/navigation";
 import toast from "react-hot-toast";
 import { mockPitches } from "@/lib/mockPitches";
 import * as Button from "@/components/Button";
 
-export default function ProfitDistributionPage({
-	searchParams,
-}: {
-	searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default function ProfitDistributionPage()
+// ({
+// 	searchParams,
+// }: {
+// 	searchParams: { [key: string]: string | string[] | undefined };
+// }) 
+{
+
 	const router = useRouter();
-	const pitchIdParam = searchParams.pitchId;
+	//const pitchIdParam = searchParams.pitchId;
+	const searchParams = useSearchParams();
+	const pitchIdParam = searchParams.get("pitchId");
 	const pitchId = pitchIdParam ? Number(pitchIdParam) : null;
 
 	// Find pitch from mock data
@@ -56,37 +61,39 @@ export default function ProfitDistributionPage({
 	};
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6">
+		<div className="min-h-screen bg-base-100 p-6 max-w-3xl mx-auto">
 			<h1 className="text-3xl font-bold mb-6">Profit Distribution</h1>
 
 			<div className="card p-6 bg-base-100 shadow-lg mb-6">
-				<h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
-				<p className="opacity-70 mb-1">Status: {pitch.status}</p>
-				<p className="opacity-70 mb-1">
-					Raised: £{pitch.raised_amount} / £{pitch.target_amount}
-				</p>
-				<p className="opacity-70 mb-1">
-					Profit Share: {pitch.profit_share_percent}%
-				</p>
-			</div>
+        <h2 className="text-xl font-semibold mb-2">{pitch.title}</h2>
+        <p className="opacity-70 mb-1">Status: {pitch.status}</p>
+        <p className="opacity-70 mb-1">
+          Raised: £{pitch.raised_amount} / £{pitch.target_amount}
+        </p>
+        <p className="opacity-70 mb-1">
+          Profit Share: {pitch.profit_share_percent}%
+        </p>
+      </div>
 
-			<div className="card p-6 bg-base-100 shadow-lg">
-				<label className="label">
-					<span className="label-text">Declare Profit Amount (£)</span>
-				</label>
-				<input
-					type="number"
-					min={0}
-					value={profitAmount}
-					onChange={(e) => setProfitAmount(Number(e.target.value))}
-					className="input input-bordered w-full mb-4"
-				/>
-				<button onClick={handleDistribute} disabled={distributing}
-					className={`${Button.buttonClassName}`}
-				>
-					{distributing ? "Distributing..." : "Distribute Profit"}
-				</button>
-			</div>
-		</div>
-	);
+      <div className="card p-6 bg-base-100 shadow-lg">
+        <label className="label">
+          <span className="label-text">Declare Profit Amount (£)</span>
+        </label>
+        <input
+          type="number"
+          min={0}
+          value={profitAmount}
+          onChange={(e) => setProfitAmount(Number(e.target.value))}
+          className="input input-bordered w-full mb-4"
+        />
+        <button
+          onClick={handleDistribute}
+          disabled={distributing}
+          className={`${Button.buttonClassName}`}
+        >
+          {distributing ? "Distributing..." : "Distribute Profit"}
+        </button>
+      </div>
+    </div>
+  );
 }
