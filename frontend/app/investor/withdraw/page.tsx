@@ -7,25 +7,27 @@ import { useAuthStore } from "@/lib/store/authStore";
 import * as Button from "@/components/Button";
 
 export default function WithdrawPage() {
-	const router = useRouter();
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const router = useRouter();
 
 	const [amount, setAmount] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [balance, setBalance] = useState(10000);
 
+	// check auth on mount
 	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
-
-	// Redirect if not authenticated
-	useEffect(() => {
-		if (!isCheckingAuth && !authUser) {
-			router.push("/login");
+		const verifyAuth = async () => {
+			await checkAuth()
 		}
-	}, [isCheckingAuth, authUser, router]);
+		verifyAuth()
+	}, [checkAuth])
 
-	if (isCheckingAuth || !authUser) return <div className="p-6">Loading...</div>;
+	// redirect if already logged in
+	useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	const handleWithdraw = () => {
 		const numAmount = Number(amount);

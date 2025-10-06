@@ -10,35 +10,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	const router = useRouter();
+
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [activeTab, setActiveTab] = useState("overview");
 
-	const { getId } = useAuthStore();
-	const authUserId = getId(); // logged-in user ID
-
-	// fetch profile data
-	useEffect(() => {
-		async function fetchProfile() {
-			if (!authUserId) return;
-
-			try {
-				const response = await axiosInstance.get(`/profile?id=${authUserId}`);
-				setProfile(response.data);
-			} catch (err: any) {
-				console.error("Failed to fetch profile:", err.response?.data || err.message);
-			}
-		}
-		fetchProfile();
-	}, [authUserId]);
-
-	if (!profile) {
-		return <p className="text-center mt-10">Loading profile...</p>;
-	}
-
 	// check if this profile is the logged in user's profile
-	const isMine = authUserId !== null && profile.id.toString() === authUserId;
+	const isMine = authUser?.id !== null && profile?.id.toString() === authUser?.id;
 
 	return (
 		<div className="max-w-5xl mx-auto p-6 space-y-8">
@@ -46,11 +29,11 @@ export default function ProfilePage() {
 			<Card className="p-6 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-sm">
 				<Avatar className="h-24 w-24">
 					<AvatarImage src={``} alt="User" />
-					<AvatarFallback>{profile.display_name.slice(0, 2)}</AvatarFallback>
+					<AvatarFallback>{profile?.display_name.slice(0, 2)}</AvatarFallback>
 				</Avatar>
 				<div className="flex-1 space-y-2 text-center md:text-left">
-					<CardTitle className="text-2xl">{profile.display_name}</CardTitle>
-					<p className="text-muted-foreground">{profile.role}</p>
+					<CardTitle className="text-2xl">{profile?.display_name}</CardTitle>
+					<p className="text-muted-foreground">{profile?.role}</p>
 					<div className="flex gap-2 justify-center md:justify-start mt-2">
 						<Badge variant="secondary">Premium Member</Badge>
 						<Badge variant="outline">Active</Badge>
@@ -71,7 +54,7 @@ export default function ProfilePage() {
 				<Card>
 					<CardContent className="p-4 text-center">
 						<p className="text-muted-foreground text-sm">Investments</p>
-						<p className="text-xl font-semibold">{profile.dashboard_balance}</p>
+						<p className="text-xl font-semibold">{profile?.dashboard_balance}</p>
 					</CardContent>
 				</Card>
 				<Card>
@@ -105,7 +88,7 @@ export default function ProfilePage() {
 						</CardHeader>
 						<CardContent>
 							<p className="text-muted-foreground leading-relaxed">
-								{profile.display_name} is a {profile.role}. Dashboard balance: ${profile.dashboard_balance}.
+								{profile?.display_name} is a {profile?.role}. Dashboard balance: ${profile?.dashboard_balance}.
 							</p>
 						</CardContent>
 					</Card>

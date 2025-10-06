@@ -1,8 +1,10 @@
 "use client";
 
-export default function page() {
-  return (
-    <div></div>
-  )
-}
+import { Loader } from "lucide-react";
 
+export default function DashboardPage() {
+
+	return (
+		<div></div>
+	);
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import toast from "react-hot-toast";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import {
 	Plus,
 	Trash,
@@ -9,9 +9,6 @@ import {
 	Image as ImageIcon,
 	Video,
 	X,
-	Calendar as CalendarIcon,
-	DollarSign,
-	Percent,
 	FileTextIcon,
 	Wallet,
 	Layers,
@@ -20,8 +17,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { NewPitch } from "@/lib/types/pitch";
-import { postPitch } from "@/lib/api/pitch";
+import { NewPitch, Pitch as FetchedPitch } from "@/lib/types/pitch";
+import { getPitchById, patchPitch } from "@/lib/api/pitch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,10 +26,9 @@ import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
-import { useRouter } from "next/navigation";
 
-// Tier type
 type TierState = {
 	name: string;
 	min_amount: number | "";
@@ -40,7 +36,14 @@ type TierState = {
 	multiplier: number | "";
 };
 
-// File icon selector
+type MediaDisplayItem = {
+	id: string;
+	name: string; 
+	type: string;
+	url: string;
+	isNew: boolean; 
+};
+
 const getFileIcon = (mimeType: string) => {
 	if (mimeType.startsWith("image/"))
 		return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
@@ -49,9 +52,12 @@ const getFileIcon = (mimeType: string) => {
 	return <FileText className="w-4 h-4 mr-2 text-gray-500" />;
 };
 
-export default function NewPitchPage() {
-	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+export default function EditPitchPage() {
 	const router = useRouter();
+	const params = useParams();
+	const pitchId = typeof params.id === 'string' ? params.id : undefined;
+
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
@@ -59,60 +65,126 @@ export default function NewPitchPage() {
 	const [targetAmount, setTargetAmount] = useState<number | "">("");
 	const [profitShare, setProfitShare] = useState<number | "">("");
 	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+
+	const [fetchedMedia, setFetchedMedia] = useState<MediaDisplayItem[]>([]);
+
 	const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 	const [tiers, setTiers] = useState<TierState[]>([
 		{ name: "", min_amount: "", multiplier: "", max_amount: "" },
 	]);
 	const [loading, setLoading] = useState(false);
+	const [pageLoading, setPageLoading] = useState(!!pitchId);
 	const [activeTab, setActiveTab] = useState("content");
-	const investmentStartDate = new Date();
+	const investmentStartDate = useMemo(() => new Date(), []);
 
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
 
-	// check auth on mount
-	useEffect(() => {
-		const verifyAuth = async () => {
-			await checkAuth()
-		}
-		verifyAuth()
-	}, [checkAuth])
+	const fetchAndSetPitch = useCallback(async (id: string) => {
+		setPageLoading(true);
+		try {
+			const pitchData: FetchedPitch = await getPitchById(parseInt(id));
 
-	// redirect if already logged in
-	useEffect(() => {
-		if (authUser) {
-			router.push("/")
+			setTitle(pitchData.title);
+			setElevator(pitchData.elevator_pitch);
+			setDetailedPitchContent(pitchData.detailed_pitch);
+			setTargetAmount(pitchData.target_amount);
+			setProfitShare(pitchData.profit_share_percent);
+			setEndDate(new Date(pitchData.investment_end_date));
+
+			setFetchedMedia(pitchData.media?.map(m => {
+				const fileName = m.url.split('/').pop() || "Existing File";
+
+				return {
+					id: m.media_id ? String(m.media_id) : fileName,
+					url: m.url,
+					type: m.media_type,
+					name: fileName,
+					isNew: false,
+				};
+			}) ?? []);
+
+			const tiersData = pitchData.investment_tiers ?? [];
+
+			setTiers(tiersData.map(t => ({
+				name: t.name,
+				min_amount: t.min_amount,
+				max_amount: t.max_amount ?? "",
+				multiplier: t.multiplier,
+			})));
+
+			toast("Pitch data loaded for editing.");
+		} catch (error) {
+			console.error("Error fetching pitch:", error);
+			toast("Failed to load pitch data.");
+			router.push("/business/dashboard");
+		} finally {
+			setPageLoading(false);
 		}
-	}, [authUser, router])
+	}, [router]);
+
+	useEffect(() => {
+		const verifyAuthAndFetch = async () => {
+			await checkAuth();
+		};
+
+		verifyAuthAndFetch();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (isCheckingAuth) {
+			return;
+		}
+
+		if (!authUser) {
+			toast("You must be logged in to create or edit a pitch.");
+			router.push("/");
+			return;
+		}
+
+		if (pitchId) {
+			console.log("debug");
+			fetchAndSetPitch(pitchId);
+		}
+
+	}, [authUser, isCheckingAuth, router, pitchId, pageLoading]);
+
 
 	const mediaPreviews = useMemo(
 		() =>
-			mediaFiles.map((file) => ({
+			mediaFiles.map((file, index) => ({
+				id: `new-${index}-${file.name.replace(/[^a-zA-Z0-9]/g, '')}`,
 				name: file.name,
 				type: file.type,
 				url: URL.createObjectURL(file),
+				isNew: true,
 			})),
 		[mediaFiles]
 	);
+
+	const allMediaToDisplay: MediaDisplayItem[] = useMemo(
+		() => [...fetchedMedia, ...mediaPreviews],
+		[fetchedMedia, mediaPreviews]
+	);
+
 
 	useEffect(() => {
 		return () => {
 			mediaPreviews.forEach((p) => URL.revokeObjectURL(p.url));
 		};
-	}, [mediaFiles]);
+	}, [mediaFiles, mediaPreviews]);
 
 	const handleAiAnalysis = async () => {
 		try {
 			setAiLoading(true);
 			setAiAnalysis(null);
-
 			await new Promise((r) => setTimeout(r, 1500));
 			setAiAnalysis(
 				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
 			);
 		} catch (err) {
 			console.error(err);
-			toast.error("AI analysis failed.");
+			toast("AI analysis failed.");
 		} finally {
 			setAiLoading(false);
 		}
@@ -123,15 +195,24 @@ export default function NewPitchPage() {
 		if (newFiles && newFiles.length > 0) {
 			setMediaFiles((prev) => [...prev, ...Array.from(newFiles)]);
 			e.target.value = "";
-			toast.success(`Added ${newFiles.length} new file(s).`);
+			toast(`Added ${newFiles.length} new file(s).`);
 		}
 	};
 
-	const removeMediaFile = (i: number) => {
-		URL.revokeObjectURL(mediaPreviews[i].url);
-		setMediaFiles((prev) => prev.filter((_, idx) => idx !== i));
-		toast.success("Removed file.");
+	const removeMediaFile = (id: string, isNew: boolean, fileUrl: string) => {
+		if (isNew) {
+			const fileIndex = mediaFiles.findIndex(f => URL.createObjectURL(f) === fileUrl);
+			if (fileIndex !== -1) {
+				URL.revokeObjectURL(fileUrl);
+				setMediaFiles((prev) => prev.filter((_, idx) => idx !== fileIndex));
+			}
+		} else {
+			setFetchedMedia((prev) => prev.filter(m => m.id !== id));
+			toast("Existing file removed. Will be treated as deleted on next update.");
+		}
+		toast("Removed file.");
 	};
+
 
 	const handleTierChange = (i: number, field: keyof TierState, value: any) => {
 		const updated = [...tiers];
@@ -145,21 +226,21 @@ export default function NewPitchPage() {
 	const validateStep = (step: string) => {
 		if (step === "content") {
 			if (!title.trim() || !elevator.trim() || !detailedPitchContent.trim()) {
-				toast.error("Please complete all text fields before proceeding.");
+				toast("Please complete all text fields before proceeding.");
 				return false;
 			}
 		}
 		if (step === "financials") {
 			if (targetAmount === "" || profitShare === "" || !endDate) {
-				toast.error("Please complete all financial fields.");
+				toast("Please complete all financial fields.");
 				return false;
 			}
 			if (typeof targetAmount !== "number" || targetAmount <= 0) {
-				toast.error("Target Amount must be positive.");
+				toast("Target Amount must be positive.");
 				return false;
 			}
 			if (endDate <= investmentStartDate) {
-				toast.error("End date must be in the future.");
+				toast("End date must be in the future.");
 				return false;
 			}
 		}
@@ -173,7 +254,7 @@ export default function NewPitchPage() {
 					Number(t.multiplier) > 0
 			);
 			if (!valid) {
-				toast.error("All tiers must have valid values.");
+				toast("All tiers must have valid values.");
 				return false;
 			}
 		}
@@ -190,6 +271,10 @@ export default function NewPitchPage() {
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!validateStep("content") || !validateStep("financials") || !validateStep("tiers")) return;
+
+		const remainingMediaIds = fetchedMedia
+			.filter(m => !m.isNew && m.id)
+			.map(m => m.id);
 
 		const pitchPayload: NewPitch = {
 			title,
@@ -216,22 +301,30 @@ export default function NewPitchPage() {
 
 		try {
 			setLoading(true);
-			await postPitch(formData);
-			toast.success("Pitch submitted successfully! 🚀");
+
+			if (pitchId) {
+				console.log("form data: ", formData);
+				await patchPitch(Number(pitchId), formData);
+				toast("Pitch updated successfully! 💾");
+				router.push("/business/dashboard");
+			} 
+
 		} catch (err) {
 			console.error(err);
-			toast.error("Submission failed.");
+			toast("Submission failed.");
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	const pageTitle = pitchId ? "Edit Pitch" : "Create New Pitch";
+
 	return (
 		<div className="max-w-3xl mx-auto px-4 py-12 space-y-10">
 			<div>
-				<h1 className="text-3xl font-semibold tracking-tight">Create New Pitch</h1>
+				<h1 className="text-3xl font-semibold tracking-tight">{pageTitle}</h1>
 				<p className="text-muted-foreground mt-1">
-					Follow the steps below to describe and submit your investment proposal.
+					{pitchId ? "Modify and update your investment proposal." : "Follow the steps below to describe and submit your investment proposal."}
 				</p>
 			</div>
 
@@ -257,24 +350,21 @@ export default function NewPitchPage() {
 					</TabsTrigger>
 				</TabsList>
 
-				<form onSubmit={handleSubmit} className="space-y-12">
-					{/* Content */}
+				<form onSubmit={handleSubmit} className="space-y-12" key={pitchId || "new"}>
+					{/* Content Tab (Form fields remain the same) */}
 					<TabsContent value="content" className="space-y-6">
 						<div className="space-y-4">
 							<Label>Title</Label>
 							<Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. AI Farming Revolution" />
 						</div>
-
 						<div className="space-y-4">
 							<Label>Elevator Pitch</Label>
 							<Textarea value={elevator} onChange={(e) => setElevator(e.target.value)} rows={3} />
 						</div>
-
 						<div className="space-y-4">
 							<Label>Detailed Pitch</Label>
 							<Textarea value={detailedPitchContent} onChange={(e) => setDetailedPitchContent(e.target.value)} rows={10} />
 						</div>
-
 						<div className="flex justify-end">
 							<Button type="button" onClick={() => handleNext("content", "media")}>
 								Next: Media
@@ -282,7 +372,7 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Media */}
+					{/* Media Tab (Use allMediaToDisplay) */}
 					<TabsContent value="media" className="space-y-6">
 						<div
 							onClick={() => document.getElementById("media-input")?.click()}
@@ -294,19 +384,19 @@ export default function NewPitchPage() {
 						</div>
 						<Input id="media-input" type="file" className="hidden" multiple onChange={handleMediaChange} />
 
-						{mediaPreviews.length > 0 && (
+						{allMediaToDisplay.length > 0 && (
 							<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-								{mediaPreviews.map((preview, i) => (
-									<div key={i} className="relative group">
+								{allMediaToDisplay.map((preview, i) => (
+									<div key={preview.id} className="relative group">
 										{preview.type.startsWith("image/") ? (
-											<img src={preview.url} className="w-full h-32 object-cover rounded-md" />
+											<img src={preview.url} alt={`Media Preview ${i + 1}`} className="w-full h-32 object-cover rounded-md" />
 										) : (
-											<video src={preview.url} className="w-full h-32 object-cover rounded-md bg-black" />
+											<video src={preview.url} className="w-full h-32 object-cover rounded-md bg-black" controls />
 										)}
 										<Button
 											size="icon"
 											type="button"
-											onClick={() => removeMediaFile(i)}
+											onClick={() => removeMediaFile(preview.id, preview.isNew, preview.url)}
 											className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition"
 										>
 											<X className="w-4 h-4" />
@@ -326,7 +416,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Financials */}
 					<TabsContent value="financials" className="space-y-6">
 						<div className="grid gap-4">
 							<div>
@@ -366,7 +455,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Tiers */}
 					<TabsContent value="tiers" className="space-y-8">
 						{tiers.map((tier, i) => (
 							<div key={i} className="border-b pb-6 space-y-4">
@@ -411,13 +499,12 @@ export default function NewPitchPage() {
 							<Button variant="outline" type="button" onClick={() => setActiveTab("financials")}>
 								Previous
 							</Button>
-							<Button type="button" onClick={() => handleNext("tiers", "overview")}>
+							<Button type="button" onClick={() => handleNext("financials", "overview")}>
 								Next: Overview
 							</Button>
 						</div>
 					</TabsContent>
 
-					{/* Overview */}
 					<TabsContent value="overview" className="space-y-8">
 						<div className="space-y-6">
 							<h3 className="text-xl font-semibold">Review Your Pitch</h3>
@@ -432,16 +519,16 @@ export default function NewPitchPage() {
 
 							<div className="border rounded-lg p-6 space-y-4">
 								<h4 className="font-medium text-lg">Media</h4>
-								{mediaPreviews.length > 0 ? (
+								{allMediaToDisplay.length > 0 ? (
 									<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-										{mediaPreviews.map((m, i) => (
-											<div key={i}>
+										{allMediaToDisplay.map((m, i) => (
+											<div key={m.id}>
 												{m.type.startsWith("image/") ? (
 													<img src={m.url} alt="" className="w-full h-24 object-cover rounded-md" />
 												) : (
 													<video src={m.url} className="w-full h-24 object-cover rounded-md" />
 												)}
-												<p className="text-xs mt-1 truncate">{m.name}</p>
+												<p className="text-xs mt-1 truncate">{m.name} {m.isNew && <span className="text-blue-500">(New)</span>}</p>
 											</div>
 										))}
 									</div>
@@ -481,12 +568,11 @@ export default function NewPitchPage() {
 								Previous
 							</Button>
 							<Button className="bg-primary text-primary-foreground hover:bg-primary/90" type="submit" disabled={loading}>
-								{loading ? "Submitting..." : "Submit Pitch"}
+								{loading ? (pitchId ? "Updating..." : "Submitting...") : (pitchId ? "Update Pitch" : "Submit Pitch")}
 							</Button>
 						</div>
 					</TabsContent>
 
-					{/* AI Analysis */}
 					<TabsContent value="ai" className="space-y-6">
 						<div className="border rounded-lg p-6 space-y-4">
 							<div className="flex justify-between items-center">
