@@ -32,11 +32,11 @@ export default function ManagePitchesPage() {
 	}, [checkAuth])
 
 	// redirect if already logged in
-	useEffect(() => {
+	/*useEffect(() => {
 		if (authUser) {
 			router.push("/")
 		}
-	}, [authUser, router])
+	}, [authUser, router])*/
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);

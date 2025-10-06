@@ -40,7 +40,7 @@ export default function BusinessPitchesPage() {
 	const [totalPages, setTotalPages] = useState<number>(1);
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-	const pageSize = 9;
+	const pageSize = 100;
 
 	// auth checks
 	useEffect(() => {
