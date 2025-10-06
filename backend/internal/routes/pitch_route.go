@@ -327,9 +327,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			queryParams = append(queryParams, fmt.Sprintf("status=eq.%s", status))
 		}
 
-		if limit != "" {
-			limitValue, err := strconv.Atoi(limit)
-			if err == nil && limitValue > 0 {
+		limitValue := 0
+		if limit != "" && orderBy == "" { // Only apply limit at DB level if not sorting
+			if val, err := strconv.Atoi(limit); err == nil && val > 0 {
+				limitValue = val
 				queryParams = append(queryParams, fmt.Sprintf("limit=%d", limitValue))
 			}
 		}
@@ -425,52 +426,134 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		var pitchIDs []string
+		pitchIDMap := make(map[int64]database.Pitch)
+		for _, pitch := range filtered_pitches {
+			if pitch.PitchID != nil {
+				pitchIDs = append(pitchIDs, strconv.FormatInt(*pitch.PitchID, 10))
+				pitchIDMap[*pitch.PitchID] = pitch
+			}
+		}
+
+		if len(pitchIDs) == 0 {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]frontend.Pitch{})
+			return
+		}
+
+		investmentTiersMap := make(map[int64][]model.InvestmentTier)
+		if len(pitchIDs) > 0 {
+			query := fmt.Sprintf("pitch_id=in.(%s)", strings.Join(pitchIDs, ","))
+			tiersData, err := utils.GetDataByQuery("investment_tier", query)
+			if err == nil {
+				var allTiers []model.InvestmentTier
+				if json.Unmarshal(tiersData, &allTiers) == nil {
+					for _, tier := range allTiers {
+						investmentTiersMap[tier.PitchID] = append(investmentTiersMap[tier.PitchID], tier)
+					}
+				}
+			}
+		}
+
+		mediaMap := make(map[int64][]frontend.PitchMedia)
+		if len(pitchIDs) > 0 {
+			query := fmt.Sprintf("pitch_id=in.(%s)", strings.Join(pitchIDs, ","))
+			mediaData, err := utils.GetDataByQuery("pitch_media", query)
+			if err == nil {
+				var allMedia []frontend.PitchMedia
+				if json.Unmarshal(mediaData, &allMedia) == nil {
+					for _, media := range allMedia {
+						if media.PitchID != nil {
+							mediaMap[*media.PitchID] = append(mediaMap[*media.PitchID], media)
+						}
+					}
+				}
+			}
+		}
+
+		tagMap := make(map[int64][]string)
+		tagIDsMap := make(map[int64][]int64) // pitch_id -> []tag_id
+
+		if len(pitchIDs) > 0 {
+			query := fmt.Sprintf("pitch_id=in.(%s)", strings.Join(pitchIDs, ","))
+			tagLinksData, err := utils.GetDataByQuery("pitch_tags", query)
+			if err == nil {
+				var links []struct {
+					PitchID int64 `json:"pitch_id"`
+					TagID   int64 `json:"tag_id"`
+				}
+
+				if json.Unmarshal(tagLinksData, &links) == nil {
+					// Collect all tag IDs
+					var tagIDs []string
+					tagIDSet := make(map[int64]bool)
+
+					for _, link := range links {
+						tagIDsMap[link.PitchID] = append(tagIDsMap[link.PitchID], link.TagID)
+						if !tagIDSet[link.TagID] {
+							tagIDSet[link.TagID] = true
+							tagIDs = append(tagIDs, strconv.FormatInt(link.TagID, 10))
+						}
+					}
+
+					if len(tagIDs) > 0 {
+						query = fmt.Sprintf("id=in.(%s)", strings.Join(tagIDs, ","))
+						tagsData, err := utils.GetDataByQuery("tags", query)
+						if err == nil {
+							var allTags []struct {
+								ID   int64  `json:"id"`
+								Name string `json:"name"`
+							}
+
+							if json.Unmarshal(tagsData, &allTags) == nil {
+								tagNameMap := make(map[int64]string)
+								for _, tag := range allTags {
+									tagNameMap[tag.ID] = tag.Name
+								}
+
+								for pitchID, tagIDs := range tagIDsMap {
+									for _, tagID := range tagIDs {
+										if name, ok := tagNameMap[tagID]; ok {
+											tagMap[pitchID] = append(tagMap[pitchID], name)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		var pitches_to_send []frontend.Pitch
 		for _, pitch := range filtered_pitches {
-			investment_tiers, invest_err := get_investment_tiers(pitch)
-			if invest_err != nil {
-				http.Error(w, "Error decoding investment tiers", http.StatusInternalServerError)
-				return
+			if pitch.PitchID == nil {
+				continue
 			}
 
-			media, media_err := utils.GetPitchMedia(*pitch.PitchID)
-			if media_err != nil {
-				fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
-				media = []frontend.PitchMedia{}
-			}
-
-			tagLinkRes, _ := utils.GetDataByQuery("pitch_tags", fmt.Sprintf("pitch_id=eq.%d", *pitch.PitchID))
-			var links []struct {
-				TagID int64 `json:"tag_id"`
-			}
-			json.Unmarshal(tagLinkRes, &links)
-			var tagNames []string
-			for _, l := range links {
-				tagRes, _ := utils.GetDataByID("tags", strconv.FormatInt(l.TagID, 10))
-				var tags []struct {
-					Name string `json:"name"`
-				}
-				if json.Unmarshal(tagRes, &tags) == nil && len(tags) > 0 {
-					tagNames = append(tagNames, tags[0].Name)
-				}
-			}
+			pitchID := *pitch.PitchID
+			investment_tiers := investmentTiersMap[pitchID]
+			media := mediaMap[pitchID]
+			tagNames := tagMap[pitchID]
 
 			front := mapping.Pitch_ToFrontend(pitch, investment_tiers, media, tagNames)
 			pitches_to_send = append(pitches_to_send, front)
 		}
 
-		sortConfig := misc.SortConfig{}
 		if orderBy != "" {
+			var sortConfig misc.SortConfig
 			if err := json.Unmarshal([]byte(orderBy), &sortConfig); err == nil {
 				sortPitchesByField(pitches_to_send, sortConfig.Field, sortConfig.Direction == "desc")
+
+				if limit != "" {
+					if val, err := strconv.Atoi(limit); err == nil && val > 0 && val < len(pitches_to_send) {
+						pitches_to_send = pitches_to_send[:val]
+					}
+				}
+			} else {
+				fmt.Printf("Error parsing orderBy: %v\n", err)
 			}
-		} /*else if sort != "" {
-			parts := strings.Split(sort, ":")
-			if len(parts) == 2 && parts[0] == "price" {
-				isAscending := parts[1] == "asc"
-				sortPitchesByPrice(pitches_to_send, isAscending)
-			}
-		}*/
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pitches_to_send)
@@ -639,7 +722,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	old_media, _ := utils.GetPitchMedia(pitchID)
 
 	fmt.Println("Old pitch: ", old_pitch)
-	
+
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
 	to_db.PitchID = nil
 	to_db.CreatedAt = "now()"
