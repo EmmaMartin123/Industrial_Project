@@ -147,7 +147,7 @@ export default function EditPitchPage() {
 			fetchAndSetPitch(pitchId);
 		}
 
-	}, [authUser, isCheckingAuth, router, pitchId, pageLoading]);
+	}, [authUser, isCheckingAuth, router, pitchId, fetchAndSetPitch]);
 
 
 	const mediaPreviews = useMemo(
