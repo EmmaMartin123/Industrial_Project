@@ -288,7 +288,6 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 													<p className="font-semibold">{tier.name}</p>
 													<div className="text-sm text-muted-foreground mt-1">
 														<p>Min: £{tier.min_amount}</p>
-														<p>Max: £{tier.max_amount}</p>
 														<p>Multiplier: {tier.multiplier}x</p>
 													</div>
 												</div>

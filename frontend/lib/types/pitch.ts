@@ -39,6 +39,7 @@ export type NewPitch = {
 	elevator_pitch: string;
 	detailed_pitch: string;
 	target_amount: number;
+	status: "Active" | "Funded" | "Draft" | "Closed";
 	profit_share_percent: number;
 	investment_start_date: string;
 	investment_end_date: string;
