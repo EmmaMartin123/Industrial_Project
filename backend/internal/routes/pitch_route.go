@@ -145,7 +145,11 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	if ok, _ := utilsdb.CheckUserRole(w, uid, "business"); !ok {
 		return
 	}
+
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
+	db_pitch.CreatedAt = "now()"
+	db_pitch.UpdatedAt = &db_pitch.CreatedAt
+
 	result, err := utils.InsertData(db_pitch, "pitch")
 	if err != nil {
 		fmt.Printf("Error inserting pitch: %v\n", err)
