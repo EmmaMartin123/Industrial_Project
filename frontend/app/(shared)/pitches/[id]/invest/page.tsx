@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import axios from "@/lib/axios";
-import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
+import { Pitch, InvestmentTier } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
 import { toast } from "sonner";
 import { getPitchById } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
+import { Button } from "@/components/ui/button";
 
 export default function InvestPage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
 	const router = useRouter();
 	const params = useParams();
 	const pitchId = Number(params?.id);
@@ -19,23 +19,21 @@ export default function InvestPage() {
 	const [pitch, setPitch] = useState<Pitch | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [amount, setAmount] = useState<number>(0);
-	const [selectedTier, setSelectedTier] = useState<InvestmentTier | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
-			await checkAuth()
-		}
-		verifyAuth()
-	}, [checkAuth])
+			await checkAuth();
+		};
+		verifyAuth();
+	}, [checkAuth]);
 
-	// redirect if already logged in
 	useEffect(() => {
-		if (authUser) {
-			router.push("/")
+		if (!isCheckingAuth && !authUser) {
+			router.push("/");
 		}
-	}, [authUser, router])
+	}, [authUser, isCheckingAuth, router]);
 
 	// fetch pitch data
 	useEffect(() => {
@@ -47,8 +45,6 @@ export default function InvestPage() {
 		const fetchPitch = async () => {
 			try {
 				const data = await getPitchById(pitchId);
-
-				console.log(data);
 				setPitch(data);
 			} catch (err: any) {
 				console.error("Fetch pitch failed:", err);
@@ -77,11 +73,6 @@ export default function InvestPage() {
 		);
 	}
 
-	const handleTierSelect = (tier: InvestmentTier) => {
-		setSelectedTier(tier);
-		setAmount(tier.min_amount);
-	};
-
 	const handleSubmit = async () => {
 		if (!amount || amount <= 0) {
 			toast.error("Enter a valid investment amount.");
@@ -90,7 +81,7 @@ export default function InvestPage() {
 
 		setIsSubmitting(true);
 		try {
-			const res = await axios.post("/investment", {
+			await axios.post("/investment", {
 				pitch_id: pitch.id,
 				amount,
 			});
@@ -119,55 +110,59 @@ export default function InvestPage() {
 			</div>
 
 			{/* Investment Section */}
-			<div className="bg-white shadow-md rounded-xl p-6 space-y-6 border border-gray-100">
-				<h2 className="text-2xl font-semibold text-gray-800">Select Investment Tier</h2>
+			<div className="bg-white rounded-xl p-6 space-y-6 border border-gray-100">
+				<h2 className="text-2xl font-semibold text-gray-800">Investment Tiers</h2>
 
 				{/* Tiers */}
 				<div className="grid gap-4 md:grid-cols-2">
-					{pitch.investment_tiers?.map((tier) => (
-						<div
-							key={tier.tier_id}
-							onClick={() => handleTierSelect(tier)}
-							className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 flex flex-col justify-between ${selectedTier?.tier_id === tier.tier_id
-									? "border-blue-500 bg-blue-50 shadow-md"
-									: "border-gray-200 hover:bg-gray-50 hover:shadow-sm"
-								}`}
-						>
-							<div>
+					{pitch.investment_tiers?.map((tier) => {
+						const isAmountInTier =
+							amount >= tier.min_amount &&
+							(tier.max_amount == null || amount <= tier.max_amount);
+
+						return (
+							<div
+								key={tier.tier_id}
+								className={`p-4 border rounded-lg flex flex-col justify-between transition-all duration-200
+									${isAmountInTier
+										? "border-blue-500 bg-blue-50 shadow-md"
+										: "border-gray-200 bg-white"
+									}`}
+							>
 								<p className="font-semibold text-gray-900">{tier.name}</p>
 								<p className="text-sm text-gray-500 mt-1">
 									Min: £{tier.min_amount} | Max: £{tier.max_amount ?? "∞"} | Multiplier: {tier.multiplier}x
 								</p>
 							</div>
-						</div>
-					))}
+						);
+					})}
 				</div>
 
 				{/* Amount Input */}
 				<div className="space-y-2">
 					<label className="block font-medium text-gray-700">Investment Amount (£)</label>
 					<input
-						type="number"
-						value={amount}
-						min={selectedTier?.min_amount ?? 1}
-						max={selectedTier?.max_amount ?? undefined}
-						onChange={(e) => setAmount(Number(e.target.value))}
+						type="text"
+						inputMode="numeric"
+						pattern="[0-9]*"
+						value={amount === 0 ? "" : amount} // show empty instead of 0
+						onChange={(e) => {
+							const val = e.target.value.replace(/[^0-9]/g, ""); // only digits
+							setAmount(val === "" ? 0 : Number(val));
+						}}
 						className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
 						placeholder="Enter your investment amount"
 					/>
 				</div>
 
 				{/* Submit Button */}
-				<button
+				<Button
 					onClick={handleSubmit}
-					disabled={isSubmitting || !selectedTier}
-					className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${isSubmitting || !selectedTier
-							? "bg-gray-400 cursor-not-allowed"
-							: "bg-blue-600 hover:bg-blue-700"
-						}`}
+					disabled={isSubmitting || amount <= 0}
+					className="w-full"
 				>
-					{isSubmitting ? "Processing..." : "Invest Now"}
-				</button>
+					Invest Now
+				</Button>
 			</div>
 		</div>
 	);
