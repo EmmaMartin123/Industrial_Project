@@ -591,14 +591,19 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	var pitches []database.Pitch
 	if err := json.Unmarshal([]byte(result), &pitches); err != nil || len(pitches) != 1 {
 		http.Error(w, "Error decoding pitch", http.StatusInternalServerError)
+		fmt.Println("Body: ", string(result))
 		return
 	}
+	fmt.Println("Pitches: ", pitches)
+
 	old_pitch := pitches[0]
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || user_id != old_pitch.UserID {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	fmt.Println("User ID: ", user_id)
 	if ok, _ := utilsdb.CheckUserRole(w, user_id, "business"); !ok {
 		return
 	}
@@ -623,6 +628,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
+	fmt.Println("New pitch: ", new_pitch)
 
 	if old_pitch.Status != "Draft" {
 		old_tiers, _ := get_investment_tiers(old_pitch)
@@ -632,8 +638,13 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	old_tiers, _ := get_investment_tiers(old_pitch)
 	old_media, _ := utils.GetPitchMedia(pitchID)
 
+	fmt.Println("Old pitch: ", old_pitch)
+	
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
-	to_db.PitchID = &pitchID
+	to_db.PitchID = nil
+	to_db.CreatedAt = "now()"
+	to_db.UpdatedAt = &to_db.CreatedAt
+	fmt.Println("To db: ", to_db)
 	_, err = utils.UpdateByID("pitch", pitchIDStr, to_db)
 	if err != nil {
 		http.Error(w, "Failed to update pitch", http.StatusInternalServerError)
