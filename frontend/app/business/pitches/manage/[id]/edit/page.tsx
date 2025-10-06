@@ -283,6 +283,7 @@ export default function EditPitchPage() {
 			target_amount: Number(targetAmount),
 			investment_start_date: investmentStartDate.toISOString(),
 			investment_end_date: endDate!.toISOString(),
+			status: "Active",
 			profit_share_percent: Number(profitShare),
 			investment_tiers: tiers.map((t) => ({
 				name: t.name,
