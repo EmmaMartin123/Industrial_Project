@@ -145,7 +145,11 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	if ok, _ := utilsdb.CheckUserRole(w, uid, "business"); !ok {
 		return
 	}
+
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
+	db_pitch.CreatedAt = "now()"
+	db_pitch.UpdatedAt = &db_pitch.CreatedAt
+
 	result, err := utils.InsertData(db_pitch, "pitch")
 	if err != nil {
 		fmt.Printf("Error inserting pitch: %v\n", err)
@@ -295,6 +299,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	investment_end_date := r.URL.Query().Get("investment_end_date")
 	limit := r.URL.Query().Get("limit")
 	offset := r.URL.Query().Get("offset")
+	status := r.URL.Query().Get("status")
 	sort := r.URL.Query().Get("sort")
 
 	if pitchID == "" {
@@ -314,6 +319,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 		if investment_end_date != "" {
 			queryParams = append(queryParams, fmt.Sprintf("investment_end_date=eq.%s", investment_end_date))
+		}
+
+		if status != "" {
+			queryParams = append(queryParams, fmt.Sprintf("status=eq.%s", status))
 		}
 
 		if limit != "" {
