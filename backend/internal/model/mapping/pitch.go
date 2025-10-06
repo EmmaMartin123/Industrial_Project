@@ -8,8 +8,8 @@ import (
 
 func Pitch_ToDatabase(p frontend.Pitch, user_id string) database.Pitch {
 	raised_amount := int64(0)
-	if p.RaisedAmount != nil {
-		raised_amount = *p.RaisedAmount
+	if p.RaisedAmount != 0 {
+		raised_amount = int64(p.RaisedAmount)
 	}
 
 	return database.Pitch{
@@ -42,7 +42,7 @@ func Pitch_ToFrontend(p database.Pitch, investment_tiers []model.InvestmentTier,
 		ProfitSharePercent:  p.ProfitSharePercent,
 		UserID:              &userID,
 		InvestmentTiers:     investment_tiers,
-		RaisedAmount:        &p.RaisedAmount,
+		RaisedAmount:        uint64(p.RaisedAmount),
 		Media:               media,
 		Tags:                tags,
 		UpdatedAt:           p.UpdatedAt,

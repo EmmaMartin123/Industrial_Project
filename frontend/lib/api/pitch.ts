@@ -70,7 +70,11 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 			case "targetDesc": backendSort = "target_amount:desc"; break;
 			case "targetAsc": backendSort = "target_amount:asc"; break;
 		}
-		if (backendSort) params.append("sort", backendSort);
+		if (backendSort) {
+			const [field, direction] = backendSort.split(":");
+			const jsonFormat = JSON.stringify({ field, direction });
+			params.append("orderBy", jsonFormat);
+		}
 	}
 
 	const response = await axios.get(`/pitch?${params.toString()}`);

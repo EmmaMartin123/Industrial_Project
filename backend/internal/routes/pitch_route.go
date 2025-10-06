@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/database"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/frontend"
 	mapping "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/mapping"
+	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/misc"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/utils"
 	utilsdb "github.com/EmmaMartin123/Industrial_Project/backend/internal/utils/db"
 )
@@ -300,7 +302,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	limit := r.URL.Query().Get("limit")
 	offset := r.URL.Query().Get("offset")
 	status := r.URL.Query().Get("status")
-	sort := r.URL.Query().Get("sort")
+	orderBy := r.URL.Query().Get("orderBy")
 
 	if pitchID == "" {
 		var queryParams []string
@@ -457,13 +459,18 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			pitches_to_send = append(pitches_to_send, front)
 		}
 
-		if sort != "" {
+		sortConfig := misc.SortConfig{}
+		if orderBy != "" {
+			if err := json.Unmarshal([]byte(orderBy), &sortConfig); err == nil {
+				sortPitchesByField(pitches_to_send, sortConfig.Field, sortConfig.Direction == "desc")
+			}
+		} /*else if sort != "" {
 			parts := strings.Split(sort, ":")
 			if len(parts) == 2 && parts[0] == "price" {
 				isAscending := parts[1] == "asc"
 				sortPitchesByPrice(pitches_to_send, isAscending)
 			}
-		}
+		}*/
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pitches_to_send)
@@ -784,4 +791,34 @@ func DeletePitchTags(pitchID int64) error {
 		return fmt.Errorf("delete pitch_tags failed: %d, body: %s", resp.StatusCode, string(body))
 	}
 	return nil
+}
+
+func sortPitchesByField(pitches []frontend.Pitch, field string, descending bool) {
+	sort.Slice(pitches, func(i, j int) bool {
+		var result bool
+
+		switch field {
+		case "title":
+			result = pitches[i].ProductTitle < pitches[j].ProductTitle
+		case "target_amount":
+			result = pitches[i].TargetAmount < pitches[j].TargetAmount
+		case "profit_share_percent":
+			result = pitches[i].ProfitSharePercent < pitches[j].ProfitSharePercent
+		case "raised_amount":
+			result = pitches[i].RaisedAmount < pitches[j].RaisedAmount
+		case "investment_start_date":
+			result = pitches[i].InvestmentStartDate < pitches[j].InvestmentStartDate
+		case "investment_end_date":
+			result = pitches[i].InvestmentEndDate < pitches[j].InvestmentEndDate
+		case "price":
+			result = getMinimumTierPrice(pitches[i].InvestmentTiers) < getMinimumTierPrice(pitches[j].InvestmentTiers)
+		default:
+			return false
+		}
+
+		if descending {
+			return !result
+		}
+		return result
+	})
 }
