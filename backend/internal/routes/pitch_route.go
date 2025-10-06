@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/database"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/frontend"
 	mapping "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/mapping"
+	"github.com/EmmaMartin123/Industrial_Project/backend/internal/model/misc"
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/utils"
 	utilsdb "github.com/EmmaMartin123/Industrial_Project/backend/internal/utils/db"
 )
@@ -145,7 +147,11 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	if ok, _ := utilsdb.CheckUserRole(w, uid, "business"); !ok {
 		return
 	}
+
 	db_pitch := mapping.Pitch_ToDatabase(pitch, uid)
+	db_pitch.CreatedAt = "now()"
+	db_pitch.UpdatedAt = &db_pitch.CreatedAt
+
 	result, err := utils.InsertData(db_pitch, "pitch")
 	if err != nil {
 		fmt.Printf("Error inserting pitch: %v\n", err)
@@ -295,7 +301,8 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	investment_end_date := r.URL.Query().Get("investment_end_date")
 	limit := r.URL.Query().Get("limit")
 	offset := r.URL.Query().Get("offset")
-	sort := r.URL.Query().Get("sort")
+	status := r.URL.Query().Get("status")
+	orderBy := r.URL.Query().Get("orderBy")
 
 	if pitchID == "" {
 		var queryParams []string
@@ -314,6 +321,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 		if investment_end_date != "" {
 			queryParams = append(queryParams, fmt.Sprintf("investment_end_date=eq.%s", investment_end_date))
+		}
+
+		if status != "" {
+			queryParams = append(queryParams, fmt.Sprintf("status=eq.%s", status))
 		}
 
 		if limit != "" {
@@ -448,13 +459,18 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			pitches_to_send = append(pitches_to_send, front)
 		}
 
-		if sort != "" {
+		sortConfig := misc.SortConfig{}
+		if orderBy != "" {
+			if err := json.Unmarshal([]byte(orderBy), &sortConfig); err == nil {
+				sortPitchesByField(pitches_to_send, sortConfig.Field, sortConfig.Direction == "desc")
+			}
+		} /*else if sort != "" {
 			parts := strings.Split(sort, ":")
 			if len(parts) == 2 && parts[0] == "price" {
 				isAscending := parts[1] == "asc"
 				sortPitchesByPrice(pitches_to_send, isAscending)
 			}
-		}
+		}*/
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(pitches_to_send)
@@ -575,14 +591,19 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	var pitches []database.Pitch
 	if err := json.Unmarshal([]byte(result), &pitches); err != nil || len(pitches) != 1 {
 		http.Error(w, "Error decoding pitch", http.StatusInternalServerError)
+		fmt.Println("Body: ", string(result))
 		return
 	}
+	fmt.Println("Pitches: ", pitches)
+
 	old_pitch := pitches[0]
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || user_id != old_pitch.UserID {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	fmt.Println("User ID: ", user_id)
 	if ok, _ := utilsdb.CheckUserRole(w, user_id, "business"); !ok {
 		return
 	}
@@ -607,6 +628,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
+	fmt.Println("New pitch: ", new_pitch)
 
 	if old_pitch.Status != "Draft" {
 		old_tiers, _ := get_investment_tiers(old_pitch)
@@ -616,8 +638,13 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	old_tiers, _ := get_investment_tiers(old_pitch)
 	old_media, _ := utils.GetPitchMedia(pitchID)
 
+	fmt.Println("Old pitch: ", old_pitch)
+	
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
-	to_db.PitchID = &pitchID
+	to_db.PitchID = nil
+	to_db.CreatedAt = "now()"
+	to_db.UpdatedAt = &to_db.CreatedAt
+	fmt.Println("To db: ", to_db)
 	_, err = utils.UpdateByID("pitch", pitchIDStr, to_db)
 	if err != nil {
 		http.Error(w, "Failed to update pitch", http.StatusInternalServerError)
@@ -775,4 +802,34 @@ func DeletePitchTags(pitchID int64) error {
 		return fmt.Errorf("delete pitch_tags failed: %d, body: %s", resp.StatusCode, string(body))
 	}
 	return nil
+}
+
+func sortPitchesByField(pitches []frontend.Pitch, field string, descending bool) {
+	sort.Slice(pitches, func(i, j int) bool {
+		var result bool
+
+		switch field {
+		case "title":
+			result = pitches[i].ProductTitle < pitches[j].ProductTitle
+		case "target_amount":
+			result = pitches[i].TargetAmount < pitches[j].TargetAmount
+		case "profit_share_percent":
+			result = pitches[i].ProfitSharePercent < pitches[j].ProfitSharePercent
+		case "raised_amount":
+			result = pitches[i].RaisedAmount < pitches[j].RaisedAmount
+		case "investment_start_date":
+			result = pitches[i].InvestmentStartDate < pitches[j].InvestmentStartDate
+		case "investment_end_date":
+			result = pitches[i].InvestmentEndDate < pitches[j].InvestmentEndDate
+		case "price":
+			result = getMinimumTierPrice(pitches[i].InvestmentTiers) < getMinimumTierPrice(pitches[j].InvestmentTiers)
+		default:
+			return false
+		}
+
+		if descending {
+			return !result
+		}
+		return result
+	})
 }

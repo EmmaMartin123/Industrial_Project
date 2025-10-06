@@ -9,23 +9,52 @@ import {
 	ItemDescription,
 	ItemTitle,
 } from "@/components/ui/item";
-import { PlusCircle, Users, Coins } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/lib/store/authStore";
+import { getUserProfile } from "@/lib/api/profile";
 
 export default function BusinessDashboard() {
 	const router = useRouter();
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const [userProfile, setUserProfile] = useState<any>(null);
+
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth();
+		};
+		verifyAuth();
+	}, [checkAuth]);
+
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) {
+			router.push("/login");
+		}
+	}, [authUser, isCheckingAuth, router]);
 
 	return (
-		<div className="min-h-screen bg-base-100 p-6 flex flex-col items-center gap-6">
-			<h1 className="text-4xl font-bold mb-6">Business Dashboard</h1>
+		<div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-8">
+			{/* Header */}
+			<header className="max-w-6xl mx-auto mb-10 text-center">
+				<h1 className="text-4xl md:text-5xl font-extrabold text-primary mb-2">
+					Welcome, {userProfile?.display_name || "Business Owner"}!
+				</h1>
+				<p className="text-gray-600 text-lg md:text-xl">
+					Manage your pitches and track your profits all in one place.
+				</p>
+			</header>
 
-			<div className="flex flex-col gap-4 w-full max-w-lg">
+			{/* Dashboard cards */}
+			<div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 				{/* New Pitch */}
-				<Item>
-					<ItemContent className="flex items-center gap-2">
-						<PlusCircle />
+				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
+					<ItemContent className="flex items-center gap-4">
 						<div>
-							<ItemTitle>New Pitch</ItemTitle>
-							<ItemDescription>Create a new pitch to attract investors.</ItemDescription>
+							<ItemTitle className="text-lg font-semibold text-gray-800">
+								New Pitch
+							</ItemTitle>
+							<ItemDescription className="text-gray-500">
+								Create a new pitch to attract investors.
+							</ItemDescription>
 						</div>
 					</ItemContent>
 					<ItemActions>
@@ -34,18 +63,21 @@ export default function BusinessDashboard() {
 							size="sm"
 							onClick={() => router.push("/business/pitches/new")}
 						>
-							Open
+							Create
 						</Button>
 					</ItemActions>
 				</Item>
 
 				{/* Manage Pitches */}
-				<Item>
-					<ItemContent className="flex items-center gap-2">
-						<Users />
+				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
+					<ItemContent className="flex items-center gap-4">
 						<div>
-							<ItemTitle>Manage Pitches</ItemTitle>
-							<ItemDescription>Edit or review your existing pitches.</ItemDescription>
+							<ItemTitle className="text-lg font-semibold text-gray-800">
+								Manage Pitches
+							</ItemTitle>
+							<ItemDescription className="text-gray-500">
+								Edit or review your existing pitches.
+							</ItemDescription>
 						</div>
 					</ItemContent>
 					<ItemActions>
@@ -54,27 +86,7 @@ export default function BusinessDashboard() {
 							size="sm"
 							onClick={() => router.push("/business/pitches/manage")}
 						>
-							Open
-						</Button>
-					</ItemActions>
-				</Item>
-
-				{/* Profit Distribution */}
-				<Item>
-					<ItemContent className="flex items-center gap-2">
-						<Coins />
-						<div>
-							<ItemTitle>Profit Distribution</ItemTitle>
-							<ItemDescription>View and distribute profits from successful pitches.</ItemDescription>
-						</div>
-					</ItemContent>
-					<ItemActions>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => router.push("/business/profit-distribution")}
-						>
-							Open
+							Manage
 						</Button>
 					</ItemActions>
 				</Item>

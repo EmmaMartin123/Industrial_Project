@@ -7,8 +7,10 @@ import { useEffect } from "react";
 export default function page() {
 	const router = useRouter();
 
-  return (
-    <div></div>
-  )
+	return (
+		<div></div>
+	)
 }
+
+
 

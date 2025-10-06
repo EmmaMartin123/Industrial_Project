@@ -2,12 +2,12 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { getPitch } from "@/lib/api/pitch";
+import { getPitchById } from "@/lib/api/pitch";
 import { Pitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
 import LoaderComponent from "@/components/Loader";
-import * as Button from "@/components/Button";
-// Import the required Icon from lucide-react
 import { Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import {
 	Carousel,
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/hover-card"
 
 import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner"
+import { useAuthStore } from "@/lib/store/authStore";
 
 const calculateDaysRemaining = (endDate: Date): number | null => {
 	const today = new Date();
@@ -52,6 +52,16 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
 	useEffect(() => {
 		if (isNaN(pitchId) || pitchId <= 0) {
 			setError("Invalid Pitch ID format in URL.");
@@ -61,7 +71,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 
 		const fetchPitch = async () => {
 			try {
-				const pitchData = await getPitch(pitchId);
+				const pitchData = await getPitchById(pitchId);
 				const finalPitchData = Array.isArray(pitchData)
 					? pitchData[0]
 					: pitchData;
@@ -72,14 +82,14 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 				}
 
 				const mappedPitch: Pitch = {
-					pitch_id: finalPitchData.id || finalPitchData.pitch_id,
+					id: finalPitchData.id || finalPitchData.pitch_id,
 					title: finalPitchData.title,
 					elevator_pitch: finalPitchData.elevator_pitch,
 					detailed_pitch: finalPitchData.detailed_pitch,
 					target_amount: finalPitchData.target_amount,
 					raised_amount: finalPitchData.raised_amount ?? 0,
 					profit_share_percent: finalPitchData.profit_share_percent,
-					status: "Active",
+					status: finalPitchData.status,
 					investment_start_date: new Date(finalPitchData.investment_start_date),
 					investment_end_date: new Date(finalPitchData.investment_end_date),
 					created_at: new Date(finalPitchData.created_at ?? Date.now()),
@@ -129,7 +139,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 			: (pitch.raised_amount / pitch.target_amount) * 100;
 
 	const handleInvest = () => {
-		router.push(`/pitches/${pitch.pitch_id}/invest`);
+		router.push(`/pitches/${pitch.id}/invest`);
 	};
 
 	const DateDisplay = () => {
@@ -223,7 +233,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 						<div className="flex justify-between text-sm">
 							<span className="font-medium text-muted-foreground">Raised</span>
 							<span className="font-semibold">
-								${pitch.raised_amount.toLocaleString()} / $
+								£{pitch.raised_amount.toLocaleString()} / £
 								{pitch.target_amount.toLocaleString()}
 							</span>
 						</div>
@@ -243,7 +253,18 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 						</div>
 						<div className="p-4 border rounded-lg text-center bg-neutral-50">
 							<p className="text-xs text-muted-foreground">Status</p>
-							<p className="text-lg font-semibold text-green-600">
+							<p
+								className={`text-lg font-semibold ${pitch.status === "Active"
+									? "text-green-600"
+									: pitch.status === "Draft"
+										? "text-yellow-500"
+										: pitch.status === "Funded"
+											? "text-blue-600"
+											: pitch.status === "Closed"
+												? "text-red-600"
+												: "text-gray-600"
+									}`}
+							>
 								{pitch.status}
 							</p>
 						</div>
@@ -295,12 +316,19 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 					)}
 
 					{/* call to action */}
-					<button
-						className={Button.buttonClassName + " w-full"}
-						onClick={handleInvest}
+					<Button
+						className="w-full"
+						onClick={() => {
+							if (pitch.status !== "Active") {
+								toast("You cannot invest because this pitch is not active");
+								return;
+							}
+							handleInvest();
+						}}
+						disabled={pitch.status !== "Active"}
 					>
 						Invest Now
-					</button>
+					</Button>
 				</aside>
 			</div>
 		</div>

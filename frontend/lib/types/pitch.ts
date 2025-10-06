@@ -6,9 +6,8 @@ export type PitchMedia = {
 	order_in_description: number;
 };
 
-// return from backend
 export type Pitch = {
-	pitch_id: number;
+	id: number;
 	title: string;
 	elevator_pitch: string;
 	detailed_pitch: string;
@@ -29,7 +28,7 @@ export type InvestmentTier = {
 	pitch_id: number;
 	name: string;
 	min_amount: number;
-	max_amount: number;
+	max_amount?: number;
 	multiplier: number;
 	created_at: Date;
 };
@@ -51,5 +50,4 @@ export type NewPitch = {
 	}[];
 };
 
-// ✅ For updating, you might allow partial updates
 export type UpdatePitch = Partial<NewPitch>;

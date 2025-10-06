@@ -15,7 +15,7 @@ type Pitch struct {
 	ProfitSharePercent  float64                `json:"profit_share_percent"`
 	InvestmentTiers     []model.InvestmentTier `json:"investment_tiers"`
 	UserID              *string                `json:"user_id,omitempty"`
-	RaisedAmount        *int64                 `json:"raised_amount,omitempty"`
+	RaisedAmount        uint64                 `json:"raised_amount,omitempty"`
 	Media               []PitchMedia           `json:"media,omitempty"`
 	Tags                []string               `json:"tags,omitempty"`
 	UpdatedAt           *string                `json:"updated_at,omitempty"`

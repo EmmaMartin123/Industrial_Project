@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 import { useAuthStore } from "@/lib/store/authStore";
 import { Rocket, Users, Coins } from "lucide-react";
-import * as Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -22,7 +22,7 @@ export default function Home() {
 
 	const handleGetStarted = () => {
 		if (authUser) {
-			router.push("/browse-pitches");
+			router.push("/pitches");
 		} else {
 			router.push("/login");
 		}
@@ -40,8 +40,8 @@ export default function Home() {
 							Empowering small businesses to grow and everyday investors to make an impact.
 						</p>
 						<div className="flex justify-center gap-4">
-							<button className={`${Button.buttonClassName}`} onClick={handleGetStarted}>Get Started</button>
-							<button className={Button.buttonOutlineClassName} onClick={() => router.push("/learn")}>Learn More</button>
+							<Button className="cursor-pointer" onClick={handleGetStarted}>Get Started</Button>
+							<Button className="cursor-pointer" variant="outline" onClick={() => router.push("/browse-pitches")}>Browse Pitches</Button>
 						</div>
 					</div>
 				</div>

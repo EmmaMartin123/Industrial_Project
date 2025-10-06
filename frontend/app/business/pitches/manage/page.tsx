@@ -3,27 +3,55 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Pencil, DollarSign, Plus } from "lucide-react";
+import { Pencil, DollarSign, Plus, PiggyBank } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
-import * as Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
 import LoaderComponent from "@/components/Loader";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
+import { useAuthStore } from "@/lib/store/authStore";
 
 export default function ManagePitchesPage() {
+	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
+
+	// check auth on mount
+	useEffect(() => {
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
+
+	// redirect if already logged in
+	/*useEffect(() => {
+		if (authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])*/
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Get user session
+	// get user session
 	useEffect(() => {
 		const getSession = async () => {
 			setLoading(true);
 			try {
-				const { data: { session }, error } = await supabase.auth.getSession();
+				const {
+					data: { session },
+					error,
+				} = await supabase.auth.getSession();
 				if (error) throw error;
 				setUserId(session?.user?.id || null);
 			} catch (e) {
@@ -37,7 +65,6 @@ export default function ManagePitchesPage() {
 		getSession();
 	}, []);
 
-	// Fetch pitches for the user
 	useEffect(() => {
 		if (!userId) return;
 
@@ -45,10 +72,8 @@ export default function ManagePitchesPage() {
 			try {
 				setLoading(true);
 				setError(null);
-
 				const fetchedData = await getAllPitches(userId);
-				const safePitches: Pitch[] = Array.isArray(fetchedData) ? fetchedData : [];
-				setPitches(safePitches);
+				setPitches(Array.isArray(fetchedData) ? fetchedData : []);
 			} catch (err: any) {
 				console.error("Failed to fetch user pitches:", err);
 				toast.error("Failed to load your pitches.");
@@ -62,16 +87,17 @@ export default function ManagePitchesPage() {
 		fetchUserPitches();
 	}, [userId]);
 
-	if (loading) return <LoaderComponent />;
-
 	if (error) {
 		return (
 			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 				<h1 className="text-3xl font-bold text-red-600 mb-2">Error</h1>
 				<p className="text-gray-600 dark:text-gray-400">{error}</p>
-				<button className={`${Button.buttonClassName} mt-6`} onClick={() => window.location.reload()}>
+				<Button
+					className={`mt-6`}
+					onClick={() => window.location.reload()}
+				>
 					Try Again
-				</button>
+				</Button>
 			</div>
 		);
 	}
@@ -79,20 +105,39 @@ export default function ManagePitchesPage() {
 	if (pitches.length === 0) {
 		return (
 			<div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-center px-6">
-				<h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Manage Pitches</h1>
-				<p className="text-gray-600 dark:text-gray-400 mb-6">You currently have no pitches created yet.</p>
-				<button
-					className={`${Button.buttonClassName} flex items-center gap-2`}
+				<h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+					Manage Pitches
+				</h1>
+				<p className="text-gray-600 dark:text-gray-400 mb-6">
+					You currently have no pitches created yet.
+				</p>
+				<Button
+					className={`flex items-center gap-2`}
 					onClick={() => router.push("/business/pitches/new")}
 				>
 					<Plus size={18} /> Create New Pitch
-				</button>
+				</Button>
 			</div>
 		);
 	}
 
-	const handleCardClick = (pitchId: number) => {
-		router.push(`/pitches/${pitchId}`);
+	const handleEdit = (e: React.MouseEvent, pitchId: number, status: string) => {
+		e.stopPropagation();
+		if (status === "Funded") {
+			toast.error("Cannot edit a funded pitch");
+			return;
+		}
+		router.push(`/business/pitches/manage/${pitchId}/edit`);
+	};
+
+	const handleDistribute = (e: React.MouseEvent, pitchId: number) => {
+		e.stopPropagation();
+		router.push(`/business/pitches/manage/${pitchId}/distribute`);
+	};
+
+	const handleDeclareProfit = (e: React.MouseEvent, pitchId: number) => {
+		e.stopPropagation();
+		router.push(`/business/pitches/manage/${pitchId}/profit`);
 	};
 
 	return (
@@ -101,96 +146,104 @@ export default function ManagePitchesPage() {
 				{/* Header */}
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
 					<div>
-						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">Manage Pitches</h1>
+						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+							Manage Pitches
+						</h1>
 						<p className="text-gray-600 dark:text-gray-400 mt-2">
 							View, edit, and manage your active investment pitches.
 						</p>
 					</div>
-					<button
-						className={`${Button.buttonClassName} mt-6 md:mt-0 flex items-center gap-2`}
+					<Button
+						className={`mt-6 md:mt-0 flex items-center gap-2 cursor-pointer`}
 						onClick={() => router.push("/business/pitches/new")}
 					>
 						<Plus size={18} /> New Pitch
-					</button>
+					</Button>
 				</div>
 
-				{/* Pitch Grid */}
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-					{pitches.map((pitch) => (
-						<div
-							key={pitch.pitch_id}
-							className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
-							onClick={() => handleCardClick(pitch.pitch_id)}
-						>
-							{/* Full-width Thumbnail */}
-							<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
-								<div className="pt-[56.25%] flex items-center justify-center">
-									<span className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
-										Thumbnail
-									</span>
-								</div>
-							</div>
+				{/* ✅ Data Table */}
+				<div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead className="pl-4">Title</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead>Raised</TableHead>
+								<TableHead>Target</TableHead>
+								<TableHead>Profit Share</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{pitches.map((pitch) => {
+								const canDeclareProfit =
+									pitch.status === "Active" ||
+									Number(pitch.raised_amount) >= Number(pitch.target_amount);
 
-							{/* Pitch Info */}
-							<div className="p-6 flex flex-col justify-between">
-								<h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-primary transition">
-									{pitch.title}
-								</h2>
-								<p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-									<span className="font-medium text-gray-800 dark:text-gray-200">Status:</span>{" "}
-									<span
-										className={`${pitch.status === "Funded"
-											? "text-green-600 dark:text-green-400"
-											: pitch.status === "Draft"
-												? "text-gray-500"
-												: "text-yellow-600 dark:text-yellow-400"
-											}`}
+								return (
+									<TableRow
+										key={pitch.id}
+										className="hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+										onClick={() => router.push(`/pitches/${pitch.id}`)}
 									>
-										{pitch.status}
-									</span>
-								</p>
-								<p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-									<span className="font-medium text-gray-800 dark:text-gray-200">Raised:</span> £
-									{pitch.raised_amount} / £{pitch.target_amount}
-								</p>
-								<p className="text-sm text-gray-600 dark:text-gray-400">
-									<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
-									{pitch.profit_share_percent}%
-								</p>
+										<TableCell className="pl-4 font-medium">{pitch.title}</TableCell>
+										<TableCell>
+											<span
+												className={`${pitch.status === "Funded"
+													? "text-green-600 dark:text-green-400"
+													: pitch.status === "Draft"
+														? "text-gray-500"
+														: "text-yellow-600 dark:text-yellow-400"
+													}`}
+											>
+												{pitch.status}
+											</span>
+										</TableCell>
+										<TableCell>£{pitch.raised_amount}</TableCell>
+										<TableCell>£{pitch.target_amount}</TableCell>
+										<TableCell>{pitch.profit_share_percent}%</TableCell>
+										<TableCell className="text-right flex justify-end gap-2">
+											{/* distribute button */}
+											{pitch.status === "Funded" && (
+												<Button
+													className={`flex items-center gap-1 text-sm`}
+													onClick={(e) => handleDistribute(e, pitch.id)}
+												>
+													<DollarSign size={14} /> Distribute
+												</Button>
+											)}
 
-								{/* Actions */}
-								<div className="mt-4 flex flex-wrap gap-2">
-									<button
-										className={`${Button.buttonOutlineClassName}` + " w-full"}
-										onClick={(e) => {
-											e.stopPropagation();
-											if (pitch.status === "Funded") {
-												toast.error("Cannot edit a funded pitch");
-												return;
-											}
-											router.push(`/business/manage-pitches/${pitch.pitch_id}/edit`);
-										}}
-										disabled={pitch.status === "Funded"}
-									>
-										<Pencil size={16} /> Edit
-									</button>
-									{pitch.status === "Funded" && (
-										<button
-											className={`${Button.buttonOutlineClassName}`}
-											onClick={(e) => {
-												e.stopPropagation();
-												router.push(
-													`/business/profit-distribution?pitchId=${pitch.pitch_id}`
-												);
-											}}
-										>
-											<DollarSign size={16} /> Distribute
-										</button>
-									)}
-								</div>
-							</div>
-						</div>
-					))}
+											{/* declare profit button - I am interpreting your intent here since you used handleEdit */}
+											{canDeclareProfit && (
+												<Button
+													className={`flex items-center gap-1 text-sm cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white`}
+													onClick={(e) =>
+														handleDeclareProfit(e, pitch.id) // ⭐️ Use correct handler
+													}
+													disabled={pitch.status === "Funded"}
+													variant="outline"
+												>
+													<PiggyBank size={14} /> Declare Profit
+												</Button>
+											)}
+
+											{/* edit button */}
+											<Button
+												className={`flex items-center gap-1 text-sm cursor-pointer`}
+												onClick={(e) =>
+													handleEdit(e, pitch.id, pitch.status)
+												}
+												disabled={pitch.status === "Funded"}
+												variant="outline"
+											>
+												<Pencil size={14} /> Edit
+											</Button>
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
 				</div>
 			</div>
 		</div>

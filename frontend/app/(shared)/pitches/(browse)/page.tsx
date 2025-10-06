@@ -3,7 +3,7 @@
 import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Pitch, InvestmentTier } from "@/lib/types/pitch";
+import { Pitch } from "@/lib/types/pitch";
 import { getPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
 import { LoaderPinwheel } from "lucide-react";
@@ -26,22 +26,21 @@ import {
 	PaginationPrevious,
 	PaginationEllipsis,
 } from "@/components/ui/pagination";
-import * as Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
 
 export default function BusinessPitchesPage() {
 	const router = useRouter();
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | undefined;
+	type SortKey = "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "targetDesc" | "targetAsc" | "newest" | "oldest" | undefined;
 	const [sortKey, setSortKey] = useState<SortKey>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string>("");
-
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [totalPages, setTotalPages] = useState<number>(1);
-	const pageSize = 9;
-
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+
+	const pageSize = 100;
 
 	// auth checks
 	useEffect(() => {
@@ -56,47 +55,17 @@ export default function BusinessPitchesPage() {
 	const fetchPitches = async (page = 1) => {
 		try {
 			setLoading(true);
-			const offset = (page - 1) * pageSize;
-
-			const statusFilter = selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined;
-
-			const sortKeyMap: Record<Exclude<SortKey, undefined>, string> = {
-				raisedDesc: "price:desc",
-				raisedAsc: "price:asc",
-				profitDesc: "price:desc",      // fallback: backend currently only supports price
-				profitAsc: "price:asc",
-				newest: "price:desc",           // fallback
-				oldest: "price:asc",            // fallback
-			};
-
-			const backendSortKey = sortKey ? sortKeyMap[sortKey] : undefined;
 
 			const data = await getPitches({
 				limit: pageSize,
-				offset,
-				search: searchQuery || undefined,
-				status: statusFilter,
-				sortKey
+				offset: (page - 1) * pageSize,
+				search: searchQuery,
+				status: selectedStatuses.length > 0 ? selectedStatuses.join(",") : undefined,
+				sortKey,
 			});
 
 			setTotalPages(data.length < pageSize ? page : page + 1);
-			setPitches(
-				data.map((p) => ({
-					pitch_id: p.pitch_id,
-					title: p.title,
-					elevator_pitch: p.elevator_pitch,
-					detailed_pitch: p.detailed_pitch,
-					target_amount: p.target_amount,
-					raised_amount: p.raised_amount ?? 0,
-					profit_share_percent: p.profit_share_percent,
-					status: p.status,
-					investment_start_date: new Date(p.investment_start_date),
-					investment_end_date: new Date(p.investment_end_date),
-					created_at: new Date(p.created_at ?? Date.now()),
-					updated_at: new Date(p.updated_at ?? Date.now()),
-					investment_tiers: p.investment_tiers as InvestmentTier[],
-				}))
-			);
+			setPitches(data);
 			setCurrentPage(page);
 		} catch (err) {
 			console.error(err);
@@ -109,7 +78,7 @@ export default function BusinessPitchesPage() {
 
 	useEffect(() => {
 		if (!isCheckingAuth && authUser) fetchPitches(1);
-	}, [authUser, isCheckingAuth, selectedStatuses, sortKey, searchQuery]);
+	}, [authUser, isCheckingAuth, selectedStatuses, sortKey]);
 
 	const handleSearchKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter") fetchPitches(1);
@@ -122,17 +91,25 @@ export default function BusinessPitchesPage() {
 	const getStatusClasses = (status: string) => {
 		switch (status) {
 			case "Active":
-				return "bg-green-500 text-white";
+				return "border-2 border-green-500 text-green-600";
 			case "Funded":
-				return "bg-blue-500 text-white";
+				return "border-2 border-blue-500 text-blue-600";
 			case "Draft":
-				return "bg-yellow-500 text-white";
+				return "border-2 border-yellow-500 text-yellow-500";
 			case "Closed":
-				return "bg-red-500 text-white";
+				return "border-2 border-red-500 text-red-600";
 			default:
-				return "bg-gray-500 text-white";
+				return "border-2 border-gray-500 text-gray-600";
 		}
 	};
+
+	if (isCheckingAuth || !authUser || loading) {
+		return (
+			<div className="flex items-center justify-center h-screen">
+				<LoaderPinwheel className="w-10 h-10 animate-spin" />
+			</div>
+		);
+	}
 
 	const toggleStatus = (status: string) => {
 		setSelectedStatuses((prev) =>
@@ -142,9 +119,9 @@ export default function BusinessPitchesPage() {
 
 	const renderPitchCard = (pitch: Pitch) => (
 		<div
-			key={pitch.pitch_id}
+			key={pitch.id}
 			className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
-			onClick={() => handleView(pitch.pitch_id)}
+			onClick={() => handleView(pitch.id)}
 		>
 			<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
 				<div className="pt-[56.25%] flex items-center justify-center">
@@ -168,13 +145,22 @@ export default function BusinessPitchesPage() {
 				</div>
 				<div className="flex flex-col gap-1">
 					<p className="text-sm text-gray-600 dark:text-gray-400">
-						<span className="font-medium text-gray-800 dark:text-gray-200">Raised:</span> £
-						{pitch.raised_amount} / £{pitch.target_amount}
-					</p>
-					<p className="text-sm text-gray-600 dark:text-gray-400">
 						<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
 						{pitch.profit_share_percent}%
 					</p>
+					<p className="text-sm text-gray-600 dark:text-gray-400">
+						<span className="font-medium text-gray-800 dark:text-gray-200">Raised: </span>
+						<strong>£{pitch.raised_amount}</strong> / £{pitch.target_amount}
+					</p>
+
+					{/* Elevator pitch: expand on hover but clamp to 4 lines max with ellipsis */}
+					<div className="overflow-hidden max-h-0 group-hover:max-h-32 transition-all duration-300">
+						<p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-4">
+							<span className="font-medium text-gray-800 dark:text-gray-200">
+								{pitch.elevator_pitch}
+							</span>
+						</p>
+					</div>
 				</div>
 				<Progress
 					value={getFundingPercentage(pitch.raised_amount, pitch.target_amount)}
@@ -199,20 +185,12 @@ export default function BusinessPitchesPage() {
 
 	const { start, end } = getPageNumbers(currentPage, totalPages, 5);
 
-	if (isCheckingAuth || !authUser || loading) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<LoaderPinwheel className="w-10 h-10 animate-spin" />
-			</div>
-		);
-	}
-
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
 			<div className="max-w-7xl mx-auto">
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
 					<div>
-						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">All Pitches</h1>
+						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">Browse Pitches</h1>
 						<p className="text-gray-600 dark:text-gray-400 mt-2">
 							Explore all pitches available on the platform.
 						</p>
@@ -229,9 +207,9 @@ export default function BusinessPitchesPage() {
 
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<button className={`${Button.buttonClassName} w-full md:w-auto`}>
+								<Button className="w-full md:w-auto">
 									Filter & Sort
-								</button>
+								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent className="w-56">
 								<DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
@@ -250,10 +228,12 @@ export default function BusinessPitchesPage() {
 								<DropdownMenuSeparator />
 
 								<DropdownMenuLabel>Sort By</DropdownMenuLabel>
-								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>Highest Raised</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>Lowest Raised</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedDesc")}>Highest Raised Amount</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("raisedAsc")}>Lowest Raised Amount</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("profitDesc")}>Highest Profit Share</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("profitAsc")}>Lowest Profit Share</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("targetDesc")}>Highest Target Amount</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setSortKey("targetAsc")}>Lowest Target Amount</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("newest")}>Newest</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => setSortKey("oldest")}>Oldest</DropdownMenuItem>
 							</DropdownMenuContent>
@@ -265,7 +245,7 @@ export default function BusinessPitchesPage() {
 					<p className="text-gray-600 dark:text-gray-400">No pitches available.</p>
 				) : (
 					<>
-						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
 							{pitches.map((pitch) => renderPitchCard(pitch))}
 						</div>
 
