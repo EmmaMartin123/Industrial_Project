@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
 	Pencil,
 	DollarSign,
@@ -10,7 +10,7 @@ import {
 	PiggyBank,
 	MoreHorizontal,
 	Trash,
-	Loader2, // Added for loading state in button
+	Loader2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
@@ -255,7 +255,6 @@ export default function ManagePitchesPage() {
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
 			<div className="max-w-7xl mx-auto">
-				{/* Header */}
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
 					<div>
 						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">
@@ -273,9 +272,6 @@ export default function ManagePitchesPage() {
 					</Button>
 				</div>
 
-				{/* --- */}
-
-				{/* Data Table */}
 				<div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
 					<Table>
 						<TableHeader>
@@ -319,7 +315,6 @@ export default function ManagePitchesPage() {
 										</TableCell>
 
 										<TableCell className="text-right">
-											{/* WRAPPING DropdownMenu in AlertDialogTrigger for smooth transition */}
 											<AlertDialog
 												open={
 													pitchToDelete.id ===
@@ -410,7 +405,6 @@ export default function ManagePitchesPage() {
 
 														<DropdownMenuSeparator />
 
-														{/* DELETE ITEM */}
 														<AlertDialogTrigger asChild>
 															<DropdownMenuItem
 																onClick={(e) =>
@@ -428,7 +422,6 @@ export default function ManagePitchesPage() {
 													</DropdownMenuContent>
 												</DropdownMenu>
 
-												{/* ALERT DIALOG CONTENT */}
 												<AlertDialogContent>
 													<AlertDialogHeader>
 														<AlertDialogTitle>
