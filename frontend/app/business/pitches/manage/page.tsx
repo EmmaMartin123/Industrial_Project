@@ -10,6 +10,7 @@ import {
 	PiggyBank,
 	MoreHorizontal,
 	Trash,
+	Loader2, // Added for loading state in button
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
@@ -35,6 +36,23 @@ import {
 import { useAuthStore } from "@/lib/store/authStore";
 import { getUserProfile } from "@/lib/api/profile";
 import axios from "@/lib/axios";
+
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface PitchToDelete {
+	id: number | null;
+	title: string | null;
+}
 
 export default function ManagePitchesPage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
@@ -77,6 +95,11 @@ export default function ManagePitchesPage() {
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [pitchToDelete, setPitchToDelete] = useState<PitchToDelete>({
+		id: null,
+		title: null,
+	});
+	const [isDeleting, setIsDeleting] = useState(false);
 
 	useEffect(() => {
 		const getSession = async () => {
@@ -99,26 +122,25 @@ export default function ManagePitchesPage() {
 		getSession();
 	}, [authUser?.id]);
 
+	const fetchUserPitches = async (id: string) => {
+		try {
+			setLoading(true);
+			setError(null);
+			const fetchedData = await getAllPitches(id);
+			setPitches(Array.isArray(fetchedData) ? fetchedData : []);
+		} catch (err: any) {
+			console.error("Failed to fetch user pitches:", err);
+			toast.error("Failed to load your pitches.");
+			setError("Could not load pitches due to a server error.");
+			setPitches([]);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	useEffect(() => {
 		if (!userId) return;
-
-		const fetchUserPitches = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-				const fetchedData = await getAllPitches(userId);
-				setPitches(Array.isArray(fetchedData) ? fetchedData : []);
-			} catch (err: any) {
-				console.error("Failed to fetch user pitches:", err);
-				toast.error("Failed to load your pitches.");
-				setError("Could not load pitches due to a server error.");
-				setPitches([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchUserPitches();
+		fetchUserPitches(userId);
 	}, [userId]);
 
 	const getStatusClasses = (status: string) => {
@@ -138,7 +160,11 @@ export default function ManagePitchesPage() {
 		}
 	};
 
-	const handleEdit = (e: React.MouseEvent, pitchId: number, status: string) => {
+	const handleEdit = (
+		e: React.MouseEvent,
+		pitchId: number,
+		status: string
+	) => {
 		e.stopPropagation();
 		if (status === "Funded") {
 			toast.error("Cannot edit a funded pitch");
@@ -157,13 +183,31 @@ export default function ManagePitchesPage() {
 		router.push(`/business/pitches/manage/${pitchId}/profit`);
 	};
 
-	const handleDelete = (e: React.MouseEvent, pitchId: number) => {
+	// --- UPDATED HANDLERS ---
+	const handleDeleteClick = (e: React.MouseEvent, pitch: Pitch) => {
 		e.stopPropagation();
-		axios.delete(`/pitch?id=${pitchId}`);
+		setPitchToDelete({ id: pitch.id, title: pitch.title });
 	};
 
-	const handleDeleteConfirm = (e: React.MouseEvent, pitchId: number) => {
+	const handleDeleteConfirm = async (e: React.MouseEvent) => {
 		e.stopPropagation();
+		if (!pitchToDelete.id || !userId) return;
+
+		setIsDeleting(true);
+		try {
+			await axios.delete(`/pitch?id=${pitchToDelete.id}`);
+			toast(`Pitch '${pitchToDelete.title}' deleted successfully.`);
+
+			await fetchUserPitches(userId);
+
+			setPitchToDelete({ id: null, title: null });
+
+		} catch (err) {
+			console.error("Failed to delete pitch:", err);
+			toast.error("Failed to delete pitch. Please try again.");
+		} finally {
+			setIsDeleting(false);
+		}
 	};
 
 	if (error) {
@@ -248,16 +292,17 @@ export default function ManagePitchesPage() {
 							{pitches.map((pitch) => {
 								const canDeclareProfit =
 									pitch.status === "Funded" ||
-									Number(pitch.raised_amount) >= Number(pitch.target_amount);
+									Number(pitch.raised_amount) >=
+									Number(pitch.target_amount);
 
-								const canDistributeProfit = pitch.status === "Declared"
+								const canDistributeProfit =
+									pitch.status === "Declared";
 
 								return (
-									<TableRow
-										key={pitch.id}
-										className=""
-									>
-										<TableCell className="pl-4 font-medium">{pitch.title}</TableCell>
+									<TableRow key={pitch.id} className="">
+										<TableCell className="pl-4 font-medium">
+											{pitch.title}
+										</TableCell>
 										<TableCell>
 											<span
 												className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
@@ -269,66 +314,160 @@ export default function ManagePitchesPage() {
 										</TableCell>
 										<TableCell>£{pitch.raised_amount}</TableCell>
 										<TableCell>£{pitch.target_amount}</TableCell>
-										<TableCell>{pitch.profit_share_percent}%</TableCell>
+										<TableCell>
+											{pitch.profit_share_percent}%
+										</TableCell>
 
 										<TableCell className="text-right">
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														variant="ghost"
-														className="h-8 w-8 p-0 cursor-pointer"
-														onClick={(e) => e.stopPropagation()}
-													>
-														<span className="sr-only">Open menu</span>
-														<MoreHorizontal className="h-4 w-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuLabel>Actions</DropdownMenuLabel>
-													<DropdownMenuSeparator />
+											{/* WRAPPING DropdownMenu in AlertDialogTrigger for smooth transition */}
+											<AlertDialog
+												open={
+													pitchToDelete.id ===
+													pitch.id
+												}
+												onOpenChange={(isOpen) =>
+													!isOpen &&
+													setPitchToDelete({
+														id: null,
+														title: null,
+													})
+												}
+											>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															className="h-8 w-8 p-0 cursor-pointer"
+															onClick={(e) =>
+																e.stopPropagation()
+															}
+														>
+															<span className="sr-only">
+																Open menu
+															</span>
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuLabel>
+															Actions
+														</DropdownMenuLabel>
+														<DropdownMenuSeparator />
 
-													<DropdownMenuItem
-														onClick={(e) =>
-															handleEdit(e, pitch.id, pitch.status)
-														}
-														disabled={pitch.status === "Funded" || pitch.status === "Declared"}
-														className={`flex items-center gap-2 ${pitch.status === "Funded" ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-													>
-														<Pencil className="mr-2 h-4 w-4" /> Edit Pitch
-													</DropdownMenuItem>
-
-													{canDeclareProfit && (
 														<DropdownMenuItem
 															onClick={(e) =>
-																handleDeclareProfit(e, pitch.id)
+																handleEdit(
+																	e,
+																	pitch.id,
+																	pitch.status
+																)
 															}
-															className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+															disabled={
+																pitch.status ===
+																"Funded" ||
+																pitch.status ===
+																"Declared"
+															}
+															className={`flex items-center gap-2 ${pitch.status ===
+																	"Funded"
+																	? "opacity-50 cursor-not-allowed"
+																	: "cursor-pointer"
+																}`}
 														>
-															<PiggyBank className="mr-2 h-4 w-4" /> Declare Profit
+															<Pencil className="mr-2 h-4 w-4" />{" "}
+															Edit Pitch
 														</DropdownMenuItem>
-													)}
 
-													{canDistributeProfit && (
-														<DropdownMenuItem
-															onClick={(e) => handleDistribute(e, pitch.id)}
-															className="flex items-center gap-2 cursor-pointer"
+														{canDeclareProfit && (
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleDeclareProfit(
+																		e,
+																		pitch.id
+																	)
+																}
+																className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+															>
+																<PiggyBank className="mr-2 h-4 w-4" />{" "}
+																Declare Profit
+															</DropdownMenuItem>
+														)}
+
+														{canDistributeProfit && (
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleDistribute(
+																		e,
+																		pitch.id
+																	)
+																}
+																className="flex items-center gap-2 cursor-pointer"
+															>
+																<DollarSign className="mr-2 h-4 w-4" />{" "}
+																Distribute Profit
+															</DropdownMenuItem>
+														)}
+
+														<DropdownMenuSeparator />
+
+														{/* DELETE ITEM */}
+														<AlertDialogTrigger asChild>
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleDeleteClick(
+																		e,
+																		pitch
+																	)
+																}
+																className="flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-600"
+															>
+																<Trash className="mr-2 h-4 w-4" />{" "}
+																Delete Pitch
+															</DropdownMenuItem>
+														</AlertDialogTrigger>
+													</DropdownMenuContent>
+												</DropdownMenu>
+
+												{/* ALERT DIALOG CONTENT */}
+												<AlertDialogContent>
+													<AlertDialogHeader>
+														<AlertDialogTitle>
+															Are you absolutely sure?
+														</AlertDialogTitle>
+														<AlertDialogDescription>
+															This action cannot be undone. This will
+															permanently delete the pitch "
+															<span className="font-semibold text-red-600 dark:text-red-400">
+																{
+																	pitchToDelete.title
+																}
+															</span>
+															".
+														</AlertDialogDescription>
+													</AlertDialogHeader>
+													<AlertDialogFooter>
+														<AlertDialogCancel disabled={isDeleting}>
+															Cancel
+														</AlertDialogCancel>
+														<AlertDialogAction
+															onClick={
+																handleDeleteConfirm
+															}
+															className="bg-red-600 hover:bg-red-700 text-white"
+															disabled={isDeleting}
 														>
-															<DollarSign className="mr-2 h-4 w-4" /> Distribute Profit
-														</DropdownMenuItem>
-													)}
-
-													<DropdownMenuSeparator />
-
-													{/* delete pitch button */}
-													<DropdownMenuItem
-														onClick={(e) => handleDelete(e, pitch.id)}
-														className="flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-600"
-													>
-														<Trash className="mr-2 h-4 w-4" /> Delete Pitch
-													</DropdownMenuItem>
-
-												</DropdownMenuContent>
-											</DropdownMenu>
+															{isDeleting ? (
+																<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+															) : (
+																<Trash className="mr-2 h-4 w-4" />
+															)}
+															{isDeleting
+																? "Deleting..."
+																: "Delete Pitch"}
+														</AlertDialogAction>
+													</AlertDialogFooter>
+												</AlertDialogContent>
+											</AlertDialog>
 										</TableCell>
 									</TableRow>
 								);
