@@ -15,6 +15,8 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
+import { declareProfit } from "@/lib/api/profit";
+import { Profit } from "@/lib/types/profit";
 import { Button } from "@/components/ui/button";
 import LoaderComponent from "@/components/Loader";
 import {
@@ -33,6 +35,19 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
 import { useAuthStore } from "@/lib/store/authStore";
 import { getUserProfile } from "@/lib/api/profile";
 import axios from "@/lib/axios";
@@ -57,6 +72,10 @@ interface PitchToDelete {
 export default function ManagePitchesPage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const [userProfile, setUserProfile] = useState<any>(null);
+	const [isProfitDialogOpen, setIsProfitDialogOpen] = useState(false);
+	const [selectedPitch, setSelectedPitch] = useState<Pitch | null>(null);
+	const [profitAmount, setProfitAmount] = useState("");
+	const [isDeclaring, setIsDeclaring] = useState(false);
 
 	const router = useRouter();
 
@@ -178,12 +197,12 @@ export default function ManagePitchesPage() {
 		router.push(`/business/pitches/manage/${pitchId}/distribute`);
 	};
 
-	const handleDeclareProfit = (e: React.MouseEvent, pitchId: number) => {
+	const handleDeclareProfit = (e: React.MouseEvent, pitch: Pitch) => {
 		e.stopPropagation();
-		router.push(`/business/pitches/manage/${pitchId}/profit`);
+		setSelectedPitch(pitch);
+		setIsProfitDialogOpen(true);
 	};
 
-	// --- UPDATED HANDLERS ---
 	const handleDeleteClick = (e: React.MouseEvent, pitch: Pitch) => {
 		e.stopPropagation();
 		setPitchToDelete({ id: pitch.id, title: pitch.title });
@@ -364,9 +383,9 @@ export default function ManagePitchesPage() {
 																"Declared"
 															}
 															className={`flex items-center gap-2 ${pitch.status ===
-																	"Funded"
-																	? "opacity-50 cursor-not-allowed"
-																	: "cursor-pointer"
+																"Funded"
+																? "opacity-50 cursor-not-allowed"
+																: "cursor-pointer"
 																}`}
 														>
 															<Pencil className="mr-2 h-4 w-4" />{" "}
@@ -375,12 +394,7 @@ export default function ManagePitchesPage() {
 
 														{canDeclareProfit && (
 															<DropdownMenuItem
-																onClick={(e) =>
-																	handleDeclareProfit(
-																		e,
-																		pitch.id
-																	)
-																}
+																onClick={(e) => handleDeclareProfit(e, pitch)}
 																className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 cursor-pointer"
 															>
 																<PiggyBank className="mr-2 h-4 w-4" />{" "}
@@ -467,6 +481,86 @@ export default function ManagePitchesPage() {
 							})}
 						</TableBody>
 					</Table>
+
+					<Dialog open={isProfitDialogOpen} onOpenChange={setIsProfitDialogOpen}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Declare Profit</DialogTitle>
+								<DialogDescription>
+									Enter the profit amount to declare for{" "}
+									<span className="font-semibold text-gray-900 dark:text-white">
+										{selectedPitch?.title}
+									</span>
+									.
+								</DialogDescription>
+							</DialogHeader>
+
+							<div className="space-y-4 mt-4">
+								<div>
+									<Label className="mb-2" htmlFor="profitAmount">Profit Amount (£)</Label>
+									<Input
+										id="profitAmount"
+										type="text"
+										inputMode="decimal"
+										pattern="[0-9]*"
+										value={profitAmount}
+										onChange={(e) => {
+											const value = e.target.value;
+											// allow only digits + one optional decimal point
+											if (/^\d*\.?\d*$/.test(value)) {
+												setProfitAmount(value);
+											}
+										}}
+										placeholder="Enter profit amount"
+										className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+									/>
+								</div>
+							</div>
+
+							<DialogFooter className="mt-6">
+								<DialogClose asChild>
+									<Button variant="outline">Cancel</Button>
+								</DialogClose>
+								<Button
+									onClick={async () => {
+										if (!selectedPitch || !profitAmount) {
+											toast.error("Please enter a valid profit amount.");
+											return;
+										}
+										setIsDeclaring(true);
+										try {
+											const profit: Profit = {
+												pitch_id: selectedPitch.id,
+												total_profit: Number(profitAmount),
+												period_start: new Date().toISOString(),
+												period_end: new Date().toISOString(),
+											};
+											await declareProfit(profit);
+											toast.success("Profit declared successfully!");
+											setIsProfitDialogOpen(false);
+											setProfitAmount("");
+											await fetchUserPitches(userId!); // refresh list
+										} catch (err) {
+											console.error("Error declaring profit:", err);
+											toast.error("Failed to declare profit. Try again.");
+										} finally {
+											setIsDeclaring(false);
+										}
+									}}
+									disabled={isDeclaring}
+								>
+									{isDeclaring ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											Declaring...
+										</>
+									) : (
+										"Declare Profit"
+									)}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
 				</div>
 			</div>
 		</div>

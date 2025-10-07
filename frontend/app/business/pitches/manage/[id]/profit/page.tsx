@@ -8,7 +8,9 @@ export default function page() {
 	const router = useRouter();
 
 	return (
-		<div></div>
+		<div>
+			<h1>Profit</h1>
+		</div>
 	)
 }
 
