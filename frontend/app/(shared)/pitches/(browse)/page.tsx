@@ -94,6 +94,8 @@ export default function BusinessPitchesPage() {
 				return "border-2 border-green-500 text-green-600";
 			case "Funded":
 				return "border-2 border-blue-500 text-blue-600";
+			case "Declared":
+				return "border-2 border-blue-500 text-blue-600";
 			case "Draft":
 				return "border-2 border-yellow-500 text-yellow-500";
 			case "Closed":
@@ -140,7 +142,7 @@ export default function BusinessPitchesPage() {
 							pitch.status
 						)}`}
 					>
-						{pitch.status}
+						{pitch.status === "Declared" ? "Funded" : pitch.status}
 					</span>
 				</div>
 				<div className="flex flex-col gap-1">
