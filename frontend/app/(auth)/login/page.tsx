@@ -8,6 +8,7 @@ import { LoaderPinwheel } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { getUserProfile } from "@/lib/api/profile"
 
 export default function LoginPage() {
 	const router = useRouter()
@@ -25,8 +26,8 @@ export default function LoginPage() {
 
 	// redirect if already logged in
 	useEffect(() => {
-		if (!authUser && !isCheckingAuth) {
-			router.push("/investor/dashboard")
+		if (authUser) {
+			router.push("/pitches")
 		}
 	}, [authUser, router])
 

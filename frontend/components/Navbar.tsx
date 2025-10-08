@@ -79,18 +79,16 @@ export default function Navbar() {
 			</div>
 
 			<div className="flex items-center space-x-4 justify-center">
-
-				<Button
-					variant="ghost"
-					className="rounded-md border-0 cursor-pointer font-bold"
-					onClick={() => router.push("/pitches")}
-				>
-					Browse
-				</Button>
-
 				{/* investor links */}
 				{!loadingRole && role === "investor" && (
 					<>
+						<Button
+							variant="ghost"
+							className="rounded-md border-0 cursor-pointer font-bold"
+							onClick={() => router.push("/pitches")}
+						>
+							Browse
+						</Button>
 						<Button
 							variant="ghost"
 							className="rounded-md border-0 cursor-pointer font-bold"
@@ -115,6 +113,13 @@ export default function Navbar() {
 				{/* business links */}
 				{!loadingRole && role === "business" && (
 					<>
+						<Button
+							variant="ghost"
+							className="rounded-md border-0 cursor-pointer font-bold"
+							onClick={() => router.push("/pitches")}
+						>
+							Browse
+						</Button>
 						<Button
 							variant="ghost"
 							className="rounded-md border-0 cursor-pointer font-bold"

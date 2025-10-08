@@ -19,7 +19,6 @@ const ROLES = {
 export default function SignupPage() {
 	const router = useRouter()
 	const { signup, authUser, checkAuth, isSigningUp, isCheckingAuth } = useAuthStore()
-
 	const [name, setName] = useState("")
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
@@ -37,7 +36,7 @@ export default function SignupPage() {
 
 	// redirect if logged in
 	useEffect(() => {
-		if (!authUser && !isCheckingAuth) {
+		if (authUser) {
 			router.push("/")
 		}
 	}, [authUser, router])
