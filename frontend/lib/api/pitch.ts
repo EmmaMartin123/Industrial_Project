@@ -1,4 +1,4 @@
-import { Pitch, NewPitch, UpdatePitch, InvestmentTier, PitchMedia } from "@/lib/types/pitch";
+import { Pitch, NewPitch, UpdatePitch, InvestmentTier, PitchMedia, PitchListResponse } from "@/lib/types/pitch";
 import axios from "@/lib/axios";
 
 const mapPitch = (raw: any): Pitch => {
@@ -45,12 +45,22 @@ interface GetPitchesOptions {
 	offset?: number;
 	search?: string;
 	status?: string;
-	sortKey?: "raisedDesc" | "raisedAsc" | "profitDesc" | "profitAsc" | "newest" | "oldest" | "targetDesc" | "targetAsc";
+	sortKey?:
+	| "raisedDesc"
+	| "raisedAsc"
+	| "profitDesc"
+	| "profitAsc"
+	| "newest"
+	| "oldest"
+	| "targetDesc"
+	| "targetAsc";
 }
 
-export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch[]> => {
+// Updated return type:
+export const getPitches = async (
+	options: GetPitchesOptions = {}
+): Promise<PitchListResponse> => {
 	const { limit, offset, search, status, sortKey } = options;
-
 	const params = new URLSearchParams();
 
 	if (limit) params.append("limit", limit.toString());
@@ -61,14 +71,30 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 	if (sortKey) {
 		let backendSort: string | undefined;
 		switch (sortKey) {
-			case "raisedDesc": backendSort = "raised_amount:desc"; break;
-			case "raisedAsc": backendSort = "raised_amount:asc"; break;
-			case "profitDesc": backendSort = "profit_share_percent:desc"; break;
-			case "profitAsc": backendSort = "profit_share_percent:asc"; break;
-			case "newest": backendSort = "investment_start_date:desc"; break;
-			case "oldest": backendSort = "investment_start_date:asc"; break;
-			case "targetDesc": backendSort = "target_amount:desc"; break;
-			case "targetAsc": backendSort = "target_amount:asc"; break;
+			case "raisedDesc":
+				backendSort = "raised_amount:desc";
+				break;
+			case "raisedAsc":
+				backendSort = "raised_amount:asc";
+				break;
+			case "profitDesc":
+				backendSort = "profit_share_percent:desc";
+				break;
+			case "profitAsc":
+				backendSort = "profit_share_percent:asc";
+				break;
+			case "newest":
+				backendSort = "investment_start_date:desc";
+				break;
+			case "oldest":
+				backendSort = "investment_start_date:asc";
+				break;
+			case "targetDesc":
+				backendSort = "target_amount:desc";
+				break;
+			case "targetAsc":
+				backendSort = "target_amount:asc";
+				break;
 		}
 		if (backendSort) {
 			const [field, direction] = backendSort.split(":");
@@ -77,8 +103,17 @@ export const getPitches = async (options: GetPitchesOptions = {}): Promise<Pitch
 		}
 	}
 
+	// ✅ Expecting { pitches, totalCount }
 	const response = await axios.get(`/pitch?${params.toString()}`);
-	return Array.isArray(response.data) ? response.data.map(mapPitch) : [];
+
+	const rawData = response.data;
+	const pitches = Array.isArray(rawData.pitches)
+		? rawData.pitches.map(mapPitch)
+		: [];
+
+	const totalCount = typeof rawData.totalCount === "number" ? rawData.totalCount : 0;
+
+	return { pitches, totalCount };
 };
 
 export const getPitchById = async (id: number): Promise<Pitch> => {
@@ -107,13 +142,13 @@ export const deletePitch = async (id: number): Promise<void> => {
 };
 
 export const updatePitchStatus = async (pitchId: number, status: string) => {
-  try {
-    const res = await axios.patch(`/pitch/status?id=${pitchId}`, {
-      status,
-    });
-    return res.data;
-  } catch (err: any) {
-    console.error("Failed to update pitch status:", err.response?.data || err.message);
-    throw err;
-  }
+	try {
+		const res = await axios.patch(`/pitch/status?id=${pitchId}`, {
+			status,
+		});
+		return res.data;
+	} catch (err: any) {
+		console.error("Failed to update pitch status:", err.response?.data || err.message);
+		throw err;
+	}
 };

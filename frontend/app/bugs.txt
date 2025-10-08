@@ -1,0 +1,17 @@
+- Browsing pitches: search bar doesn't do anything.
+
+- Editing pitches: tier maximums aren't saved [should take them out of creating and editing pitches if we're committing to not having them]; the AI analysis is still hardcoded on the Edit Pitch page.
+
+- Investors Balance: all three buttons route to the Create Pitch page, which is weird.
+
+- The button captioned $ Explore Pitches gives a 404.
+
+- Browsing Pitches: filters are still ANDs, should be ORs.
+
+- The user added an image to the pitch during creation, and it displayed fine when we viewed the pitch, but after updating the pitch, it was gone [pitch 110].
+
+- When Investing, we still ask for card details but it takes from the balance [should probably just rename the final invest button to Pay from Balance** or smth, but we definitely need to take out the card details input page here].
+
+- User Profiles don't work at all; clicking the back button in the browser from the profile page signed the user out for some reason when it should've just taken us back to the home page.
+
+- Creating a new Pitch: (this is super minor) the upload image success message said that 0 items had been successfully uploaded instead of 1; the calendar for picking the end date is kinda goofy and hard to read [I'm not sure if this is something we can even change - it's definitely low priority].
