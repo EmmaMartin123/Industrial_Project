@@ -253,13 +253,13 @@ export default function BusinessPitchesPage() {
 							<Pagination>
 								<PaginationContent className="cursor-pointer">
 									<PaginationItem>
-										<PaginationPrevious onClick={() => currentPage > 1 && fetchPitches(currentPage - 1)} />
+										<PaginationPrevious onClick={() => currentPage > 1 && fetchPitches(currentPage - 1)} size={undefined} />
 									</PaginationItem>
 
 									{start > 1 && (
 										<>
 											<PaginationItem>
-												<PaginationLink onClick={() => fetchPitches(1)}>1</PaginationLink>
+												<PaginationLink onClick={() => fetchPitches(1)} size={undefined}>1</PaginationLink>
 											</PaginationItem>
 											{start > 2 && <PaginationEllipsis />}
 										</>
@@ -271,8 +271,7 @@ export default function BusinessPitchesPage() {
 											<PaginationItem key={pageNum} className="cursor-pointer">
 												<PaginationLink
 													onClick={() => fetchPitches(pageNum)}
-													isActive={currentPage === pageNum}
-												>
+													isActive={currentPage === pageNum} size={undefined}												>
 													{pageNum}
 												</PaginationLink>
 											</PaginationItem>
@@ -283,13 +282,13 @@ export default function BusinessPitchesPage() {
 										<>
 											{end < totalPages - 1 && <PaginationEllipsis />}
 											<PaginationItem>
-												<PaginationLink onClick={() => fetchPitches(totalPages)}>{totalPages}</PaginationLink>
+												<PaginationLink onClick={() => fetchPitches(totalPages)} size={undefined}>{totalPages}</PaginationLink>
 											</PaginationItem>
 										</>
 									)}
 
 									<PaginationItem className="cursor-pointer">
-										<PaginationNext onClick={() => currentPage < totalPages && fetchPitches(currentPage + 1)} />
+										<PaginationNext onClick={() => currentPage < totalPages && fetchPitches(currentPage + 1)} size={undefined} />
 									</PaginationItem>
 								</PaginationContent>
 							</Pagination>

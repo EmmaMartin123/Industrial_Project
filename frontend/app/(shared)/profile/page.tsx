@@ -35,8 +35,8 @@ export default function ProfilePage() {
 					<CardTitle className="text-2xl">{profile?.display_name}</CardTitle>
 					<p className="text-muted-foreground">{profile?.role}</p>
 					<div className="flex gap-2 justify-center md:justify-start mt-2">
-						<Badge variant="secondary">Premium Member</Badge>
-						<Badge variant="outline">Active</Badge>
+						<Badge className="bg-secondary text-secondary-foreground">Premium Member</Badge>
+						<Badge>Active</Badge>
 					</div>
 					<div className="flex gap-3 justify-center md:justify-start mt-4">
 						<Button variant="default" disabled={isMine}>
