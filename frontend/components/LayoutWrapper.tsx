@@ -21,13 +21,17 @@ export default function LayoutWrapper({
 
 	return (
 		<body className="font-lato">
-			{!isMinimalLayout && <Navbar />}
+			<div className="flex flex-col min-h-screen">
+				{!isMinimalLayout && <Navbar />}
 
-			{children}
+				<main className="flex-grow">
+					{children}
+				</main>
 
-			<Toaster position="top-center" />
+				<Toaster position="top-center" />
 
-			{!isMinimalLayout && <Footer />}
+				{!isMinimalLayout && <Footer />}
+			</div>
 		</body>
 	);
 }

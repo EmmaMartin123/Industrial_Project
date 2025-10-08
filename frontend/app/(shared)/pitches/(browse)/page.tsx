@@ -2,11 +2,12 @@
 
 import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Pitch } from "@/lib/types/pitch";
 import { getPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
 import { LoaderPinwheel } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
 	DropdownMenu,
@@ -42,14 +43,20 @@ export default function BusinessPitchesPage() {
 
 	const pageSize = 9;
 
-	// auth checks
+	// check auth on mount
 	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
 
+	// redirect if already logged in
 	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
+		if (!authUser) {
+			router.push("/")
+		}
+	}, [authUser, router])
 
 	// fetch pitches with filters, search, sort, pagination
 	const fetchPitches = async (page = 1) => {
@@ -94,6 +101,10 @@ export default function BusinessPitchesPage() {
 				return "border-2 border-green-500 text-green-600";
 			case "Funded":
 				return "border-2 border-blue-500 text-blue-600";
+			case "Declared":
+				return "border-2 border-blue-500 text-blue-600";
+			case "Distributed":
+				return "border-2 border-blue-500 text-blue-600";
 			case "Draft":
 				return "border-2 border-yellow-500 text-yellow-500";
 			case "Closed":
@@ -117,58 +128,89 @@ export default function BusinessPitchesPage() {
 		);
 	};
 
-	const renderPitchCard = (pitch: Pitch) => (
-		<div
-			key={pitch.id}
-			className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
-			onClick={() => handleView(pitch.id)}
-		>
-			<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
-				<div className="pt-[56.25%] flex items-center justify-center">
-					<span className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
-						Thumbnail
-					</span>
-				</div>
-			</div>
-			<div className="flex flex-col justify-between flex-1 p-4">
-				<div className="flex justify-between items-center mb-2">
-					<h2 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition">
-						{pitch.title}
-					</h2>
-					<span
-						className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
-							pitch.status
-						)}`}
-					>
-						{pitch.status}
-					</span>
-				</div>
-				<div className="flex flex-col gap-1">
-					<p className="text-sm text-gray-600 dark:text-gray-400">
-						<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
-						{pitch.profit_share_percent}%
-					</p>
-					<p className="text-sm text-gray-600 dark:text-gray-400">
-						<span className="font-medium text-gray-800 dark:text-gray-200">Raised: </span>
-						<strong>£{pitch.raised_amount}</strong> / £{pitch.target_amount}
-					</p>
+	const renderPitchCard = (pitch: Pitch) => {
+		const firstMedia = pitch.media?.[0];
+		const isVideo = firstMedia?.media_type?.startsWith('video/');
+		const mediaUrl = firstMedia?.url;
 
-					{/* Elevator pitch: expand on hover but clamp to 4 lines max with ellipsis */}
-					<div className="overflow-hidden max-h-0 group-hover:max-h-32 transition-all duration-300">
-						<p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-4">
-							<span className="font-medium text-gray-800 dark:text-gray-200">
-								{pitch.elevator_pitch}
+		return (
+			<div
+				key={pitch.id}
+				className="group cursor-pointer bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:border-primary/50 transition-all duration-200 flex flex-col"
+				onClick={() => handleView(pitch.id)}
+			>
+				<div className="w-full relative overflow-hidden bg-gray-200 dark:bg-gray-700">
+					<div className="pt-[56.25%] flex items-center justify-center">
+
+						{mediaUrl && isVideo ? (
+							<video
+								src={mediaUrl}
+								className="absolute inset-0 w-full h-full object-cover"
+								controls={true}
+								poster={mediaUrl} 
+								loop={false} 
+								muted={false}
+								playsInline
+								preload="metadata"
+								aria-label={`${pitch.title} video`}
+							/>
+						) : null}
+
+						{mediaUrl && !isVideo ? (
+							<img
+								src={mediaUrl}
+								alt={`${pitch.title} media preview`}
+								className="absolute inset-0 w-full h-full object-cover"
+							/>
+						) : null}
+
+						{!mediaUrl ? (
+							<span className="absolute inset-0 flex items-center justify-center text-gray-500 dark:text-gray-400">
+								Thumbnail
 							</span>
-						</p>
+						) : null}
+
 					</div>
 				</div>
-				<Progress
-					value={getFundingPercentage(pitch.raised_amount, pitch.target_amount)}
-					className="h-2 rounded-md mt-4"
-				/>
+				<div className="flex flex-col justify-between flex-1 p-4">
+					<div className="flex justify-between items-center mb-2">
+						<h2 className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-primary transition">
+							{pitch.title}
+						</h2>
+						<span
+							className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
+								pitch.status
+							)}`}
+						>
+							{pitch.status === "Declared" || pitch.status === "Distributed" ? "Funded" : pitch.status}
+						</span>
+					</div>
+					<div className="flex flex-col gap-1">
+						<p className="text-sm text-gray-600 dark:text-gray-400">
+							<span className="font-medium text-gray-800 dark:text-gray-200">Profit Share:</span>{" "}
+							{pitch.profit_share_percent}%
+						</p>
+						<p className="text-sm text-gray-600 dark:text-gray-400">
+							<span className="font-medium text-gray-800 dark:text-gray-200">Raised: </span>
+							<strong>£{pitch.raised_amount}</strong> / £{pitch.target_amount}
+						</p>
+
+						<div className="overflow-hidden max-h-0 group-hover:max-h-32 transition-all duration-300">
+							<p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-4">
+								<span className="font-medium text-gray-800 dark:text-gray-200">
+									{pitch.elevator_pitch}
+								</span>
+							</p>
+						</div>
+					</div>
+					<Progress
+						value={getFundingPercentage(pitch.raised_amount, pitch.target_amount)}
+						className="h-2 rounded-md mt-4"
+					/>
+				</div>
 			</div>
-		</div>
-	);
+		);
+	};
 
 	const getPageNumbers = (current: number, total: number, maxVisible = 5) => {
 		const half = Math.floor(maxVisible / 2);

@@ -19,6 +19,7 @@ export default function InvestorDashboard() {
 	const router = useRouter();
 	const [userProfile, setUserProfile] = useState<any>(null);
 
+	// fetch profile on mount
 	useEffect(() => {
 		const fetchProfile = async () => {
 			console.log(authUser);
@@ -43,7 +44,7 @@ export default function InvestorDashboard() {
 	}, [checkAuth])
 
 	useEffect(() => {
-		if (!authUser) {
+		if (!authUser && !isCheckingAuth) {
 			router.push("/")
 		}
 	}, [authUser, router])

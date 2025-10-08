@@ -56,18 +56,14 @@ export default function EditPitchPage() {
 	const router = useRouter();
 	const params = useParams();
 	const pitchId = typeof params.id === 'string' ? params.id : undefined;
-
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
 	const [targetAmount, setTargetAmount] = useState<number | "">("");
 	const [profitShare, setProfitShare] = useState<number | "">("");
 	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-
 	const [fetchedMedia, setFetchedMedia] = useState<MediaDisplayItem[]>([]);
-
 	const [mediaFiles, setMediaFiles] = useState<File[]>([]);
 	const [tiers, setTiers] = useState<TierState[]>([
 		{ name: "", min_amount: "", multiplier: "", max_amount: "" },
@@ -76,7 +72,6 @@ export default function EditPitchPage() {
 	const [pageLoading, setPageLoading] = useState(!!pitchId);
 	const [activeTab, setActiveTab] = useState("content");
 	const investmentStartDate = useMemo(() => new Date(), []);
-
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
 
@@ -373,7 +368,6 @@ export default function EditPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Media Tab (Use allMediaToDisplay) */}
 					<TabsContent value="media" className="space-y-6">
 						<div
 							onClick={() => document.getElementById("media-input")?.click()}

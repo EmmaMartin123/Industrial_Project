@@ -31,7 +31,6 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en" className={lato.variable} data-theme="light">
-			{/* The <body> tag, Navbar, Footer, and Toaster are now inside LayoutWrapper */}
 			<LayoutWrapper>
 				{children}
 			</LayoutWrapper>

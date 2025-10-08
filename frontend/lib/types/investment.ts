@@ -6,3 +6,12 @@ export type Investment = {
 	refunded: boolean;
 	created_at: Date;
 };
+
+export type InvestmentFromApi = {
+	id: number;
+	pitch_id: number;
+	amount: number;
+	created_at: string;
+	investor_id: string;
+	tier_id: number;
+};

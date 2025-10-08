@@ -2,11 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { Pencil, DollarSign, Plus, PiggyBank } from "lucide-react";
+import { toast } from "sonner";
+import {
+	Pencil,
+	DollarSign,
+	Plus,
+	PiggyBank,
+	MoreHorizontal,
+	Trash,
+	Loader2,
+	ExternalLink,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
+import { declareProfit, distributeProfit, getProfitsForPitch } from "@/lib/api/profit";
+import { Profit } from "@/lib/types/profit";
 import { Button } from "@/components/ui/button";
 import LoaderComponent from "@/components/Loader";
 import {
@@ -17,33 +28,99 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useAuthStore } from "@/lib/store/authStore";
+import { getUserProfile } from "@/lib/api/profile";
+import axios from "@/lib/axios";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface PitchToDelete {
+	id: number | null;
+	title: string | null;
+}
 
 export default function ManagePitchesPage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const [userProfile, setUserProfile] = useState<any>(null);
+	const [isProfitDialogOpen, setIsProfitDialogOpen] = useState(false);
+	const [selectedPitch, setSelectedPitch] = useState<Pitch | null>(null);
+	const [profitAmount, setProfitAmount] = useState("");
+	const [isDeclaring, setIsDeclaring] = useState(false);
+	const [isDistributeDialogOpen, setIsDistributeDialogOpen] = useState(false);
+	const [selectedDistributePitch, setSelectedDistributePitch] = useState<Pitch | null>(null);
+	const [isDistributing, setIsDistributing] = useState(false);
 	const router = useRouter();
+
+	// fetch profile on mount
+	useEffect(() => {
+		const fetchProfile = async () => {
+			console.log(authUser);
+			if (authUser?.id) {
+				try {
+					const profile = await getUserProfile(authUser.id);
+					setUserProfile(profile);
+				} catch (err) {
+					console.error("Failed to fetch user profile:", err);
+				}
+			}
+		};
+		fetchProfile();
+	}, [authUser?.id]);
 
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
-			await checkAuth()
-		}
-		verifyAuth()
-	}, [checkAuth])
+			await checkAuth();
+		};
+		verifyAuth();
+	}, [checkAuth]);
 
-	// redirect if already logged in
-	/*useEffect(() => {
-		if (authUser) {
-			router.push("/")
+	// redirect if not logged in
+	useEffect(() => {
+		if (!isCheckingAuth && !authUser) {
+			router.push("/");
 		}
-	}, [authUser, router])*/
+	}, [authUser, router, isCheckingAuth]);
 
 	const [userId, setUserId] = useState<string | null>(null);
 	const [pitches, setPitches] = useState<Pitch[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [pitchToDelete, setPitchToDelete] = useState<PitchToDelete>({
+		id: null,
+		title: null,
+	});
+	const [isDeleting, setIsDeleting] = useState(false);
 
-	// get user session
 	useEffect(() => {
 		const getSession = async () => {
 			setLoading(true);
@@ -53,7 +130,7 @@ export default function ManagePitchesPage() {
 					error,
 				} = await supabase.auth.getSession();
 				if (error) throw error;
-				setUserId(session?.user?.id || null);
+				setUserId(authUser?.id || session?.user?.id || null);
 			} catch (e) {
 				console.error("Supabase Auth Error:", e);
 				setUserId(null);
@@ -63,29 +140,101 @@ export default function ManagePitchesPage() {
 			}
 		};
 		getSession();
-	}, []);
+	}, [authUser?.id]);
+
+	const fetchUserPitches = async (id: string) => {
+		try {
+			setLoading(true);
+			setError(null);
+			const fetchedData = await getAllPitches(id);
+			setPitches(Array.isArray(fetchedData) ? fetchedData : []);
+		} catch (err: any) {
+			console.error("Failed to fetch user pitches:", err);
+			toast.error("Failed to load your pitches.");
+			setError("Could not load pitches due to a server error.");
+			setPitches([]);
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	useEffect(() => {
 		if (!userId) return;
-
-		const fetchUserPitches = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-				const fetchedData = await getAllPitches(userId);
-				setPitches(Array.isArray(fetchedData) ? fetchedData : []);
-			} catch (err: any) {
-				console.error("Failed to fetch user pitches:", err);
-				toast.error("Failed to load your pitches.");
-				setError("Could not load pitches due to a server error.");
-				setPitches([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchUserPitches();
+		fetchUserPitches(userId);
 	}, [userId]);
+
+	const getStatusClasses = (status: string) => {
+		switch (status) {
+			case "Active":
+				return "border-2 border-green-500 text-green-600";
+			case "Funded":
+				return "border-2 border-blue-500 text-blue-600";
+			case "Declared":
+				return "border-2 border-brown-500 text-brown-600";
+			case "Draft":
+				return "border-2 border-yellow-500 text-yellow-500";
+			case "Closed":
+				return "border-2 border-red-500 text-red-600";
+			default:
+				return "border-2 border-gray-500 text-gray-600";
+		}
+	};
+
+	const handleView = (e: React.MouseEvent, pitchId: number) => {
+		e.stopPropagation();
+		router.push(`/pitches/${pitchId}`);
+	};
+
+	const handleEdit = (
+		e: React.MouseEvent,
+		pitchId: number,
+		status: string
+	) => {
+		e.stopPropagation();
+		if (status === "Funded") {
+			toast.error("Cannot edit a funded pitch");
+			return;
+		}
+		router.push(`/business/pitches/manage/${pitchId}/edit`);
+	};
+
+	const handleDistributeProfit = (e: React.MouseEvent, pitch: Pitch) => {
+		e.stopPropagation();
+		setSelectedDistributePitch(pitch);
+		setIsDistributeDialogOpen(true);
+	};
+
+	const handleDeclareProfit = (e: React.MouseEvent, pitch: Pitch) => {
+		e.stopPropagation();
+		setSelectedPitch(pitch);
+		setIsProfitDialogOpen(true);
+	};
+
+	const handleDeleteClick = (e: React.MouseEvent, pitch: Pitch) => {
+		e.stopPropagation();
+		setPitchToDelete({ id: pitch.id, title: pitch.title });
+	};
+
+	const handleDeleteConfirm = async (e: React.MouseEvent) => {
+		e.stopPropagation();
+		if (!pitchToDelete.id || !userId) return;
+
+		setIsDeleting(true);
+		try {
+			await axios.delete(`/pitch?id=${pitchToDelete.id}`);
+			toast(`Pitch '${pitchToDelete.title}' deleted successfully.`);
+
+			await fetchUserPitches(userId);
+
+			setPitchToDelete({ id: null, title: null });
+
+		} catch (err) {
+			console.error("Failed to delete pitch:", err);
+			toast.error("Failed to delete pitch. Please try again.");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
 
 	if (error) {
 		return (
@@ -98,6 +247,14 @@ export default function ManagePitchesPage() {
 				>
 					Try Again
 				</Button>
+			</div>
+		);
+	}
+
+	if (isCheckingAuth || loading) {
+		return (
+			<div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+				<LoaderComponent />
 			</div>
 		);
 	}
@@ -121,29 +278,9 @@ export default function ManagePitchesPage() {
 		);
 	}
 
-	const handleEdit = (e: React.MouseEvent, pitchId: number, status: string) => {
-		e.stopPropagation();
-		if (status === "Funded") {
-			toast.error("Cannot edit a funded pitch");
-			return;
-		}
-		router.push(`/business/pitches/manage/${pitchId}/edit`);
-	};
-
-	const handleDistribute = (e: React.MouseEvent, pitchId: number) => {
-		e.stopPropagation();
-		router.push(`/business/pitches/manage/${pitchId}/distribute`);
-	};
-
-	const handleDeclareProfit = (e: React.MouseEvent, pitchId: number) => {
-		e.stopPropagation();
-		router.push(`/business/pitches/manage/${pitchId}/profit`);
-	};
-
 	return (
 		<div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-6 lg:px-12">
 			<div className="max-w-7xl mx-auto">
-				{/* Header */}
 				<div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10">
 					<div>
 						<h1 className="text-4xl font-bold text-gray-900 dark:text-white">
@@ -161,7 +298,6 @@ export default function ManagePitchesPage() {
 					</Button>
 				</div>
 
-				{/* ✅ Data Table */}
 				<div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
 					<Table>
 						<TableHeader>
@@ -171,79 +307,321 @@ export default function ManagePitchesPage() {
 								<TableHead>Raised</TableHead>
 								<TableHead>Target</TableHead>
 								<TableHead>Profit Share</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead className="text-right w-[50px]"></TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
 							{pitches.map((pitch) => {
+								const canEditPitch = pitch.status === "Active" || pitch.status === "Draft";
+
 								const canDeclareProfit =
-									pitch.status === "Active" ||
-									Number(pitch.raised_amount) >= Number(pitch.target_amount);
+									pitch.status === "Funded";
+
+								const canDistributeProfit =
+									pitch.status === "Declared";
 
 								return (
-									<TableRow
-										key={pitch.id}
-										className="hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
-										onClick={() => router.push(`/pitches/${pitch.id}`)}
-									>
-										<TableCell className="pl-4 font-medium">{pitch.title}</TableCell>
+									<TableRow key={pitch.id} className="">
+										<TableCell className="pl-4 font-medium">
+											{pitch.title}
+										</TableCell>
 										<TableCell>
 											<span
-												className={`${pitch.status === "Funded"
-													? "text-green-600 dark:text-green-400"
-													: pitch.status === "Draft"
-														? "text-gray-500"
-														: "text-yellow-600 dark:text-yellow-400"
-													}`}
+												className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusClasses(
+													pitch.status
+												)}`}
 											>
 												{pitch.status}
 											</span>
 										</TableCell>
 										<TableCell>£{pitch.raised_amount}</TableCell>
 										<TableCell>£{pitch.target_amount}</TableCell>
-										<TableCell>{pitch.profit_share_percent}%</TableCell>
-										<TableCell className="text-right flex justify-end gap-2">
-											{/* distribute button */}
-											{pitch.status === "Funded" && (
-												<Button
-													className={`flex items-center gap-1 text-sm`}
-													onClick={(e) => handleDistribute(e, pitch.id)}
-												>
-													<DollarSign size={14} /> Distribute
-												</Button>
-											)}
+										<TableCell>
+											{pitch.profit_share_percent}%
+										</TableCell>
 
-											{/* declare profit button - I am interpreting your intent here since you used handleEdit */}
-											{canDeclareProfit && (
-												<Button
-													className={`flex items-center gap-1 text-sm cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600 hover:text-white`}
-													onClick={(e) =>
-														handleDeclareProfit(e, pitch.id) // ⭐️ Use correct handler
-													}
-													disabled={pitch.status === "Funded"}
-													variant="outline"
-												>
-													<PiggyBank size={14} /> Declare Profit
-												</Button>
-											)}
-
-											{/* edit button */}
-											<Button
-												className={`flex items-center gap-1 text-sm cursor-pointer`}
-												onClick={(e) =>
-													handleEdit(e, pitch.id, pitch.status)
+										<TableCell className="text-right">
+											<AlertDialog
+												open={
+													pitchToDelete.id ===
+													pitch.id
 												}
-												disabled={pitch.status === "Funded"}
-												variant="outline"
+												onOpenChange={(isOpen) =>
+													!isOpen &&
+													setPitchToDelete({
+														id: null,
+														title: null,
+													})
+												}
 											>
-												<Pencil size={14} /> Edit
-											</Button>
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button
+															variant="ghost"
+															className="h-8 w-8 p-0 cursor-pointer"
+															onClick={(e) =>
+																e.stopPropagation()
+															}
+														>
+															<span className="sr-only">
+																Open menu
+															</span>
+															<MoreHorizontal className="h-4 w-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuLabel>
+															Actions
+														</DropdownMenuLabel>
+
+														<DropdownMenuSeparator />
+
+														<DropdownMenuItem
+															onClick={(e) => handleView(e, pitch.id)}
+															className="flex items-center gap-2 cursor-pointer"
+														>
+															<ExternalLink className="mr-2 h-4 w-4" />
+															View Pitch Details
+														</DropdownMenuItem>
+
+														{canEditPitch && (
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleEdit(
+																		e,
+																		pitch.id,
+																		pitch.status
+																	)
+																}
+																className={`flex items-center gap-2 ${pitch.status ===
+																	"Funded"
+																	? "opacity-50 cursor-not-allowed"
+																	: "cursor-pointer"
+																	}`}
+															>
+																<Pencil className="mr-2 h-4 w-4" />{" "}
+																Edit Pitch
+															</DropdownMenuItem>
+														)}
+
+														{canDeclareProfit && (
+															<DropdownMenuItem
+																onClick={(e) => handleDeclareProfit(e, pitch)}
+																className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 cursor-pointer"
+															>
+																<PiggyBank className="mr-2 h-4 w-4" />{" "}
+																Declare Profit
+															</DropdownMenuItem>
+														)}
+
+														{canDistributeProfit && (
+															<DropdownMenuItem
+																onClick={(e) => handleDistributeProfit(e, pitch)}
+																className="flex items-center gap-2 cursor-pointer"
+															>
+																<DollarSign className="mr-2 h-4 w-4" /> Distribute Profit
+															</DropdownMenuItem>
+														)}
+
+														<AlertDialogTrigger asChild>
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleDeleteClick(
+																		e,
+																		pitch
+																	)
+																}
+																className="flex items-center gap-2 cursor-pointer text-red-500 hover:text-red-600"
+															>
+																<Trash className="mr-2 h-4 w-4" />{" "}
+																Delete Pitch
+															</DropdownMenuItem>
+														</AlertDialogTrigger>
+													</DropdownMenuContent>
+												</DropdownMenu>
+
+												<AlertDialogContent>
+													<AlertDialogHeader>
+														<AlertDialogTitle>
+															Are you absolutely sure?
+														</AlertDialogTitle>
+														<AlertDialogDescription>
+															This action cannot be undone. This will
+															permanently delete the pitch "
+															<span className="font-semibold text-red-600 dark:text-red-400">
+																{
+																	pitchToDelete.title
+																}
+															</span>
+															".
+														</AlertDialogDescription>
+													</AlertDialogHeader>
+													<AlertDialogFooter>
+														<AlertDialogCancel disabled={isDeleting}>
+															Cancel
+														</AlertDialogCancel>
+														<AlertDialogAction
+															onClick={
+																handleDeleteConfirm
+															}
+															className="bg-red-600 hover:bg-red-700 text-white"
+															disabled={isDeleting}
+														>
+															{isDeleting ? (
+																<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+															) : (
+																<Trash className="mr-2 h-4 w-4" />
+															)}
+															{isDeleting
+																? "Deleting..."
+																: "Delete Pitch"}
+														</AlertDialogAction>
+													</AlertDialogFooter>
+												</AlertDialogContent>
+											</AlertDialog>
 										</TableCell>
 									</TableRow>
 								);
 							})}
 						</TableBody>
 					</Table>
+
+					<Dialog open={isProfitDialogOpen} onOpenChange={setIsProfitDialogOpen}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Declare Profit</DialogTitle>
+								<DialogDescription>
+									Enter the profit amount to declare for{" "}
+									<span className="font-semibold text-gray-900 dark:text-white">
+										{selectedPitch?.title}
+									</span>
+									.
+								</DialogDescription>
+							</DialogHeader>
+
+							<div className="space-y-4 mt-4">
+								<div>
+									<Label className="mb-2" htmlFor="profitAmount">Profit Amount (£)</Label>
+									<Input
+										id="profitAmount"
+										type="text"
+										inputMode="decimal"
+										pattern="[0-9]*"
+										value={profitAmount}
+										onChange={(e) => {
+											const value = e.target.value;
+											if (/^\d*\.?\d*$/.test(value)) {
+												setProfitAmount(value);
+											}
+										}}
+										placeholder="Enter profit amount"
+										className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+									/>
+								</div>
+							</div>
+
+							<DialogFooter className="mt-6">
+								<DialogClose asChild>
+									<Button variant="outline">Cancel</Button>
+								</DialogClose>
+								<Button
+									onClick={async () => {
+										if (!selectedPitch || !profitAmount) {
+											toast.error("Please enter a valid profit amount.");
+											return;
+										}
+										setIsDeclaring(true);
+										try {
+											const profit: Profit = {
+												pitch_id: selectedPitch.id,
+												total_profit: Number(profitAmount),
+												period_start: new Date().toISOString(),
+												period_end: new Date().toISOString(),
+											};
+											await declareProfit(profit);
+											toast.success("Profit declared successfully!");
+											setIsProfitDialogOpen(false);
+											setProfitAmount("");
+											await fetchUserPitches(userId!);
+										} catch (err) {
+											console.error("Error declaring profit:", err);
+											toast.error("Failed to declare profit. Try again.");
+										} finally {
+											setIsDeclaring(false);
+										}
+									}}
+									disabled={isDeclaring}
+								>
+									{isDeclaring ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											Declaring...
+										</>
+									) : (
+										"Declare Profit"
+									)}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+
+					<Dialog open={isDistributeDialogOpen} onOpenChange={setIsDistributeDialogOpen}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Distribute Profit</DialogTitle>
+								<DialogDescription>
+									This will distribute profits for{" "}
+									<span className="font-semibold text-gray-900 dark:text-white">
+										{selectedDistributePitch?.title}
+									</span>.
+								</DialogDescription>
+							</DialogHeader>
+
+							<DialogFooter className="mt-6">
+								<DialogClose asChild>
+									<Button variant="outline">Cancel</Button>
+								</DialogClose>
+								<Button
+									onClick={async () => {
+										if (!selectedDistributePitch) return;
+										setIsDistributing(true);
+										try {
+											const profits = await getProfitsForPitch(selectedDistributePitch.id);
+											const profitToDistribute = profits
+												.filter(p => !p.transferred)
+												.sort((a, b) => new Date(a.period_start).getTime() - new Date(b.period_start).getTime())[0];
+
+											if (!profitToDistribute) {
+												toast.error("No undistributed profit found for this pitch.");
+												setIsDistributing(false);
+												return;
+											}
+
+											await distributeProfit(profitToDistribute);
+											toast.success("Profit distributed successfully!");
+											setIsDistributeDialogOpen(false);
+											await fetchUserPitches(userId!);
+										} catch (err) {
+											console.error("Error distributing profit:", err);
+											toast.error("Failed to distribute profit. Try again.");
+										} finally {
+											setIsDistributing(false);
+										}
+									}}
+									disabled={isDistributing}
+								>
+									{isDistributing ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											Distributing...
+										</>
+									) : (
+										"Distribute Profit"
+									)}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
 				</div>
 			</div>
 		</div>

@@ -3,7 +3,6 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import toast from "react-hot-toast";
-
 import { useAuthStore } from "@/lib/store/authStore";
 import { Rocket, Users, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,11 +13,6 @@ export default function Home() {
 	const router = useRouter()
 	const pathname = usePathname()
 	const { authUser, checkAuth } = useAuthStore()
-
-	// check if user is already logged in
-	useEffect(() => {
-		checkAuth()
-	}, [checkAuth])
 
 	const handleGetStarted = () => {
 		if (authUser) {

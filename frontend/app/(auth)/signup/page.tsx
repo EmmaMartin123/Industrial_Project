@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import toast from "react-hot-toast"
 import { LoaderPinwheel } from "lucide-react"
-
 import { useAuthStore } from "@/lib/store/authStore"
 import { postUserProfile } from "@/lib/api/profile"
 import { supabase } from "@/lib/supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 const ROLES = {
 	INVESTOR: "investor",
@@ -20,7 +19,6 @@ const ROLES = {
 export default function SignupPage() {
 	const router = useRouter()
 	const { signup, authUser, checkAuth, isSigningUp, isCheckingAuth } = useAuthStore()
-
 	const [name, setName] = useState("")
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")

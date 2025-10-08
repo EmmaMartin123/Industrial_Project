@@ -14,9 +14,7 @@ import { useRouter } from "next/navigation";
 
 export default function ProfilePage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
-
 	const router = useRouter();
-
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [activeTab, setActiveTab] = useState("overview");
 
@@ -25,7 +23,6 @@ export default function ProfilePage() {
 
 	return (
 		<div className="max-w-5xl mx-auto p-6 space-y-8">
-			{/* Profile Header */}
 			<Card className="p-6 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-sm">
 				<Avatar className="h-24 w-24">
 					<AvatarImage src={``} alt="User" />
@@ -49,7 +46,6 @@ export default function ProfilePage() {
 				</div>
 			</Card>
 
-			{/* Quick Stats */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<Card>
 					<CardContent className="p-4 text-center">
@@ -73,7 +69,6 @@ export default function ProfilePage() {
 
 			<Separator />
 
-			{/* Tabs Section */}
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 				<TabsList className="grid grid-cols-3 max-w-md mx-auto mb-6">
 					<TabsTrigger value="overview">Overview</TabsTrigger>
