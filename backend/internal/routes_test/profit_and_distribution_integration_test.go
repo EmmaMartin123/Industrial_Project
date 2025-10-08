@@ -59,7 +59,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to extract investor user ID: %v", err)
 	}
-	// Fund investor for investment
 	_, err = utils.UpdateByID("profile", investor_id, map[string]interface{}{"dashboard_balance": 5000})
 	if err != nil {
 		t.Fatalf("Failed to set investor balance: %v", err)
@@ -70,7 +69,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 	defer server.Close()
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	// === STEP 1: Business creates a pitch ===
 	pitch_payload := map[string]interface{}{
 		"title":                 "Profit Test Pitch",
 		"elevator_pitch":        "Test pitch for profit distribution",
@@ -99,7 +97,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 		make_request(client, "DELETE", delete_url, nil, business_token)
 	}()
 
-	// === STEP 2: Investor invests £1000 (Premium tier) ===
 	investment_payload := map[string]interface{}{
 		"pitch_id": pitch_id,
 		"amount":   int64(1000),
@@ -115,7 +112,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 	}
 	investment_id := int64(investment["id"].(float64))
 
-	// === STEP 3: Business declares profit (£10,000 total → £2,000 distributable) ===
 	profit_payload := map[string]interface{}{
 		"pitch_id":     pitch_id,
 		"total_profit": 10000.0,
@@ -141,14 +137,11 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 		t.Errorf("Expected ~2000 distributable, got %f", distributable)
 	}
 
-	// === STEP 4: Ensure business has enough balance to distribute ===
-	// ✅ FIX: Directly set business dashboard balance (bypass wallet top-up flow)
 	_, err = utils.UpdateByID("profile", business_id, map[string]interface{}{"dashboard_balance": 3000})
 	if err != nil {
 		t.Fatalf("Failed to fund business wallet: %v", err)
 	}
 
-	// === STEP 5: Distribute profit ===
 	distribute_url := fmt.Sprintf("%s/api/distribute?profit_id=%d", server.URL, profit_id)
 	resp, err = make_request(client, "POST", distribute_url, nil, business_token)
 	if err != nil {
@@ -159,7 +152,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 		t.Fatalf("Expected 204, got %d. Body: %s", resp.StatusCode, string(body))
 	}
 
-	// === STEP 6: Investor checks distributions ===
 	resp, err = make_request(client, "GET", server.URL+"/api/distribute", nil, investor_token)
 	if err != nil {
 		t.Fatalf("Failed to fetch distributions: %v", err)
@@ -183,7 +175,6 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 		t.Errorf("Investor did not receive expected profit distribution. Got: %v", distributions)
 	}
 
-	// === STEP 7: Verify business balance was deducted (3000 - 2000 = 1000) ===
 	resp, err = make_request(client, "GET", server.URL+"/api/wallet", nil, business_token)
 	if err != nil {
 		t.Fatalf("Failed to get business wallet: %v", err)
@@ -197,5 +188,20 @@ func TestProfitDeclarationAndDistribution(t *testing.T) {
 		t.Errorf("Expected business balance 1000 after distribution, got %d", balance)
 	}
 
+	resp, err = make_request(client, "GET", server.URL+"/api/wallet", nil, investor_token)
+	if err != nil {
+		t.Fatalf("Failed to get investor wallet: %v", err)
+	}
+	var investor_wallet map[string]interface{}
+	if err := decode_json_response(resp, &investor_wallet); err != nil {
+		t.Fatalf("Failed to decode investor wallet: %v", err)
+	}
+	investor_balance := int64(investor_wallet["dashboard_balance"].(float64))
+	expected_investor_balance := int64(5000 - 1000 + 2000) // initial - investment + profit
+	if investor_balance != expected_investor_balance {
+		t.Errorf("Expected investor balance %d, got %d", expected_investor_balance, investor_balance)
+	}
+
 	t.Log("Profit declaration and distribution test passed")
+
 }
