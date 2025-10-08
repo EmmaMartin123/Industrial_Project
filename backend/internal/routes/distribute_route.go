@@ -56,7 +56,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := strconv.ParseInt(profit_id_str, 10, 64)
+	profit_id, err := strconv.ParseInt(profit_id_str, 10, 64)
 	if err != nil {
 		http.Error(w, "invalid profit_id", http.StatusBadRequest)
 		return
@@ -203,13 +203,20 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		amount := profit_per_share * data.shares
 		rounded_amount := math.Round(amount*100) / 100
 
+		paid := true
+
+		if err := update_balance(data.investment.InvestorID, int64(rounded_amount)); err != nil {
+			fmt.Printf("Warning: failed to credit investor %s wallet: %v\n", data.investment.InvestorID, err)
+			paid = false
+		}
+
 		distribution := model.ProfitDistribution{
 			ProfitID:     profit.ID,
 			InvestmentID: *data.investment.ID,
 			InvestorID:   data.investment.InvestorID,
 			Shares:       data.shares,
 			Amount:       rounded_amount,
-			Paid:         false,
+			Paid:         paid, // now actually paid lol
 		}
 
 		_, err := utils.InsertData(distribution, "profit_distributions")
@@ -219,7 +226,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 	}
 
 	update_payload := map[string]interface{}{"transferred": true}
-	_, err = utils.UpdateByID("profits", profit_id_str, update_payload)
+	_, err = utils.UpdateByID("profits", strconv.FormatInt(profit_id, 10), update_payload)
 	if err != nil {
 		fmt.Printf("Warning: failed to mark profit %d as transferred: %v\n", profit.ID, err)
 	}
