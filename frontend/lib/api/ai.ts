@@ -11,9 +11,10 @@ export const generateFeedback = async (pitchDescription: string) => {
 	const modelName = "google/gemma-3n-e4b-it:free";
 
 	const systemPrompt = `You are an expert venture capitalist analyst. Your task is to provide 
-concise, actionable feedback on a startup pitch. You must analyze the pitch and 
+concise, actionable feedback on a startup pitch. You must analyse the pitch and 
 assign an overall RAG status based on its investment readiness: RED (high risk/major flaws), 
-AMBER (minor flaws/needs work), or GREEN (ready to pitch).
+AMBER (minor flaws/needs work), or GREEN (ready to pitch). After that, you must describe what 
+to change about the pitch to make it more suitable for investment.
 
 Your entire output MUST be in the following exact format:
 [RAG_RATING:COLOR]
@@ -35,7 +36,7 @@ Replace COLOR with RED, AMBER, or GREEN.`;
 			}
 		],
 		temperature: 0.5,
-		max_tokens: 1024,
+		max_tokens: 2048,
 	};
 
 	try {

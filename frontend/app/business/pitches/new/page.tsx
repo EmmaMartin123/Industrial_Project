@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import toast from "react-hot-toast";
 import {
 	Plus,
 	Trash,
@@ -34,6 +33,7 @@ import { useRouter } from "next/navigation";
 import { describePitch } from "@/lib/describePitch";
 import { generateFeedback } from "@/lib/api/ai";
 import ReactMarkdown from 'react-markdown';
+import { toast } from "sonner";
 
 // Tier type
 type TierState = {
@@ -72,6 +72,7 @@ export default function NewPitchPage() {
 
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
+	const [ragRating, setRagRating] = useState<string | null>(null);
 
 	const pitchObject: NewPitch = {
 		title,
@@ -90,7 +91,20 @@ export default function NewPitchPage() {
 		})),
 	};
 
-	const pitchDescription = describePitch(pitchObject); // pitchObject: NewPitch
+	const pitchDescription = describePitch(pitchObject);
+
+	const getRagBadgeClasses = (rating: string | null) => {
+		switch (rating) {
+			case 'GREEN':
+				return 'bg-green-100 text-green-700 border-green-400';
+			case 'AMBER':
+				return 'bg-amber-100 text-amber-700 border-amber-400';
+			case 'RED':
+				return 'bg-red-100 text-red-700 border-red-400';
+			default:
+				return 'bg-gray-100 text-gray-500 border-gray-400';
+		}
+	};
 
 	// check auth on mount
 	useEffect(() => {
@@ -126,37 +140,90 @@ export default function NewPitchPage() {
 	const handleAiAnalysis = async () => {
 		setAiLoading(true);
 		setAiAnalysis(null);
+		setRagRating(null);
 
-		const mockPitch: NewPitch = {
-			title: "SmartUrban Farming",
-			elevator_pitch: "Revolutionizing city farming with IoT-powered vertical gardens.",
-			detailed_pitch: `SmartUrban Farming builds IoT-enabled vertical gardens for urban environments, 
-allowing residents and businesses to grow fresh produce with minimal space and water. 
-We provide an app to monitor plant health, automate watering, and optimize growth.`,
-			target_amount: 50000,
+		if (!title || title.trim() === "") {
+			toast("Cannot generate analysis: Pitch Title is missing.");
+			setAiLoading(false);
+			return;
+		}
+		if (!elevator || elevator.trim() === "") {
+			toast("Cannot generate analysis: Elevator Pitch is missing.");
+			setAiLoading(false);
+			return;
+		}
+		if (!detailedPitchContent || detailedPitchContent.trim() === "") {
+			toast("Cannot generate analysis: Detailed Pitch Content is missing.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (typeof targetAmount !== "number" || targetAmount <= 0) {
+			toast("Cannot generate analysis: Target Amount must be a positive number.");
+			setAiLoading(false);
+			return;
+		}
+		if (typeof profitShare !== "number" || profitShare < 0) {
+			toast("Cannot generate analysis: Profit Share Percent must be zero or positive.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (!(investmentStartDate instanceof Date) || isNaN(investmentStartDate.getTime())) {
+			toast("Cannot generate analysis: Investment Start Date is invalid.");
+			setAiLoading(false);
+			return;
+		}
+		if (endDate && (!(endDate instanceof Date) || isNaN(endDate.getTime()))) {
+			toast("Cannot generate analysis: Investment End Date is invalid.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (!tiers || tiers.length === 0) {
+			toast("Cannot generate analysis: At least one Investment Tier is required.");
+			setAiLoading(false);
+			return;
+		}
+
+		const hasInvalidTier = tiers.some(t => typeof t.min_amount !== "number" || t.min_amount < 0);
+		if (hasInvalidTier) {
+			toast("Cannot generate analysis: All Investment Tiers must have a valid minimum amount.");
+			setAiLoading(false);
+			return;
+		}
+
+		const pitchObject: NewPitch = {
+			title,
+			elevator_pitch: elevator,
+			detailed_pitch: detailedPitchContent,
+			target_amount: typeof targetAmount === "number" ? targetAmount : 0,
+			investment_start_date: investmentStartDate.toISOString(),
+			investment_end_date: endDate ? endDate.toISOString() : new Date().toISOString(),
+			profit_share_percent: typeof profitShare === "number" ? profitShare : 0,
 			status: "Active",
-			profit_share_percent: 12,
-			investment_start_date: "2025-10-01T00:00:00.000Z",
-			investment_end_date: "2026-04-01T00:00:00.000Z",
-			investment_tiers: [
-				{ name: "Seed", min_amount: 100, max_amount: 999, multiplier: 1.0 },
-				{ name: "Sprout", min_amount: 1000, max_amount: 4999, multiplier: 1.2 },
-				{ name: "Bloom", min_amount: 5000, multiplier: 1.5 },
-			],
+			investment_tiers: tiers.map((t) => ({
+				name: t.name,
+				min_amount: typeof t.min_amount === "number" ? t.min_amount : 0,
+				max_amount: typeof t.max_amount === "number" ? t.max_amount : null,
+				multiplier: typeof t.multiplier === "number" ? t.multiplier : 1,
+			})),
 		};
 
-		const pitchDescription = describePitch(mockPitch);
+		const pitchDescription = describePitch(pitchObject);
 		console.log(pitchDescription);
 
 		if (!pitchDescription) {
-			setAiAnalysis("Pitch description is empty.");
+			setAiAnalysis("Pitch description could not be generated from the data. Check your inputs.");
 			setAiLoading(false);
 			return;
 		}
 
 		const result = await generateFeedback(pitchDescription);
+
 		if (result) {
-			setAiAnalysis(`[RAG: ${result.ragRating}]\n${result.feedback}`);
+			setRagRating(result.ragRating);
+			setAiAnalysis(`${result.feedback}`);
 		} else {
 			setAiAnalysis("Failed to generate AI analysis. Try again.");
 		}
@@ -537,7 +604,21 @@ We provide an app to monitor plant health, automate watering, and optimize growt
 					<TabsContent value="ai" className="space-y-6">
 						<div className="border rounded-lg p-6 space-y-4">
 							<div className="flex justify-between items-center">
-								<h4 className="font-medium text-lg">AI Analysis</h4>
+								<div className="flex items-center space-x-3">
+									<h4 className="font-medium text-lg">AI Analysis</h4>
+
+									{ragRating && (
+										<span
+											className={`
+                            px-3 py-1 text-xs font-semibold rounded-full border uppercase
+                            ${getRagBadgeClasses(ragRating)}
+                        `}
+										>
+											{ragRating}
+										</span>
+									)}
+								</div>
+
 								<Button type="button" variant="secondary" onClick={handleAiAnalysis} disabled={aiLoading}>
 									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
 								</Button>
@@ -556,12 +637,6 @@ We provide an app to monitor plant health, automate watering, and optimize growt
 									Click the button above to get AI feedback on your pitch.
 								</p>
 							)}
-						</div>
-
-						<div className="flex justify-start">
-							<Button variant="outline" type="button" onClick={() => setActiveTab("overview")}>
-								Previous
-							</Button>
 						</div>
 					</TabsContent>
 				</form>

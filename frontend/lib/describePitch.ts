@@ -13,7 +13,6 @@ export function describePitch(pitch: NewPitch): string {
 		investment_tiers,
 	} = pitch;
 
-	// Format tiers nicely
 	const tierDescriptions = investment_tiers.map((tier, i) => {
 		const maxText = tier.max_amount ? `up to $${tier.max_amount.toLocaleString()}` : "and above";
 		return `Tier ${i + 1}: "${tier.name}" — from $${tier.min_amount.toLocaleString()} ${maxText}, multiplier ${tier.multiplier}x.`;
