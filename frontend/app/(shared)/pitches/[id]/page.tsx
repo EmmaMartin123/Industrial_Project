@@ -262,10 +262,12 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 											? "text-blue-600"
 											: pitch.status === "Closed"
 												? "text-red-600"
-												: "text-gray-600"
+												: pitch.status === "Declared" || pitch.status === "Distributed"
+													? "text-blue-600"
+													: "text-gray-600"
 									}`}
 							>
-								{pitch.status}
+								{pitch.status === "Distributed" || pitch.status === "Declared" ? "Funded" : pitch.status}
 							</p>
 						</div>
 					</div>

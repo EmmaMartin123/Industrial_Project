@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
 import { Pitch } from "@/lib/types/pitch";
-import { declareProfit } from "@/lib/api/profit";
+import { declareProfit, distributeProfit, getProfitsForPitch } from "@/lib/api/profit";
 import { Profit } from "@/lib/types/profit";
 import { Button } from "@/components/ui/button";
 import LoaderComponent from "@/components/Loader";
@@ -76,6 +76,9 @@ export default function ManagePitchesPage() {
 	const [selectedPitch, setSelectedPitch] = useState<Pitch | null>(null);
 	const [profitAmount, setProfitAmount] = useState("");
 	const [isDeclaring, setIsDeclaring] = useState(false);
+	const [isDistributeDialogOpen, setIsDistributeDialogOpen] = useState(false);
+	const [selectedDistributePitch, setSelectedDistributePitch] = useState<Pitch | null>(null);
+	const [isDistributing, setIsDistributing] = useState(false);
 
 	const router = useRouter();
 
@@ -192,9 +195,10 @@ export default function ManagePitchesPage() {
 		router.push(`/business/pitches/manage/${pitchId}/edit`);
 	};
 
-	const handleDistribute = (e: React.MouseEvent, pitchId: number) => {
+	const handleDistributeProfit = (e: React.MouseEvent, pitch: Pitch) => {
 		e.stopPropagation();
-		router.push(`/business/pitches/manage/${pitchId}/distribute`);
+		setSelectedDistributePitch(pitch);
+		setIsDistributeDialogOpen(true);
 	};
 
 	const handleDeclareProfit = (e: React.MouseEvent, pitch: Pitch) => {
@@ -305,11 +309,10 @@ export default function ManagePitchesPage() {
 						</TableHeader>
 						<TableBody>
 							{pitches.map((pitch) => {
+								const canEditPitch = pitch.status === "Active" || pitch.status === "Draft";
+
 								const canDeclareProfit =
-									pitch.status === "Funded" ||
-									pitch.status !== "Declared";
-									Number(pitch.raised_amount) >=
-									Number(pitch.target_amount);
+									pitch.status === "Funded";
 
 								const canDistributeProfit =
 									pitch.status === "Declared";
@@ -369,6 +372,7 @@ export default function ManagePitchesPage() {
 														</DropdownMenuLabel>
 														<DropdownMenuSeparator />
 
+														{canEditPitch && (
 														<DropdownMenuItem
 															onClick={(e) =>
 																handleEdit(
@@ -376,12 +380,6 @@ export default function ManagePitchesPage() {
 																	pitch.id,
 																	pitch.status
 																)
-															}
-															disabled={
-																pitch.status ===
-																"Funded" ||
-																pitch.status ===
-																"Declared"
 															}
 															className={`flex items-center gap-2 ${pitch.status ===
 																"Funded"
@@ -392,6 +390,7 @@ export default function ManagePitchesPage() {
 															<Pencil className="mr-2 h-4 w-4" />{" "}
 															Edit Pitch
 														</DropdownMenuItem>
+														)}
 
 														{canDeclareProfit && (
 															<DropdownMenuItem
@@ -405,20 +404,12 @@ export default function ManagePitchesPage() {
 
 														{canDistributeProfit && (
 															<DropdownMenuItem
-																onClick={(e) =>
-																	handleDistribute(
-																		e,
-																		pitch.id
-																	)
-																}
+																onClick={(e) => handleDistributeProfit(e, pitch)}
 																className="flex items-center gap-2 cursor-pointer"
 															>
-																<DollarSign className="mr-2 h-4 w-4" />{" "}
-																Distribute Profit
+																<DollarSign className="mr-2 h-4 w-4" /> Distribute Profit
 															</DropdownMenuItem>
 														)}
-
-														<DropdownMenuSeparator />
 
 														<AlertDialogTrigger asChild>
 															<DropdownMenuItem
@@ -557,6 +548,66 @@ export default function ManagePitchesPage() {
 										</>
 									) : (
 										"Declare Profit"
+									)}
+								</Button>
+							</DialogFooter>
+						</DialogContent>
+					</Dialog>
+
+					<Dialog open={isDistributeDialogOpen} onOpenChange={setIsDistributeDialogOpen}>
+						<DialogContent>
+							<DialogHeader>
+								<DialogTitle>Distribute Profit</DialogTitle>
+								<DialogDescription>
+									This will distribute profits for{" "}
+									<span className="font-semibold text-gray-900 dark:text-white">
+										{selectedDistributePitch?.title}
+									</span>.
+								</DialogDescription>
+							</DialogHeader>
+
+							<DialogFooter className="mt-6">
+								<DialogClose asChild>
+									<Button variant="outline">Cancel</Button>
+								</DialogClose>
+								<Button
+									onClick={async () => {
+										if (!selectedDistributePitch) return;
+										setIsDistributing(true);
+										try {
+											// Fetch all profits for the pitch
+											const profits = await getProfitsForPitch(selectedDistributePitch.id);
+											// Filter for undeclared
+											const profitToDistribute = profits
+												.filter(p => !p.transferred)
+												.sort((a, b) => new Date(a.period_start).getTime() - new Date(b.period_start).getTime())[0];
+
+											if (!profitToDistribute) {
+												toast.error("No undistributed profit found for this pitch.");
+												setIsDistributing(false);
+												return;
+											}
+
+											await distributeProfit(profitToDistribute);
+											toast.success("Profit distributed successfully!");
+											setIsDistributeDialogOpen(false);
+											await fetchUserPitches(userId!); // refresh list
+										} catch (err) {
+											console.error("Error distributing profit:", err);
+											toast.error("Failed to distribute profit. Try again.");
+										} finally {
+											setIsDistributing(false);
+										}
+									}}
+									disabled={isDistributing}
+								>
+									{isDistributing ? (
+										<>
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+											Distributing...
+										</>
+									) : (
+										"Distribute Profit"
 									)}
 								</Button>
 							</DialogFooter>

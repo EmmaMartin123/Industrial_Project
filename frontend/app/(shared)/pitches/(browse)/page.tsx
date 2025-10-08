@@ -40,7 +40,7 @@ export default function BusinessPitchesPage() {
 	const [totalPages, setTotalPages] = useState<number>(1);
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 
-	const pageSize = 9;
+	const pageSize = 100;
 
 	// auth checks
 	useEffect(() => {
@@ -96,6 +96,8 @@ export default function BusinessPitchesPage() {
 				return "border-2 border-blue-500 text-blue-600";
 			case "Declared":
 				return "border-2 border-blue-500 text-blue-600";
+			case "Distributed":
+				return "border-2 border-blue-500 text-blue-600";
 			case "Draft":
 				return "border-2 border-yellow-500 text-yellow-500";
 			case "Closed":
@@ -142,7 +144,7 @@ export default function BusinessPitchesPage() {
 							pitch.status
 						)}`}
 					>
-						{pitch.status === "Declared" ? "Funded" : pitch.status}
+						{pitch.status === "Declared" || pitch.status === "Distributed" ? "Funded" : pitch.status}
 					</span>
 				</div>
 				<div className="flex flex-col gap-1">
