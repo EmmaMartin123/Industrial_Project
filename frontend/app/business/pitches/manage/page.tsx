@@ -11,6 +11,7 @@ import {
 	MoreHorizontal,
 	Trash,
 	Loader2,
+	ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { getAllPitches } from "@/lib/api/pitch";
@@ -177,6 +178,11 @@ export default function ManagePitchesPage() {
 			default:
 				return "border-2 border-gray-500 text-gray-600";
 		}
+	};
+
+	const handleView = (e: React.MouseEvent, pitchId: number) => {
+		e.stopPropagation();
+		router.push(`/pitches/${pitchId}`);
 	};
 
 	const handleEdit = (
@@ -367,26 +373,35 @@ export default function ManagePitchesPage() {
 														<DropdownMenuLabel>
 															Actions
 														</DropdownMenuLabel>
+
 														<DropdownMenuSeparator />
 
-														{canEditPitch && (
 														<DropdownMenuItem
-															onClick={(e) =>
-																handleEdit(
-																	e,
-																	pitch.id,
-																	pitch.status
-																)
-															}
-															className={`flex items-center gap-2 ${pitch.status ===
-																"Funded"
-																? "opacity-50 cursor-not-allowed"
-																: "cursor-pointer"
-																}`}
+															onClick={(e) => handleView(e, pitch.id)}
+															className="flex items-center gap-2 cursor-pointer"
 														>
-															<Pencil className="mr-2 h-4 w-4" />{" "}
-															Edit Pitch
+															<ExternalLink className="mr-2 h-4 w-4" />
+															View Pitch Details
 														</DropdownMenuItem>
+
+														{canEditPitch && (
+															<DropdownMenuItem
+																onClick={(e) =>
+																	handleEdit(
+																		e,
+																		pitch.id,
+																		pitch.status
+																	)
+																}
+																className={`flex items-center gap-2 ${pitch.status ===
+																	"Funded"
+																	? "opacity-50 cursor-not-allowed"
+																	: "cursor-pointer"
+																	}`}
+															>
+																<Pencil className="mr-2 h-4 w-4" />{" "}
+																Edit Pitch
+															</DropdownMenuItem>
 														)}
 
 														{canDeclareProfit && (

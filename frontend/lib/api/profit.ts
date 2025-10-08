@@ -20,23 +20,23 @@ export const distributeProfit = async (profitData: ProfitFromApi) => {
 };
 
 export const getProfitsForPitch = async (pitchId?: number): Promise<ProfitFromApi[]> => {
-  let url = "/profit";
-  if (pitchId) {
-    url += `?pitch_id=${pitchId}`;
-  }
+	let url = "/profit";
+	if (pitchId) {
+		url += `?pitch_id=${pitchId}`;
+	}
 
-  const response = await axios.get(url);
-  
-  const profits: ProfitFromApi[] = response.data.map((p: any) => ({
-    id: p.id,
-    pitch_id: p.pitch_id,
-    declared_by: p.declared_by,
-    period_start: p.period_start,
-    period_end: p.period_end,
-    total_profit: p.total_profit,
-    distributable_amount: p.distributable_amount,
-    transferred: p.transferred,
-  }));
+	const response = await axios.get(url);
 
-  return profits;
+	const profits: ProfitFromApi[] = response.data.map((p: any) => ({
+		id: p.id,
+		pitch_id: p.pitch_id,
+		declared_by: p.declared_by,
+		period_start: p.period_start,
+		period_end: p.period_end,
+		total_profit: p.total_profit,
+		distributable_amount: p.distributable_amount,
+		transferred: p.transferred,
+	}));
+
+	return profits;
 };

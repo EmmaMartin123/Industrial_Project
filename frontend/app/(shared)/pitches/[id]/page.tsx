@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/hover-card"
 import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/lib/store/authStore";
+import { getUserProfile } from "@/lib/api/profile";
 
 const calculateDaysRemaining = (endDate: Date): number | null => {
 	const today = new Date();
@@ -47,6 +48,23 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
+	const [userProfile, setUserProfile] = useState<any>(null);
+
+	// fetch profile on mount
+	useEffect(() => {
+		const fetchProfile = async () => {
+			console.log(authUser);
+			if (authUser?.id) {
+				try {
+					const profile = await getUserProfile(authUser.id);
+					setUserProfile(profile);
+				} catch (err) {
+					console.error("Failed to fetch user profile:", err);
+				}
+			}
+		};
+		fetchProfile();
+	}, [authUser?.id]);
 
 	// check auth on mount
 	useEffect(() => {
@@ -316,7 +334,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 							}
 							handleInvest();
 						}}
-						disabled={pitch.status !== "Active"}
+						disabled={pitch.status !== "Active" || userProfile?.role === "business"}
 					>
 						Invest Now
 					</Button>

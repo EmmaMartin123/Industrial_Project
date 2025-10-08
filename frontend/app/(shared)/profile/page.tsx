@@ -69,7 +69,6 @@ export default function ProfilePage() {
 
 			<Separator />
 
-			{/* Tabs Section */}
 			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
 				<TabsList className="grid grid-cols-3 max-w-md mx-auto mb-6">
 					<TabsTrigger value="overview">Overview</TabsTrigger>
