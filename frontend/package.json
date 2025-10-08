@@ -48,6 +48,7 @@
     "react-dom": "19.1.0",
     "react-hook-form": "^7.63.0",
     "react-hot-toast": "^2.5.2",
+    "react-markdown": "^10.1.0",
     "react-tsparticles": "^2.12.2",
     "recharts": "^3.2.1",
     "sonner": "^2.0.7",

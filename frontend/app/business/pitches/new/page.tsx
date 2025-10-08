@@ -31,6 +31,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useRouter } from "next/navigation";
+import { describePitch } from "@/lib/describePitch";
+import { generateFeedback } from "@/lib/api/ai";
+import ReactMarkdown from 'react-markdown';
 
 // Tier type
 type TierState = {
@@ -70,6 +73,25 @@ export default function NewPitchPage() {
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
 
+	const pitchObject: NewPitch = {
+		title,
+		elevator_pitch: elevator,
+		detailed_pitch: detailedPitchContent,
+		target_amount: typeof targetAmount === "number" ? targetAmount : 0,
+		investment_start_date: investmentStartDate.toISOString(),
+		investment_end_date: endDate ? endDate.toISOString() : new Date().toISOString(),
+		profit_share_percent: typeof profitShare === "number" ? profitShare : 0,
+		status: "Active",
+		investment_tiers: tiers.map((t) => ({
+			name: t.name,
+			min_amount: typeof t.min_amount === "number" ? t.min_amount : 0,
+			max_amount: typeof t.max_amount === "number" ? t.max_amount : null,
+			multiplier: typeof t.multiplier === "number" ? t.multiplier : 1,
+		})),
+	};
+
+	const pitchDescription = describePitch(pitchObject); // pitchObject: NewPitch
+
 	// check auth on mount
 	useEffect(() => {
 		const verifyAuth = async () => {
@@ -80,7 +102,7 @@ export default function NewPitchPage() {
 
 	// redirect if already logged in
 	useEffect(() => {
-		if (!authUser) {
+		if (!authUser && !isCheckingAuth) {
 			router.push("/")
 		}
 	}, [authUser, router])
@@ -102,20 +124,44 @@ export default function NewPitchPage() {
 	}, [mediaFiles]);
 
 	const handleAiAnalysis = async () => {
-		try {
-			setAiLoading(true);
-			setAiAnalysis(null);
+		setAiLoading(true);
+		setAiAnalysis(null);
 
-			await new Promise((r) => setTimeout(r, 1500));
-			setAiAnalysis(
-				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
-			);
-		} catch (err) {
-			console.error(err);
-			toast.error("AI analysis failed.");
-		} finally {
+		const mockPitch: NewPitch = {
+			title: "SmartUrban Farming",
+			elevator_pitch: "Revolutionizing city farming with IoT-powered vertical gardens.",
+			detailed_pitch: `SmartUrban Farming builds IoT-enabled vertical gardens for urban environments, 
+allowing residents and businesses to grow fresh produce with minimal space and water. 
+We provide an app to monitor plant health, automate watering, and optimize growth.`,
+			target_amount: 50000,
+			status: "Active",
+			profit_share_percent: 12,
+			investment_start_date: "2025-10-01T00:00:00.000Z",
+			investment_end_date: "2026-04-01T00:00:00.000Z",
+			investment_tiers: [
+				{ name: "Seed", min_amount: 100, max_amount: 999, multiplier: 1.0 },
+				{ name: "Sprout", min_amount: 1000, max_amount: 4999, multiplier: 1.2 },
+				{ name: "Bloom", min_amount: 5000, multiplier: 1.5 },
+			],
+		};
+
+		const pitchDescription = describePitch(mockPitch);
+		console.log(pitchDescription);
+
+		if (!pitchDescription) {
+			setAiAnalysis("Pitch description is empty.");
 			setAiLoading(false);
+			return;
 		}
+
+		const result = await generateFeedback(pitchDescription);
+		if (result) {
+			setAiAnalysis(`[RAG: ${result.ragRating}]\n${result.feedback}`);
+		} else {
+			setAiAnalysis("Failed to generate AI analysis. Try again.");
+		}
+
+		setAiLoading(false);
 	};
 
 	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -488,7 +534,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* AI Analysis */}
 					<TabsContent value="ai" className="space-y-6">
 						<div className="border rounded-lg p-6 space-y-4">
 							<div className="flex justify-between items-center">
@@ -498,8 +543,14 @@ export default function NewPitchPage() {
 								</Button>
 							</div>
 
-							{aiAnalysis ? (
-								<p className="text-sm whitespace-pre-line">{aiAnalysis}</p>
+							{aiLoading ? (
+								<p className="text-sm text-primary animate-pulse">
+									Analysing pitch... Please wait for the AI feedback.
+								</p>
+							) : aiAnalysis ? (
+								<ReactMarkdown>
+									{aiAnalysis}
+								</ReactMarkdown>
 							) : (
 								<p className="text-sm text-muted-foreground">
 									Click the button above to get AI feedback on your pitch.
