@@ -510,7 +510,6 @@ export default function ManagePitchesPage() {
 										value={profitAmount}
 										onChange={(e) => {
 											const value = e.target.value;
-											// allow only digits + one optional decimal point
 											if (/^\d*\.?\d*$/.test(value)) {
 												setProfitAmount(value);
 											}
@@ -543,7 +542,7 @@ export default function ManagePitchesPage() {
 											toast.success("Profit declared successfully!");
 											setIsProfitDialogOpen(false);
 											setProfitAmount("");
-											await fetchUserPitches(userId!); // refresh list
+											await fetchUserPitches(userId!);
 										} catch (err) {
 											console.error("Error declaring profit:", err);
 											toast.error("Failed to declare profit. Try again.");
@@ -587,9 +586,7 @@ export default function ManagePitchesPage() {
 										if (!selectedDistributePitch) return;
 										setIsDistributing(true);
 										try {
-											// Fetch all profits for the pitch
 											const profits = await getProfitsForPitch(selectedDistributePitch.id);
-											// Filter for undeclared
 											const profitToDistribute = profits
 												.filter(p => !p.transferred)
 												.sort((a, b) => new Date(a.period_start).getTime() - new Date(b.period_start).getTime())[0];
@@ -603,7 +600,7 @@ export default function ManagePitchesPage() {
 											await distributeProfit(profitToDistribute);
 											toast.success("Profit distributed successfully!");
 											setIsDistributeDialogOpen(false);
-											await fetchUserPitches(userId!); // refresh list
+											await fetchUserPitches(userId!);
 										} catch (err) {
 											console.error("Error distributing profit:", err);
 											toast.error("Failed to distribute profit. Try again.");
