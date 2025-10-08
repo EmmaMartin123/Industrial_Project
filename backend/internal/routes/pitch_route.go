@@ -781,6 +781,57 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPatch {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	pitchIDStr := r.URL.Query().Get("id")
+	if pitchIDStr == "" {
+		http.Error(w, "Pitch ID is required", http.StatusBadRequest)
+		return
+	}
+
+	var payload struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if payload.Status == "" {
+		http.Error(w, "Status is required", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := utils.UserIDFromCtx(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if ok, _ := utilsdb.CheckUserRole(w, userID, "business"); !ok {
+		return
+	}
+
+	updateData := map[string]interface{}{
+		"status": payload.Status,
+	}
+
+	_, err := utils.UpdateByID("pitch", pitchIDStr, updateData)
+	if err != nil {
+		http.Error(w, "Failed to update status", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Pitch status updated successfully",
+	})
+}
+
+
 func DeletePitchTags(pitchID int64) error {
 	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
 	url := fmt.Sprintf("%s/rest/v1/pitch_tags?%s", os.Getenv("SUPABASE_URL"), query)
