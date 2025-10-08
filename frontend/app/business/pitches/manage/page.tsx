@@ -307,6 +307,7 @@ export default function ManagePitchesPage() {
 							{pitches.map((pitch) => {
 								const canDeclareProfit =
 									pitch.status === "Funded" ||
+									pitch.status !== "Declared";
 									Number(pitch.raised_amount) >=
 									Number(pitch.target_amount);
 

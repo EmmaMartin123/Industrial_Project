@@ -105,3 +105,15 @@ export const patchPitch = async (id: number, data: UpdatePitch | FormData): Prom
 export const deletePitch = async (id: number): Promise<void> => {
 	await axios.delete(`/pitch?id=${id}`);
 };
+
+export const updatePitchStatus = async (pitchId: number, status: string) => {
+  try {
+    const res = await axios.patch(`/pitch/status?id=${pitchId}`, {
+      status,
+    });
+    return res.data;
+  } catch (err: any) {
+    console.error("Failed to update pitch status:", err.response?.data || err.message);
+    throw err;
+  }
+};
