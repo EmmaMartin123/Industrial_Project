@@ -49,7 +49,6 @@ export default function BusinessDashboard() {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-8">
-			{/* header */}
 			<header className="max-w-6xl mx-auto mb-10 text-center">
 				<h1 className="text-4xl md:text-5xl font-extrabold text-primary mb-2">
 					Welcome, {userProfile?.display_name}!
@@ -59,9 +58,7 @@ export default function BusinessDashboard() {
 				</p>
 			</header>
 
-			{/* dashboard cards */}
 			<div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{/* new pitch */}
 				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
 					<ItemContent className="flex items-center gap-4">
 						<div>
@@ -84,7 +81,6 @@ export default function BusinessDashboard() {
 					</ItemActions>
 				</Item>
 
-				{/* manage pitches */}
 				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
 					<ItemContent className="flex items-center gap-4">
 						<div>

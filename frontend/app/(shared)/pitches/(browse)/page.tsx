@@ -2,7 +2,7 @@
 
 import { useEffect, useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { Pitch } from "@/lib/types/pitch";
 import { getPitches } from "@/lib/api/pitch";
 import { useAuthStore } from "@/lib/store/authStore";
@@ -42,14 +42,20 @@ export default function BusinessPitchesPage() {
 
 	const pageSize = 100;
 
-	// auth checks
+	// check auth on mount
 	useEffect(() => {
-		checkAuth();
-	}, [checkAuth]);
+		const verifyAuth = async () => {
+			await checkAuth()
+		}
+		verifyAuth()
+	}, [checkAuth])
 
+	// redirect if already logged in
 	useEffect(() => {
-		if (!isCheckingAuth && !authUser) router.push("/login");
-	}, [authUser, isCheckingAuth, router]);
+		if (!authUser && isCheckingAuth) {
+			router.push("/investor/dashboard")
+		}
+	}, [authUser, router])
 
 	// fetch pitches with filters, search, sort, pagination
 	const fetchPitches = async (page = 1) => {
@@ -157,7 +163,6 @@ export default function BusinessPitchesPage() {
 						<strong>£{pitch.raised_amount}</strong> / £{pitch.target_amount}
 					</p>
 
-					{/* Elevator pitch: expand on hover but clamp to 4 lines max with ellipsis */}
 					<div className="overflow-hidden max-h-0 group-hover:max-h-32 transition-all duration-300">
 						<p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-4">
 							<span className="font-medium text-gray-800 dark:text-gray-200">

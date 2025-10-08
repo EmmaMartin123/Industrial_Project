@@ -44,7 +44,7 @@ export default function InvestorDashboard() {
 	}, [checkAuth])
 
 	useEffect(() => {
-		if (!authUser) {
+		if (!authUser && !isCheckingAuth) {
 			router.push("/")
 		}
 	}, [authUser, router])

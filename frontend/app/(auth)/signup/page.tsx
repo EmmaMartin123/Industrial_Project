@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import toast from "react-hot-toast"
 import { LoaderPinwheel } from "lucide-react"
-
 import { useAuthStore } from "@/lib/store/authStore"
 import { postUserProfile } from "@/lib/api/profile"
 import { supabase } from "@/lib/supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 const ROLES = {
 	INVESTOR: "investor",
@@ -38,7 +37,7 @@ export default function SignupPage() {
 
 	// redirect if logged in
 	useEffect(() => {
-		if (authUser) {
+		if (!authUser && !isCheckingAuth) {
 			router.push("/")
 		}
 	}, [authUser, router])

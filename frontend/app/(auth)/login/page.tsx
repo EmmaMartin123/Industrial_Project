@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 export default function LoginPage() {
 	const router = useRouter()
 	const { login, authUser, checkAuth, isLoggingIn, isCheckingAuth } = useAuthStore()
-
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
@@ -26,7 +25,7 @@ export default function LoginPage() {
 
 	// redirect if already logged in
 	useEffect(() => {
-		if (authUser) {
+		if (!authUser && !isCheckingAuth) {
 			router.push("/investor/dashboard")
 		}
 	}, [authUser, router])
@@ -53,7 +52,6 @@ export default function LoginPage() {
 	return (
 		<div className="flex min-h-screen">
 			<div className="absolute left-[60%] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent backdrop-blur-sm"></div>
-			{/* Left Section (Visual / Brand area) */}
 			<div className="hidden lg:flex w-[60%] bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-background items-center justify-center relative overflow-hidden">
 				<div className="max-w-lg text-left px-12 space-y-4">
 					<h1 className="text-5xl font-bold text-primary tracking-tight leading-tight">
@@ -66,7 +64,6 @@ export default function LoginPage() {
 				<div className="absolute inset-0 bg-gradient-to-t from-background/10 via-transparent to-transparent pointer-events-none" />
 			</div>
 
-			{/* Right Section (Login Form) */}
 			<div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-12 bg-gray-50 dark:bg-gray-900">
 				<div className="max-w-md w-full mx-auto">
 					<h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">

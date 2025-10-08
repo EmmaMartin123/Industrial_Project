@@ -35,7 +35,6 @@ import { generateFeedback } from "@/lib/api/ai";
 import ReactMarkdown from 'react-markdown';
 import { toast } from "sonner";
 
-// Tier type
 type TierState = {
 	name: string;
 	min_amount: number | "";
@@ -43,7 +42,6 @@ type TierState = {
 	multiplier: number | "";
 };
 
-// File icon selector
 const getFileIcon = (mimeType: string) => {
 	if (mimeType.startsWith("image/"))
 		return <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />;
@@ -55,7 +53,6 @@ const getFileIcon = (mimeType: string) => {
 export default function NewPitchPage() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
-
 	const [title, setTitle] = useState("");
 	const [elevator, setElevator] = useState("");
 	const [detailedPitchContent, setDetailedPitchContent] = useState("");
@@ -69,7 +66,6 @@ export default function NewPitchPage() {
 	const [loading, setLoading] = useState(false);
 	const [activeTab, setActiveTab] = useState("content");
 	const investmentStartDate = new Date();
-
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
 	const [ragRating, setRagRating] = useState<string | null>(null);
@@ -373,7 +369,6 @@ export default function NewPitchPage() {
 				</TabsList>
 
 				<form onSubmit={handleSubmit} className="space-y-12">
-					{/* Content */}
 					<TabsContent value="content" className="space-y-6">
 						<div className="space-y-4">
 							<Label>Title</Label>
@@ -397,7 +392,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Media */}
 					<TabsContent value="media" className="space-y-6">
 						<div
 							onClick={() => document.getElementById("media-input")?.click()}
@@ -441,7 +435,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Financials */}
 					<TabsContent value="financials" className="space-y-6">
 						<div className="grid gap-4">
 							<div>
@@ -481,7 +474,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Tiers */}
 					<TabsContent value="tiers" className="space-y-8">
 						{tiers.map((tier, i) => (
 							<div key={i} className="border-b pb-6 space-y-4">
@@ -532,7 +524,6 @@ export default function NewPitchPage() {
 						</div>
 					</TabsContent>
 
-					{/* Overview */}
 					<TabsContent value="overview" className="space-y-8">
 						<div className="space-y-6">
 							<h3 className="text-xl font-semibold">Review Your Pitch</h3>

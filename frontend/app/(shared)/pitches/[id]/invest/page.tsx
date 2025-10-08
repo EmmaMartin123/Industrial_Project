@@ -16,7 +16,6 @@ export default function InvestPage() {
 	const router = useRouter();
 	const params = useParams();
 	const pitchId = Number(params?.id);
-
 	const [pitch, setPitch] = useState<Pitch | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [amount, setAmount] = useState<number>(0);
@@ -38,6 +37,7 @@ export default function InvestPage() {
 		verifyAuth();
 	}, [checkAuth]);
 
+	// redirect if not logged in
 	useEffect(() => {
 		if (!isCheckingAuth && !authUser) {
 			router.push("/");
@@ -102,20 +102,17 @@ export default function InvestPage() {
 			return;
 		}
 
-		// Show bank details popup
 		setShowBankModal(true);
 	};
 
 	const handleBankSubmit = async () => {
 		const { cardName, cardNumber, expiry, cvv } = bankDetails;
 
-		// Check for empty fields
 		if (!cardName || !cardNumber || !expiry || !cvv) {
 			toast.error("Please enter all payment details.");
 			return;
 		}
 
-		// Check if user has enough balance
 		if (!userProfile?.dashboard_balance || amount > userProfile.dashboard_balance) {
 			toast.error("Insufficient balance to make this investment.");
 			return;
@@ -126,7 +123,7 @@ export default function InvestPage() {
 			await axios.post("/investment", {
 				pitch_id: pitch.id,
 				amount,
-				bankDetails, // send card details to server
+				bankDetails,
 			});
 			toast.success("Investment successful!");
 			router.push(`/pitches/${pitch.id}`);
@@ -147,13 +144,11 @@ export default function InvestPage() {
 
 	return (
 		<div className="max-w-4xl mx-auto p-8 space-y-8">
-			{/* Pitch Header */}
 			<div className="space-y-2 text-center">
 				<h1 className="text-4xl font-extrabold">{pitch.title}</h1>
 				<p className="text-gray-600 text-lg">{pitch.elevator_pitch}</p>
 			</div>
 
-			{/* Investment Section */}
 			<div className="bg-white rounded-xl p-6 space-y-6 border border-gray-100">
 				<h2 className="text-2xl font-semibold text-gray-800">Investment Tiers</h2>
 
@@ -174,6 +169,7 @@ export default function InvestPage() {
 							>
 								<p className="font-semibold text-gray-900">{tier.name}</p>
 								<p className="text-sm text-gray-500 mt-1">
+			{/* Investment Section */}
 									Min: £{tier.min_amount} | Max: £{tier.max_amount ?? "∞"} | Multiplier: {tier.multiplier}x
 								</p>
 							</div>
@@ -206,13 +202,11 @@ export default function InvestPage() {
 				</Button>
 			</div>
 
-			{/* Payment Details Modal */}
 			{showBankModal && (
 				<div className="fixed inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center z-50">
 					<div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-lg">
 						<h3 className="text-lg font-semibold text-gray-800">Enter Payment Details</h3>
 
-						{/* Cardholder Name */}
 						<label className="block text-sm">
 							<span className="text-gray-700">Cardholder Name</span>
 							<input
@@ -226,7 +220,6 @@ export default function InvestPage() {
 							/>
 						</label>
 
-						{/* Card Number */}
 						<label className="block text-sm">
 							<span className="text-gray-700">Card Number</span>
 							<input
@@ -241,7 +234,6 @@ export default function InvestPage() {
 							/>
 						</label>
 
-						{/* Expiry & CVV */}
 						<div className="grid grid-cols-2 gap-2">
 							<label className="block text-sm">
 								<span className="text-gray-700">Expiry Date</span>

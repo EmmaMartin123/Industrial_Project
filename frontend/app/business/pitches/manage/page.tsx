@@ -47,11 +47,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
 import { useAuthStore } from "@/lib/store/authStore";
 import { getUserProfile } from "@/lib/api/profile";
 import axios from "@/lib/axios";
-
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -79,7 +77,6 @@ export default function ManagePitchesPage() {
 	const [isDistributeDialogOpen, setIsDistributeDialogOpen] = useState(false);
 	const [selectedDistributePitch, setSelectedDistributePitch] = useState<Pitch | null>(null);
 	const [isDistributing, setIsDistributing] = useState(false);
-
 	const router = useRouter();
 
 	// fetch profile on mount
