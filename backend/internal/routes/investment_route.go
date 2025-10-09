@@ -88,6 +88,10 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 	pitch := pitches[0]
 
+	if pitch.Status != "Active" {
+		http.Error(w, "Pitch is no longer active", http.StatusBadRequest)
+	}
+
 	new_raised := pitch.RaisedAmount + req.Amount
 	if uint64(new_raised) > pitch.TargetAmount {
 		http.Error(w, "Investment would exceed pitch target amount", http.StatusBadRequest)
