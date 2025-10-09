@@ -766,23 +766,25 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
-	fmt.Println("New pitch: ", new_pitch)
+	//fmt.Println("New pitch: ", new_pitch)
 
 	if old_pitch.Status != "Draft" {
 		old_tiers, _ := get_investment_tiers(old_pitch)
 		new_pitch.InvestmentTiers = old_tiers
+		new_pitch.TargetAmount = old_pitch.TargetAmount
+		new_pitch.ProfitSharePercent = old_pitch.ProfitSharePercent
 	}
 
 	old_tiers, _ := get_investment_tiers(old_pitch)
 	old_media, _ := utils.GetPitchMedia(pitchID)
 
-	fmt.Println("Old pitch: ", old_pitch)
+	//fmt.Println("Old pitch: ", old_pitch)
 
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
 	to_db.PitchID = nil
 	to_db.CreatedAt = "now()"
 	to_db.UpdatedAt = &to_db.CreatedAt
-	fmt.Println("To db: ", to_db)
+	//fmt.Println("To db: ", to_db)
 	_, err = utils.UpdateByID("pitch", pitchIDStr, to_db)
 	if err != nil {
 		http.Error(w, "Failed to update pitch", http.StatusInternalServerError)

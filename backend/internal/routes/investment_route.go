@@ -88,6 +88,11 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 	pitch := pitches[0]
 
+	if pitch.Status != "Active" {
+		http.Error(w, "Pitch is no longer active", http.StatusBadRequest)
+		return
+	}
+
 	new_raised := pitch.RaisedAmount + req.Amount
 	if uint64(new_raised) > pitch.TargetAmount {
 		http.Error(w, "Investment would exceed pitch target amount", http.StatusBadRequest)
@@ -286,15 +291,18 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 	pitch := pitches[0]
 
+	if pitch.Status != "Active" {
+		http.Error(w, "Can only refund on Active pitches", http.StatusBadRequest)
+		return
+	}
+
 	new_raised := pitch.RaisedAmount - investment.Amount
 	if new_raised < 0 {
 		new_raised = 0
 	}
 
 	update_payload := map[string]interface{}{"raised_amount": new_raised}
-	if pitch.Status == "Funded" {
-		update_payload["status"] = "Active"
-	}
+
 	_, err = utils.UpdateByID("pitch", strconv.FormatInt(*investment.PitchID, 10), update_payload)
 	if err != nil {
 		fmt.Printf("Warning: failed to update pitch after refund: %v\n", err)

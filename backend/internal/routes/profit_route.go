@@ -76,6 +76,13 @@ func declare_profit_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	status_update := map[string]interface{}{"status": "Declared"}
+	_, err = utils.UpdateByID("pitch", strconv.FormatInt(req.PitchID, 10), status_update)
+	if err != nil {
+		fmt.Printf("Warning: failed to update pitch %d status to 'Declared': %v\n", req.PitchID, err)
+		// Don't fail request just cause status can't be updated
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(result))
