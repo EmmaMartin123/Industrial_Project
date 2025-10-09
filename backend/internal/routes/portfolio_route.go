@@ -33,7 +33,7 @@ func get_portfolio_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := fmt.Sprintf("select=id,amount,created_at,pitch:pitch(title,target_amount,raised_amount,status),tier:investment_tier(name,multiplier),profit_distributions(amount,paid)&investor_id=eq.%s&refunded=is.false&profit_distributions.investor_id=eq.%s&order=created_at.desc", user_id, user_id)
+	query := fmt.Sprintf("select=id,amount,created_at,pitch:pitch(id,title,target_amount,raised_amount,status),tier:investment_tier(name,multiplier),profit_distributions(amount,paid)&investor_id=eq.%s&refunded=is.false&profit_distributions.investor_id=eq.%s&order=created_at.desc", user_id, user_id)
 
 	body, err := utils.GetDataByQuery("investments", query)
 	if err != nil {
@@ -41,6 +41,7 @@ func get_portfolio_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("RAW RESPONSE: ", string(body))
 	var rawData []frontend.InvRow
 	if err := json.Unmarshal(body, &rawData); err != nil {
 		http.Error(w, "Failed to parse portfolio data", http.StatusInternalServerError)

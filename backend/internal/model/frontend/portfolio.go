@@ -30,7 +30,7 @@ type TierSlim struct {
 	Multiplier float64 `json:"multiplier"`
 }
 type DistRow struct {
-	Amount int64       `json:"amount"`
+	Amount float64     `json:"amount"`
 	Paid   bool        `json:"paid"`
 }
 type InvRow struct {
