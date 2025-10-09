@@ -84,7 +84,7 @@ export default function WithdrawPage() {
 		if (numAmount > (walletBalance ?? 0)){
 			toast.error("Insufficient balance");
 			return;
-		}
+		} 
 
 		setLoading(true);
 		try{

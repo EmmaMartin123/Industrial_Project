@@ -5,7 +5,7 @@ export const getWalletBalance = async () => {
     const res = await axios.get("/api/wallet");
     return res.data;
 }
-
+ 
 // Top-up wallet 
 export const addFundsToWallet = async (amount: number) => {
     const res = await axios.patch("/api/wallet", { 
