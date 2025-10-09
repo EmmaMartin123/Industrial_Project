@@ -99,7 +99,6 @@ export default function InvestorDashboard() {
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => router.push("/business/pitches/manage")}
 						>
 							Top Up
 						</Button>
@@ -120,7 +119,6 @@ export default function InvestorDashboard() {
 						<Button
 							variant="outline"
 							size="sm"
-							onClick={() => router.push("/business/pitches/manage")}
 						>
 							Withdraw
 						</Button>

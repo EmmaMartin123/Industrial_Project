@@ -458,7 +458,16 @@ export default function NewPitchPage() {
 										</Button>
 									</PopoverTrigger>
 									<PopoverContent className="p-0 w-auto">
-										<Calendar mode="single" selected={endDate} onSelect={setEndDate} fromDate={new Date()} />
+										<Calendar
+											mode="single"
+											selected={endDate}
+											onSelect={setEndDate}
+											className="w-90 p-2 pl-2 pt-5 pb-5 border rounded-md shadow-sm bg-white text-gray-700
+             [&_table]:w-full [&_table]:border-collapse
+             [&_th]:text-center [&_th]:text-sm [&_th]:font-semibold [&_th]:py-1
+             [&_td]:w-12 [&_td]:h-10 [&_td]:text-center [&_td]:rounded
+             [&_td]:cursor-pointer [&_td]:transition [&_td]:duration-150"
+										/>
 									</PopoverContent>
 								</Popover>
 							</div>
@@ -497,10 +506,6 @@ export default function NewPitchPage() {
 									<div>
 										<Label className="pb-3">Min (£)</Label>
 										<Input type="number" value={tier.min_amount} onChange={(e) => handleTierChange(i, "min_amount", e.target.value)} placeholder="e.g. 1" />
-									</div>
-									<div>
-										<Label className="pb-3">Max (£)</Label>
-										<Input type="number" value={tier.max_amount} onChange={(e) => handleTierChange(i, "max_amount", e.target.value)} placeholder="e.g. 1000" />
 									</div>
 									<div>
 										<Label className="pb-3">Multiplier</Label>

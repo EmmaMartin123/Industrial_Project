@@ -6,6 +6,11 @@ export type PitchMedia = {
 	order_in_description: number;
 };
 
+export type PitchListResponse = {
+  pitches: Pitch[];
+  totalCount: number;
+};
+
 export type Pitch = {
 	id: number;
 	title: string;

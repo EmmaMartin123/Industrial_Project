@@ -63,7 +63,7 @@ export default function BusinessPitchesPage() {
 		try {
 			setLoading(true);
 
-			const data = await getPitches({
+			const { pitches: fetchedPitches, totalCount } = await getPitches({
 				limit: pageSize,
 				offset: (page - 1) * pageSize,
 				search: searchQuery,
@@ -71,8 +71,8 @@ export default function BusinessPitchesPage() {
 				sortKey,
 			});
 
-			setTotalPages(data.length < pageSize ? page : page + 1);
-			setPitches(data);
+			setPitches(fetchedPitches);
+			setTotalPages(Math.max(1, Math.ceil(totalCount / pageSize)));
 			setCurrentPage(page);
 		} catch (err) {
 			console.error(err);
@@ -147,8 +147,8 @@ export default function BusinessPitchesPage() {
 								src={mediaUrl}
 								className="absolute inset-0 w-full h-full object-cover"
 								controls={true}
-								poster={mediaUrl} 
-								loop={false} 
+								poster={mediaUrl}
+								loop={false}
 								muted={false}
 								playsInline
 								preload="metadata"
