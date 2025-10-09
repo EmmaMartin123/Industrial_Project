@@ -26,6 +26,7 @@ func SetupRouter() http.Handler {
 	mux.Handle("/api/bank", protected.Then(http.HandlerFunc(bank_route)))
 	mux.Handle("/api/profit", protected.Then(http.HandlerFunc(profit_route)))
 	mux.Handle("/api/distribute", protected.Then(http.HandlerFunc(distribute_route)))
+	mux.Handle("/api/portfolio", protected.Then(http.HandlerFunc(portfolio_route)))
 
 	fmt.Println("Router setup complete")
 	return base.Then(mux)
