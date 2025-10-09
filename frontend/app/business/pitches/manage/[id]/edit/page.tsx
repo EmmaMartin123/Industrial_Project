@@ -28,6 +28,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store/authStore";
+import { describePitch } from "@/lib/describePitch";
+import { generateFeedback } from "@/lib/api/ai";
+import ReactMarkdown from "react-markdown";
 
 type TierState = {
 	name: string;
@@ -38,10 +41,10 @@ type TierState = {
 
 type MediaDisplayItem = {
 	id: string;
-	name: string; 
+	name: string;
 	type: string;
 	url: string;
-	isNew: boolean; 
+	isNew: boolean;
 };
 
 const getFileIcon = (mimeType: string) => {
@@ -72,8 +75,23 @@ export default function EditPitchPage() {
 	const [pageLoading, setPageLoading] = useState(!!pitchId);
 	const [activeTab, setActiveTab] = useState("content");
 	const investmentStartDate = useMemo(() => new Date(), []);
+
 	const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 	const [aiLoading, setAiLoading] = useState(false);
+	const [ragRating, setRagRating] = useState<string | null>(null);
+
+	const getRagBadgeClasses = (rating: string | null) => {
+		switch (rating) {
+			case 'GREEN':
+				return 'bg-green-100 text-green-700 border-green-400';
+			case 'AMBER':
+				return 'bg-amber-100 text-amber-700 border-amber-400';
+			case 'RED':
+				return 'bg-red-100 text-red-700 border-red-400';
+			default:
+				return 'bg-gray-100 text-gray-500 border-gray-400';
+		}
+	};
 
 	const fetchAndSetPitch = useCallback(async (id: string) => {
 		setPageLoading(true);
@@ -170,19 +188,97 @@ export default function EditPitchPage() {
 	}, [mediaFiles, mediaPreviews]);
 
 	const handleAiAnalysis = async () => {
-		try {
-			setAiLoading(true);
-			setAiAnalysis(null);
-			await new Promise((r) => setTimeout(r, 1500));
-			setAiAnalysis(
-				"This pitch demonstrates strong innovation potential and clear tier structuring. Consider emphasizing your market validation more for investor confidence."
-			);
-		} catch (err) {
-			console.error(err);
-			toast("AI analysis failed.");
-		} finally {
+		setAiLoading(true);
+		setAiAnalysis(null);
+		setRagRating(null);
+
+		if (!title || title.trim() === "") {
+			toast("Cannot generate analysis: Pitch Title is missing.");
 			setAiLoading(false);
+			return;
 		}
+		if (!elevator || elevator.trim() === "") {
+			toast("Cannot generate analysis: Elevator Pitch is missing.");
+			setAiLoading(false);
+			return;
+		}
+		if (!detailedPitchContent || detailedPitchContent.trim() === "") {
+			toast("Cannot generate analysis: Detailed Pitch Content is missing.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (typeof targetAmount !== "number" || targetAmount <= 0) {
+			toast("Cannot generate analysis: Target Amount must be a positive number.");
+			setAiLoading(false);
+			return;
+		}
+		if (typeof profitShare !== "number" || profitShare < 0) {
+			toast("Cannot generate analysis: Profit Share Percent must be zero or positive.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (!(investmentStartDate instanceof Date) || isNaN(investmentStartDate.getTime())) {
+			toast("Cannot generate analysis: Investment Start Date is invalid.");
+			setAiLoading(false);
+			return;
+		}
+		if (endDate && (!(endDate instanceof Date) || isNaN(endDate.getTime()))) {
+			toast("Cannot generate analysis: Investment End Date is invalid.");
+			setAiLoading(false);
+			return;
+		}
+
+		if (!tiers || tiers.length === 0) {
+			toast("Cannot generate analysis: At least one Investment Tier is required.");
+			setAiLoading(false);
+			return;
+		}
+
+		const hasInvalidTier = tiers.some(t => typeof t.min_amount !== "number" || t.min_amount < 0);
+		if (hasInvalidTier) {
+			toast("Cannot generate analysis: All Investment Tiers must have a valid minimum amount.");
+			setAiLoading(false);
+			return;
+		}
+
+		const pitchObject: NewPitch = {
+			title,
+			elevator_pitch: elevator,
+			detailed_pitch: detailedPitchContent,
+			target_amount: typeof targetAmount === "number" ? targetAmount : 0,
+			investment_start_date: investmentStartDate.toISOString(),
+			investment_end_date: endDate ? endDate.toISOString() : new Date().toISOString(),
+			profit_share_percent: typeof profitShare === "number" ? profitShare : 0,
+			status: "Active",
+			investment_tiers: tiers.map((t) => ({
+				name: t.name,
+				min_amount: typeof t.min_amount === "number" ? t.min_amount : 0,
+				max_amount: typeof t.max_amount === "number" ? t.max_amount : null,
+				multiplier: typeof t.multiplier === "number" ? t.multiplier : 1,
+			})),
+		};
+
+		const pitchDescription = describePitch(pitchObject);
+		console.log(pitchDescription);
+
+		if (!pitchDescription) {
+			setAiAnalysis("Pitch description could not be generated from the data. Check your inputs.");
+			setAiLoading(false);
+			return;
+		}
+
+		const result = await generateFeedback(pitchDescription);
+
+		if (result) {
+			setRagRating(result.ragRating);
+			setAiAnalysis(`${result.feedback}`);
+		} else {
+			setAiAnalysis("Failed to generate AI analysis. Try again.");
+		}
+
+		setAiLoading(false);
 	};
 
 	const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,7 +399,7 @@ export default function EditPitchPage() {
 				await patchPitch(Number(pitchId), formData);
 				toast("Pitch updated successfully! 💾");
 				router.push("/business/dashboard");
-			} 
+			}
 
 		} catch (err) {
 			console.error(err);
@@ -571,25 +667,39 @@ export default function EditPitchPage() {
 					<TabsContent value="ai" className="space-y-6">
 						<div className="border rounded-lg p-6 space-y-4">
 							<div className="flex justify-between items-center">
-								<h4 className="font-medium text-lg">AI Analysis</h4>
+								<div className="flex items-center space-x-3">
+									<h4 className="font-medium text-lg">AI Analysis</h4>
+
+									{ragRating && (
+										<span
+											className={`
+                            px-3 py-1 text-xs font-semibold rounded-full border uppercase
+                            ${getRagBadgeClasses(ragRating)}
+                        `}
+										>
+											{ragRating}
+										</span>
+									)}
+								</div>
+
 								<Button type="button" variant="secondary" onClick={handleAiAnalysis} disabled={aiLoading}>
 									{aiLoading ? "Analysing..." : "Generate AI Analysis"}
 								</Button>
 							</div>
 
-							{aiAnalysis ? (
-								<p className="text-sm whitespace-pre-line">{aiAnalysis}</p>
+							{aiLoading ? (
+								<p className="text-sm text-primary animate-pulse">
+									Analysing pitch... Please wait for the AI feedback.
+								</p>
+							) : aiAnalysis ? (
+								<ReactMarkdown>
+									{aiAnalysis}
+								</ReactMarkdown>
 							) : (
 								<p className="text-sm text-muted-foreground">
 									Click the button above to get AI feedback on your pitch.
 								</p>
 							)}
-						</div>
-
-						<div className="flex justify-start">
-							<Button variant="outline" type="button" onClick={() => setActiveTab("overview")}>
-								Previous
-							</Button>
 						</div>
 					</TabsContent>
 				</form>

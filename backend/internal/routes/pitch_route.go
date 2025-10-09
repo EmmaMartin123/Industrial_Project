@@ -292,9 +292,51 @@ func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, erro
 	return investment_tiers, nil
 }
 
+func GetRowCount(table string, queryParams []string) (int, error) {
+	supabaseURL := os.Getenv("SUPABASE_URL")
+	apiKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+	query := strings.Join(queryParams, "&")
+	url := fmt.Sprintf("%s/rest/v1/%s?%s", supabaseURL, table, query)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	req.Header.Set("apikey", apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Prefer", "count=exact")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	contentRange := resp.Header.Get("Content-Range")
+	if contentRange == "" {
+		return 0, fmt.Errorf("missing Content-Range header")
+	}
+
+	parts := strings.Split(contentRange, "/")
+	if len(parts) != 2 {
+		return 0, fmt.Errorf("invalid Content-Range header: %s", contentRange)
+	}
+
+	total, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitchID := r.URL.Query().Get("id")
 	user_id := r.URL.Query().Get("user_id")
+	search := r.URL.Query().Get("search")
 	tags := r.URL.Query().Get("tags")
 	target_amount := r.URL.Query().Get("target_amount")
 	profit_share_percent := r.URL.Query().Get("profit_share_percent")
@@ -306,6 +348,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 
 	if pitchID == "" {
 		var queryParams []string
+
+		if search != "" {
+			queryParams = append(queryParams, fmt.Sprintf("title=ilike.*%s*", url.QueryEscape(search)))
+		}
 
 		if user_id != "" {
 			queryParams = append(queryParams, fmt.Sprintf("user_id=eq.%s", user_id))
@@ -424,6 +470,12 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(result, &filtered_pitches); err != nil {
 			http.Error(w, "Error decoding pitches", http.StatusInternalServerError)
 			return
+		}
+
+		totalCount, countErr := GetRowCount("pitch", queryParams)
+		if countErr != nil {
+			fmt.Printf("Warning: failed to count pitches: %v\n", countErr)
+			totalCount = len(filtered_pitches)
 		}
 
 		var pitchIDs []string
@@ -556,7 +608,10 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(pitches_to_send)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"totalCount": totalCount,
+			"pitches":    pitches_to_send,
+		})
 		return
 	}
 
