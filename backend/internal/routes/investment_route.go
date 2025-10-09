@@ -90,6 +90,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 
 	if pitch.Status != "Active" {
 		http.Error(w, "Pitch is no longer active", http.StatusBadRequest)
+		return
 	}
 
 	new_raised := pitch.RaisedAmount + req.Amount
