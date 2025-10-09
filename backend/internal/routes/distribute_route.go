@@ -231,5 +231,12 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Warning: failed to mark profit %d as transferred: %v\n", profit.ID, err)
 	}
 
+	status_update := map[string]interface{}{"status": "Distributed"}
+	_, err = utils.UpdateByID("pitch", strconv.FormatInt(*pitch.PitchID, 10), status_update)
+	if err != nil {
+		fmt.Printf("Warning: failed to update pitch %d status to 'Declared': %v\n", *pitch.PitchID, err)
+		// Don't fail request just cause status can't be updated
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
