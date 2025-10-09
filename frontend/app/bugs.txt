@@ -1,4 +1,4 @@
-- Browsing pitches: search bar doesn't do anything.
+*** DONE *** Browsing pitches: search bar doesn't do anything.
 
 - Editing pitches: tier maximums aren't saved [should take them out of creating and editing pitches if we're committing to not having them]; the AI analysis is still hardcoded on the Edit Pitch page.
 

@@ -174,25 +174,13 @@ export default function Navbar() {
 											<p className="text-xs leading-none text-muted-foreground">
 												Role: {loadingRole ? "Loading..." : role || "Guest"}
 											</p>
-											{role === "investor" && dashboardBalance !== null && (
+											{dashboardBalance !== null && (
 												<p className="text-xs leading-none text-muted-foreground">
 													Balance: £{dashboardBalance.toLocaleString()}
 												</p>
 											)}
 										</div>
 									</DropdownMenuLabel>
-
-									<DropdownMenuSeparator />
-
-									<DropdownMenuItem onClick={() => router.push("/profile")}>
-										<User className="mr-2 h-4 w-4" />
-										<span>Profile</span>
-									</DropdownMenuItem>
-
-									<DropdownMenuItem onClick={() => router.push("/settings")}>
-										<Settings className="mr-2 h-4 w-4" />
-										<span>Settings</span>
-									</DropdownMenuItem>
 
 									<DropdownMenuSeparator />
 
