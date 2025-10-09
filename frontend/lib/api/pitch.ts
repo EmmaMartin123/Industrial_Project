@@ -36,8 +36,11 @@ const mapPitch = (raw: any): Pitch => {
 
 export const getAllPitches = async (userId?: string): Promise<Pitch[]> => {
 	const query = userId ? `?user_id=${userId}` : "";
-	const response = await axios.get(`/pitch${query}`);
-	return Array.isArray(response.data) ? response.data.map(mapPitch) : [];
+	const response = await axios.get<PitchListResponse>(`/pitch${query}`);
+
+	const { pitches } = response.data;
+
+	return Array.isArray(pitches) ? pitches.map(mapPitch) : [];
 };
 
 interface GetPitchesOptions {
@@ -103,7 +106,6 @@ export const getPitches = async (
 		}
 	}
 
-	// ✅ Expecting { pitches, totalCount }
 	const response = await axios.get(`/pitch?${params.toString()}`);
 
 	const rawData = response.data;
