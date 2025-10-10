@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
@@ -571,10 +572,6 @@ export default function EditPitchPage() {
 										<Input type="number" value={tier.min_amount} onChange={(e) => handleTierChange(i, "min_amount", e.target.value)} placeholder="e.g. 1" />
 									</div>
 									<div>
-										<Label className="pb-3">Max (£)</Label>
-										<Input type="number" value={tier.max_amount} onChange={(e) => handleTierChange(i, "max_amount", e.target.value)} placeholder="e.g. 1000" />
-									</div>
-									<div>
 										<Label className="pb-3">Multiplier</Label>
 										<Input type="number" value={tier.multiplier} onChange={(e) => handleTierChange(i, "multiplier", e.target.value)} placeholder="e.g. 1.5" />
 									</div>
@@ -643,7 +640,7 @@ export default function EditPitchPage() {
 										{tiers.map((t, i) => (
 											<div key={i} className="border p-3 rounded-md">
 												<p><strong>Tier {i + 1}: </strong>{t.name || "—"}</p>
-												<p>Min: £{t.min_amount || "—"} {t.max_amount ? `| Max: £${t.max_amount}` : ""}</p>
+												<p>Min: £{t.min_amount || "—"}</p>
 												<p>Multiplier: x{t.multiplier || "—"}</p>
 											</div>
 										))}
@@ -707,3 +704,4 @@ export default function EditPitchPage() {
 		</div>
 	);
 }
+

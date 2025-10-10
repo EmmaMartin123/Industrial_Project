@@ -135,22 +135,26 @@ export default function InvestPage() {
 				<h2 className="text-2xl font-semibold text-gray-800">Investment Tiers</h2>
 
 				<div className="grid gap-4 md:grid-cols-2">
-					{pitch.investment_tiers?.map((tier) => {
+					{pitch.investment_tiers?.map((tier, index) => {
+						const nextTier = pitch.investment_tiers?.[index + 1];
 						const isAmountInTier =
-							amount >= tier.min_amount
+							amount >= tier.min_amount &&
+							(!nextTier || amount < nextTier.min_amount);
 
 						return (
 							<div
 								key={tier.tier_id}
 								className={`p-4 border rounded-lg flex flex-col justify-between transition-all duration-200
-									${isAmountInTier
+                ${isAmountInTier
 										? "border-blue-500 bg-blue-50 shadow-md"
 										: "border-gray-200 bg-white"
 									}`}
 							>
 								<p className="font-semibold text-gray-900">{tier.name}</p>
 								<p className="text-sm text-gray-500 mt-1">
-									Min: £{tier.min_amount} | Max: £{tier.max_amount ?? "∞"} | Multiplier: {tier.multiplier}x
+									Min: £{tier.min_amount}
+									<br />
+									Multiplier: {tier.multiplier}x
 								</p>
 							</div>
 						);

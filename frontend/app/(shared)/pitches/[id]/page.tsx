@@ -312,7 +312,7 @@ export default function ViewPitchPage({ params }: ViewPitchPageProps) {
 													Tier Details: {tier.name}
 												</p>
 												<p className="text-sm text-muted-foreground">
-													This tier is for investments between <strong>£{tier.min_amount}</strong> and <strong>£{tier.max_amount}</strong>.
+													This tier is for investments starting at <strong>£{tier.min_amount}</strong> and up.
 												</p>
 												<p className="text-xs text-muted-foreground">
 													You receive a <strong>{tier.multiplier}x</strong> boost on your profit share.
