@@ -13,11 +13,13 @@ import { PlusCircle, Users, Coins } from "lucide-react";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useEffect, useState } from "react";
 import { getUserProfile } from "@/lib/api/profile";
+import LoaderComponent from "@/components/Loader";
 
 export default function InvestorDashboard() {
 	const { authUser, checkAuth, isCheckingAuth } = useAuthStore();
 	const router = useRouter();
 	const [userProfile, setUserProfile] = useState<any>(null);
+	const [isFetchingProfile, setIsFetchingProfile] = useState(false);
 
 	// fetch profile on mount
 	useEffect(() => {
@@ -25,10 +27,13 @@ export default function InvestorDashboard() {
 			console.log(authUser);
 			if (authUser?.id) {
 				try {
+					setIsFetchingProfile(true);
 					const profile = await getUserProfile(authUser.id);
 					setUserProfile(profile);
 				} catch (err) {
 					console.error("Failed to fetch user profile:", err);
+				} finally {
+					setIsFetchingProfile(false);
 				}
 			}
 		};
@@ -48,6 +53,10 @@ export default function InvestorDashboard() {
 			router.push("/")
 		}
 	}, [authUser, router])
+
+	if (isCheckingAuth || isFetchingProfile) {
+		return <LoaderComponent />;
+	} 
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-base-100 to-base-200 p-8">
