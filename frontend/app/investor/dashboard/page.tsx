@@ -84,46 +84,6 @@ export default function InvestorDashboard() {
 						</Button>
 					</ItemActions>
 				</Item>
-
-				{/* top up balance */}
-				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
-					<ItemContent className="flex items-center gap-4">
-						<div>
-							<ItemTitle className="text-lg font-semibold text-gray-800">Top Up Balance</ItemTitle>
-							<ItemDescription className="text-gray-500">
-								Top up your balance to start investing.
-							</ItemDescription>
-						</div>
-					</ItemContent>
-					<ItemActions>
-						<Button
-							variant="outline"
-							size="sm"
-						>
-							Top Up
-						</Button>
-					</ItemActions>
-				</Item>
-
-				{/* withdraw funds */}
-				<Item className="transition-transform transform border border-base-300 bg-base-100 p-4">
-					<ItemContent className="flex items-center gap-4">
-						<div>
-							<ItemTitle className="text-lg font-semibold text-gray-800">Withdraw Funds</ItemTitle>
-							<ItemDescription className="text-gray-500">
-								Withdraw funds from your portfolio to your bank account.
-							</ItemDescription>
-						</div>
-					</ItemContent>
-					<ItemActions>
-						<Button
-							variant="outline"
-							size="sm"
-						>
-							Withdraw
-						</Button>
-					</ItemActions>
-				</Item>
 			</div>
 		</div>
 	);
