@@ -9,6 +9,7 @@ import (
 	mapping "github.com/EmmaMartin123/Industrial_Project/backend/internal/model/mapping"
 )
 
+// gets the pitch media
 func GetPitchMedia(pitchID int64) ([]frontend.PitchMedia, error) {
 	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
 	body, err := GetDataByQuery("pitch_media", query)

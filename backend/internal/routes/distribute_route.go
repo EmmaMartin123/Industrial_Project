@@ -24,6 +24,7 @@ func distribute_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// gets the profit distributions for the user
 func get_distribute_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
@@ -31,7 +32,6 @@ func get_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: let business view distribution for their pitches?
 	query := "investor_id=eq." + user_id
 	body, err := utils.GetDataByQuery("profit_distributions", query)
 	if err != nil {
@@ -49,6 +49,7 @@ func get_distribute_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(distributions)
 }
 
+// distributes the profit to the investors
 func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 	profit_id_str := r.URL.Query().Get("profit_id")
 	if profit_id_str == "" {
@@ -62,12 +63,14 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the user id from the context
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	// gets the profit for the user
 	profit_body, err := utils.GetDataByID("profits", profit_id_str)
 	if err != nil {
 		http.Error(w, "Profit not found", http.StatusNotFound)
@@ -85,6 +88,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the pitch for the user
 	pitch_body, err := utils.GetDataByID("pitch", strconv.FormatInt(profit.PitchID, 10))
 	if err != nil {
 		http.Error(w, "Pitch not found", http.StatusNotFound)
@@ -107,6 +111,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the profile for the user
 	profile_body, err := utils.GetDataByID("profile", user_id)
 	if err != nil {
 		http.Error(w, "Business profile not found", http.StatusNotFound)
@@ -129,6 +134,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the investments for the user
 	investment_query := fmt.Sprintf("pitch_id=eq.%d&refunded=is.false", profit.PitchID)
 	investment_body, err := utils.GetDataByQuery("investments", investment_query)
 	if err != nil {
@@ -146,6 +152,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the investment tiers for the user
 	tier_query := fmt.Sprintf("pitch_id=eq.%d", profit.PitchID)
 	tier_body, err := utils.GetDataByQuery("investment_tier", tier_query)
 	if err != nil {
@@ -192,12 +199,14 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// updates the balance for the user
 	err = update_balance(business_profile.ID, -int64(profit.DistributableAmount))
 	if err != nil {
 		http.Error(w, "Failed to deduct business balance", http.StatusInternalServerError)
 		return
 	}
 
+	// distributes the profit to the investors
 	profit_per_share := profit.DistributableAmount / total_shares
 	for _, data := range investor_data {
 		amount := profit_per_share * data.shares
@@ -216,7 +225,7 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 			InvestorID:   data.investment.InvestorID,
 			Shares:       data.shares,
 			Amount:       rounded_amount,
-			Paid:         paid, // now actually paid lol
+			Paid:         paid,
 		}
 
 		_, err := utils.InsertData(distribution, "profit_distributions")
@@ -225,17 +234,18 @@ func post_distribute_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// updates the profit for the user
 	update_payload := map[string]interface{}{"transferred": true}
 	_, err = utils.UpdateByID("profits", strconv.FormatInt(profit_id, 10), update_payload)
 	if err != nil {
 		fmt.Printf("Warning: failed to mark profit %d as transferred: %v\n", profit.ID, err)
 	}
 
+	// updates the pitch for the user
 	status_update := map[string]interface{}{"status": "Distributed"}
 	_, err = utils.UpdateByID("pitch", strconv.FormatInt(*pitch.PitchID, 10), status_update)
 	if err != nil {
 		fmt.Printf("Warning: failed to update pitch %d status to 'Declared': %v\n", *pitch.PitchID, err)
-		// Don't fail request just cause status can't be updated
 	}
 
 	w.WriteHeader(http.StatusNoContent)

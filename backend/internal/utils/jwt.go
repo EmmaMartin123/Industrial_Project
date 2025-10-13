@@ -13,6 +13,7 @@ var (
 	hmacKey []byte
 )
 
+// initializes the JWT HS256
 func InitJWTHS256(issuerURL string) error {
 
 	issuer = issuerURL
@@ -24,6 +25,7 @@ func InitJWTHS256(issuerURL string) error {
 	return nil
 }
 
+// verifies the JWT HS256
 func VerifyJWTHS256(tokenStr string) (string, error) {
 	if hmacKey == nil {
 		return "", errors.New("JWT secret not configured")

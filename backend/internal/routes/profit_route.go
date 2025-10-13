@@ -23,6 +23,7 @@ func profit_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// declares the profit for the user
 func declare_profit_route(w http.ResponseWriter, r *http.Request) {
 	var req frontend.Profit
 
@@ -88,6 +89,7 @@ func declare_profit_route(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
+// gets the profit for the user
 func get_profit_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {

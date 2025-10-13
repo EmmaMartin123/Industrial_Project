@@ -20,6 +20,7 @@ func wallet_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// gets the wallet for the user
 func get_wallet_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
@@ -44,6 +45,7 @@ func get_wallet_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]int64{"dashboard_balance": balance})
 }
 
+// patches the wallet for the user
 func patch_wallet_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {

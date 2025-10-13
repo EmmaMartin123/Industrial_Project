@@ -9,6 +9,7 @@ import (
 	"github.com/EmmaMartin123/Industrial_Project/backend/internal/utils"
 )
 
+// gets the user profile
 func GetUserProfile(userID string) (model.Profile, error) {
 	profileQuery := fmt.Sprintf("id=eq.%s", userID)
 	profileResult, err := utils.GetDataByQuery("profile", profileQuery)
