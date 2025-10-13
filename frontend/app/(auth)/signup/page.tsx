@@ -11,22 +11,26 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
+// defines user roles as constants
 const ROLES = {
 	INVESTOR: "investor",
 	BUSINESS: "business",
 }
 
 export default function SignupPage() {
+	// initialise router and destructure state/actions from global auth store
 	const router = useRouter()
 	const { signup, authUser, checkAuth, isSigningUp, isCheckingAuth } = useAuthStore()
+	// local component state for standard sign-up fields
 	const [name, setName] = useState("")
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 	const [role, setRole] = useState(ROLES.INVESTOR)
+	// local component state for role-specific fields
 	const [businessName, setBusinessName] = useState("")
 	const [investmentFocus, setInvestmentFocus] = useState("")
 
-	// check auth on mount
+	// effect to verify user authentication status on component mount
 	useEffect(() => {
 		const verifyAuth = async () => {
 			await checkAuth()
@@ -34,56 +38,64 @@ export default function SignupPage() {
 		verifyAuth()
 	}, [checkAuth])
 
-	// redirect if logged in
+	// effect to redirect user to home page if already logged in
 	useEffect(() => {
 		if (authUser) {
 			router.push("/")
 		}
 	}, [authUser, router])
 
+	// handles form submission for user sign-up
 	const handleSignup = async (e: React.FormEvent) => {
 		e.preventDefault()
 
+		// validation for required base fields
 		if (!name || !email || !password || !role) {
-			return toast.error("Please fill in all required fields.")
+			return toast.error("please fill in all required fields.")
 		}
 
+		// validation for role-specific fields
 		if (role === ROLES.BUSINESS && !businessName) {
-			return toast.error("Please enter your business name.")
+			return toast.error("please enter business name.")
 		}
 		if (role === ROLES.INVESTOR && !investmentFocus) {
-			return toast.error("Please enter your investment focus.")
+			return toast.error("please enter investment focus.")
 		}
 
 		try {
+			// attempt to create new user account via auth store
 			await signup({ email, password })
+			// get session token and store in local storage
 			const { data: sessionData } = await supabase.auth.getSession()
 			const token = sessionData?.session?.access_token
 			if (token) localStorage.setItem("token", token)
 
+			// create new user profile in database
 			await postUserProfile({
 				role,
 				display_name: name,
 				dashboard_balance: 0,
 			})
 
-			toast.success("Signup successful! Welcome.")
+			// notify success and redirect user to login
+			toast.success("sign-up successful! welcome.")
 			router.push("/login")
 		} catch (error) {
-			console.error("Signup failed:", error)
-			toast.error("An error occurred during signup.")
+			console.error("sign-up failed:", error)
+			toast.error("an error occurred during sign-up.")
 		}
 	}
 
+	// conditionally renders input fields based on selected role
 	const renderRoleSpecificFields = () => {
 		if (role === ROLES.BUSINESS) {
 			return (
 				<div className="grid gap-2">
-					<Label htmlFor="businessName">Business Name</Label>
+					<Label htmlFor="businessName">business name</Label>
 					<Input
 						id="businessName"
 						type="text"
-						placeholder="e.g. Acme Innovations"
+						placeholder="e.g. acme innovations"
 						value={businessName}
 						onChange={(e) => setBusinessName(e.target.value)}
 					/>
@@ -92,11 +104,11 @@ export default function SignupPage() {
 		} else if (role === ROLES.INVESTOR) {
 			return (
 				<div className="grid gap-2">
-					<Label htmlFor="investmentFocus">Investment Focus</Label>
+					<Label htmlFor="investmentFocus">investment focus</Label>
 					<Input
 						id="investmentFocus"
 						type="text"
-						placeholder="e.g. Early-stage SaaS, Green Tech"
+						placeholder="e.g. early-stage saas, green tech"
 						value={investmentFocus}
 						onChange={(e) => setInvestmentFocus(e.target.value)}
 					/>
@@ -106,6 +118,7 @@ export default function SignupPage() {
 		return null
 	}
 
+	// render fullscreen loading spinner while auth status is checked
 	if (isCheckingAuth && !authUser)
 		return (
 			<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-gray-900">
@@ -113,38 +126,42 @@ export default function SignupPage() {
 			</div>
 		)
 
+	// main component return: renders twocolumn sign-up layout
 	return (
 		<div className="flex min-h-screen">
+			{/* decorative visual line */}
 			<div className="absolute right-[60%] top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/40 to-transparent backdrop-blur-sm"></div>
-			{/* LEFT SIDE (FORM) */}
+
+			{/* left side (form) */}
 			<div className="w-full lg:w-[40%] flex flex-col justify-center px-8 sm:px-12 bg-gray-50 dark:bg-gray-900 order-2 lg:order-1">
 				<div className="max-w-md w-full mx-auto">
 					<h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-						Create Account
+						create account
 					</h2>
 
+					{/* the sign-up form */}
 					<form onSubmit={handleSignup} className="space-y-6">
-						{/* Role */}
+						{/* role selection dropdown */}
 						<div className="space-y-2">
-							<Label htmlFor="role">Account Type</Label>
+							<Label htmlFor="role">account type</Label>
 							<select
 								id="role"
 								value={role}
 								onChange={(e) => setRole(e.target.value)}
 								className="flex h-10 w-full rounded-md border border-input bg-white dark:bg-gray-800 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 							>
-								<option value={ROLES.INVESTOR}>Investor</option>
-								<option value={ROLES.BUSINESS}>Business</option>
+								<option value={ROLES.INVESTOR}>investor</option>
+								<option value={ROLES.BUSINESS}>business</option>
 							</select>
 						</div>
 
-						{/* Name */}
+						{/* name input field */}
 						<div className="space-y-2">
-							<Label htmlFor="name">Display Name</Label>
+							<Label htmlFor="name">display name</Label>
 							<Input
 								id="name"
 								type="text"
-								placeholder="e.g. Ben Houghton"
+								placeholder="e.g. ben houghton"
 								required
 								value={name}
 								onChange={(e) => setName(e.target.value)}
@@ -152,9 +169,9 @@ export default function SignupPage() {
 							/>
 						</div>
 
-						{/* Email */}
+						{/* email input field */}
 						<div className="space-y-2">
-							<Label htmlFor="email">Email</Label>
+							<Label htmlFor="email">email</Label>
 							<Input
 								id="email"
 								type="email"
@@ -166,12 +183,12 @@ export default function SignupPage() {
 							/>
 						</div>
 
-						{/* Role-specific fields */}
+						{/* role-specific fields rendered here */}
 						{renderRoleSpecificFields()}
 
-						{/* Password */}
+						{/* password input field */}
 						<div className="space-y-2">
-							<Label htmlFor="password">Password</Label>
+							<Label htmlFor="password">password</Label>
 							<Input
 								id="password"
 								type="password"
@@ -182,6 +199,7 @@ export default function SignupPage() {
 							/>
 						</div>
 
+						{/* submit button with loading state */}
 						<Button
 							type="submit"
 							className={`w-full`}
@@ -190,31 +208,32 @@ export default function SignupPage() {
 							{isSigningUp ? (
 								<LoaderPinwheel className="w-5 h-5 animate-spin" />
 							) : (
-								"Sign Up"
+								"sign up"
 							)}
 						</Button>
 					</form>
 
+					{/* link to login page */}
 					<p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
-						Already have an account?{" "}
+						already have account?{" "}
 						<a
 							className="text-primary hover:underline font-medium cursor-pointer"
 							onClick={() => router.push("/login")}
 						>
-							Log in
+							log in
 						</a>
 					</p>
 				</div>
 			</div>
 
-			{/* RIGHT SIDE (VISUAL) */}
+			{/* right side (visual/marketing panel) */}
 			<div className="hidden lg:flex w-[60%] bg-gradient-to-br from-primary/20 to-primary/5 dark:from-primary/30 dark:to-background items-center justify-center relative overflow-hidden order-1 lg:order-2">
 				<div className="max-w-lg text-left px-12 space-y-4">
 					<h1 className="text-5xl font-bold text-primary tracking-tight leading-tight">
-						Join the Future of Investment
+						join future of investment
 					</h1>
 					<p className="text-lg text-gray-700 dark:text-gray-300">
-						Create your account as an investor or business to connect, grow, and fund new opportunities.
+						create user account as investor or business to connect, grow, and fund new opportunities.
 					</p>
 				</div>
 				<div className="absolute inset-0 bg-gradient-to-t from-background/10 via-transparent to-transparent pointer-events-none" />
