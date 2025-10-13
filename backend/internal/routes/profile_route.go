@@ -23,6 +23,7 @@ func profile_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// creates the profile for the user
 func create_profile_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
@@ -77,6 +78,7 @@ func create_profile_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(profile)
 }
 
+// gets the profile for the user
 func get_profile_route(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

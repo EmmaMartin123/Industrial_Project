@@ -25,6 +25,7 @@ func investment_route(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// updates the balance for the user
 func update_balance(user_id string, amount_pounds int64) error {
 	profile, err := utilsdb.GetUserProfile(user_id)
 	if err != nil {
@@ -51,6 +52,7 @@ func update_balance(user_id string, amount_pounds int64) error {
 	return nil
 }
 
+// creates the investment for the user
 func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
@@ -76,6 +78,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the pitch for the user
 	pitch_body, err := utils.GetDataByID("pitch", strconv.FormatInt(req.PitchID, 10))
 	if err != nil {
 		http.Error(w, "Pitch not found", http.StatusNotFound)
@@ -126,6 +129,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// updates the balance for the user
 	if err := update_balance(user_id, -req.Amount); err != nil {
 		if err.Error() == "insufficient funds" {
 			http.Error(w, "Insufficient funds", http.StatusPaymentRequired)
@@ -144,6 +148,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 		Refunded:   false,
 	}
 
+	// creates the investment for the user
 	result, err := utils.InsertData(investment, "investments")
 	if err != nil {
 		_ = update_balance(user_id, req.Amount)
@@ -162,6 +167,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	if uint64(new_raised) == pitch.TargetAmount {
 		update_payload["status"] = "Funded"
 	}
+	// updates the pitch for the user
 	_, err = utils.UpdateByID("pitch", strconv.FormatInt(req.PitchID, 10), update_payload)
 	if err != nil {
 		fmt.Printf("Warning: failed to update pitch raised_amount: %v\n", err)
@@ -172,6 +178,7 @@ func create_investment_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(inserted[0])
 }
 
+// gets the investments for the user
 func get_investment_route(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -182,11 +189,13 @@ func get_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the user has an investor role
+	// verifies the user has an investor role
 	if ok, _ := utilsdb.CheckUserRole(w, user_id, "investor"); !ok {
+		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
+	// gets the investment for the user
 	if id_str != "" {
 		result, err := utils.GetDataByID("investments", id_str)
 		if err != nil {
@@ -206,6 +215,7 @@ func get_investment_route(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// sends the investment to the user
 		json.NewEncoder(w).Encode(investment)
 		return
 	}
@@ -223,9 +233,11 @@ func get_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// sends the investments to the user
 	json.NewEncoder(w).Encode(investments)
 }
 
+// updates the investment for the user
 func update_investment_route(w http.ResponseWriter, r *http.Request) {
 	id_str := r.URL.Query().Get("id")
 	if id_str == "" {
@@ -243,6 +255,7 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the investment for the user
 	result, err := utils.GetDataByID("investments", id_str)
 	if err != nil {
 		http.Error(w, "Investment not found", http.StatusNotFound)
@@ -279,6 +292,7 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the pitch for the user
 	pitch_body, err := utils.GetDataByID("pitch", strconv.FormatInt(*investment.PitchID, 10))
 	if err != nil {
 		http.Error(w, "Associated pitch not found", http.StatusNotFound)
@@ -303,11 +317,13 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 
 	update_payload := map[string]interface{}{"raised_amount": new_raised}
 
+	// updates the pitch for the user
 	_, err = utils.UpdateByID("pitch", strconv.FormatInt(*investment.PitchID, 10), update_payload)
 	if err != nil {
 		fmt.Printf("Warning: failed to update pitch after refund: %v\n", err)
 	}
 
+	// updates the investment for the user
 	payload := map[string]interface{}{"refunded": true}
 	_, err = utils.UpdateByID("investments", id_str, payload)
 	if err != nil {
@@ -315,10 +331,12 @@ func update_investment_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// updates the balance for the user
 	if err := update_balance(user_id, investment.Amount); err != nil {
 		fmt.Printf("Warning: failed to refund investor balance: %v\n", err)
 	}
 
+	// gets the investment for the user
 	updated_result, err := utils.GetDataByID("investments", id_str)
 	if err != nil {
 		http.Error(w, "Investment missing after update", http.StatusNotFound)

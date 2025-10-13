@@ -39,6 +39,7 @@ func pitch_route(w http.ResponseWriter, r *http.Request) {
 
 const SOFT_MAX_MEDIA_RAM = 50 << 20
 
+// deletes the pitch for the user
 func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitch_id_str := r.URL.Query().Get("id")
 	if pitch_id_str == "" {
@@ -46,6 +47,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the pitch for the user
 	result, err := utils.GetDataByID("pitch", pitch_id_str)
 	if err != nil {
 		http.Error(w, "Pitch not found", http.StatusNotFound)
@@ -74,6 +76,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the investment tiers for the user
 	investmentTiers, err := get_investment_tiers(pitch)
 	if err != nil {
 		http.Error(w, "Failed to fetch investment tiers", http.StatusInternalServerError)
@@ -89,6 +92,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// gets the media for the pitch
 	media, media_err := utils.GetPitchMedia(*pitch.PitchID)
 	if media_err != nil {
 		fmt.Printf("Warning: failed to fetch media for pitch %d: %v\n", *pitch.PitchID, media_err)
@@ -106,6 +110,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// deletes the pitch for the user
 	if err := utils.DeleteByID("pitch", pitch_id_str); err != nil {
 		http.Error(w, "Failed to delete pitch", http.StatusInternalServerError)
 		return
@@ -114,6 +119,7 @@ func delete_pitch_route(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// creates the pitch for the user
 func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	var pitch frontend.Pitch
@@ -139,6 +145,8 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
+
+	// gets the user id from the context
 	uid, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -152,6 +160,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	db_pitch.CreatedAt = "now()"
 	db_pitch.UpdatedAt = &db_pitch.CreatedAt
 
+	// inserts the pitch for the user
 	result, err := utils.InsertData(db_pitch, "pitch")
 	if err != nil {
 		fmt.Printf("Error inserting pitch: %v\n", err)
@@ -174,6 +183,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// deals with the media for the pitch
 	var media_files []frontend.PitchMedia
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		files := r.MultipartForm.File["media"]
@@ -228,6 +238,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// deals with the tags for the pitch
 	for _, tagName := range pitch.Tags {
 		tagName = strings.TrimSpace(tagName)
 		if tagName == "" {
@@ -275,6 +286,7 @@ func create_pitch_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(pitch)
 }
 
+// gets the investment tiers for the pitch
 func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, error) {
 	var investment_tiers []model.InvestmentTier
 	query := fmt.Sprintf("pitch_id=eq.%d", *db_pitch.PitchID)
@@ -292,6 +304,7 @@ func get_investment_tiers(db_pitch database.Pitch) ([]model.InvestmentTier, erro
 	return investment_tiers, nil
 }
 
+// gets the row count for the table
 func GetRowCount(table string, queryParams []string) (int, error) {
 	supabaseURL := os.Getenv("SUPABASE_URL")
 	apiKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -333,6 +346,7 @@ func GetRowCount(table string, queryParams []string) (int, error) {
 	return total, nil
 }
 
+// gets the pitch for the user
 func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitchID := r.URL.Query().Get("id")
 	user_id := r.URL.Query().Get("user_id")
@@ -507,6 +521,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// gets the media for the pitch
 		mediaMap := make(map[int64][]frontend.PitchMedia)
 		if len(pitchIDs) > 0 {
 			query := fmt.Sprintf("pitch_id=in.(%s)", strings.Join(pitchIDs, ","))
@@ -526,6 +541,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		tagMap := make(map[int64][]string)
 		tagIDsMap := make(map[int64][]int64) // pitch_id -> []tag_id
 
+		// gets the tags for the pitch
 		if len(pitchIDs) > 0 {
 			query := fmt.Sprintf("pitch_id=in.(%s)", strings.Join(pitchIDs, ","))
 			tagLinksData, err := utils.GetDataByQuery("pitch_tags", query)
@@ -592,6 +608,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 			pitches_to_send = append(pitches_to_send, front)
 		}
 
+		// sorts the pitches
 		if orderBy != "" {
 			var sortConfig misc.SortConfig
 			if err := json.Unmarshal([]byte(orderBy), &sortConfig); err == nil {
@@ -615,6 +632,7 @@ func get_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// gets the pitch for the user
 	result, err := utils.GetDataByID("pitch", pitchID)
 	if err != nil {
 		http.Error(w, "Pitch not found", http.StatusNotFound)
@@ -685,30 +703,7 @@ func getMinimumTierPrice(tiers []model.InvestmentTier) float64 {
 	return minPrice
 }
 
-func sortPitchesByPrice(pitches []frontend.Pitch, ascending bool) {
-	if ascending {
-		for i := 0; i < len(pitches)-1; i++ {
-			for j := i + 1; j < len(pitches); j++ {
-				priceI := getMinimumTierPrice(pitches[i].InvestmentTiers)
-				priceJ := getMinimumTierPrice(pitches[j].InvestmentTiers)
-				if priceI > priceJ {
-					pitches[i], pitches[j] = pitches[j], pitches[i]
-				}
-			}
-		}
-	} else {
-		for i := 0; i < len(pitches)-1; i++ {
-			for j := i + 1; j < len(pitches); j++ {
-				priceI := getMinimumTierPrice(pitches[i].InvestmentTiers)
-				priceJ := getMinimumTierPrice(pitches[j].InvestmentTiers)
-				if priceI < priceJ {
-					pitches[i], pitches[j] = pitches[j], pitches[i]
-				}
-			}
-		}
-	}
-}
-
+// updates the pitch for the user
 func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	pitchIDStr := r.URL.Query().Get("id")
 	if pitchIDStr == "" {
@@ -734,6 +729,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Println("Pitches: ", pitches)
 
+	// gets the old pitch for the user
 	old_pitch := pitches[0]
 	user_id, ok := utils.UserIDFromCtx(r.Context())
 	if !ok || user_id != old_pitch.UserID {
@@ -741,12 +737,13 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// checks if the user has the business role
 	fmt.Println("User ID: ", user_id)
 	if ok, _ := utilsdb.CheckUserRole(w, user_id, "business"); !ok {
 		return
 	}
 
-	// Parse new pitch data
+	// parses the new pitch data
 	contentType := r.Header.Get("Content-Type")
 	var new_pitch frontend.Pitch
 	if strings.HasPrefix(contentType, "multipart/form-data") {
@@ -766,8 +763,8 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 		defer r.Body.Close()
 	}
-	//fmt.Println("New pitch: ", new_pitch)
 
+	// gets the old investment tiers for the pitch
 	if old_pitch.Status != "Draft" {
 		old_tiers, _ := get_investment_tiers(old_pitch)
 		new_pitch.InvestmentTiers = old_tiers
@@ -775,10 +772,12 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		new_pitch.ProfitSharePercent = old_pitch.ProfitSharePercent
 	}
 
+	// gets the old media for the pitch
 	old_tiers, _ := get_investment_tiers(old_pitch)
 	old_media, _ := utils.GetPitchMedia(pitchID)
 
 	//fmt.Println("Old pitch: ", old_pitch)
+	// creates the new pitch for the user
 
 	to_db := mapping.Pitch_ToDatabase(new_pitch, user_id)
 	to_db.PitchID = nil
@@ -791,18 +790,21 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// deletes the old investment tiers for the pitch
 	if old_pitch.Status == "Draft" {
 		for _, t := range old_tiers {
 			if t.ID != nil {
 				utils.DeleteByID("investment_tier", strconv.FormatInt(*t.ID, 10))
 			}
 		}
+		// creates the new investment tiers for the pitch
 		for _, tier := range new_pitch.InvestmentTiers {
 			tier.PitchID = pitchID
 			utils.InsertData(tier, "investment_tier")
 		}
 	}
 
+	// deletes the old tags for the pitch
 	utils.DeletePitchTags(pitchID)
 	for _, tagName := range new_pitch.Tags {
 		tagName = strings.TrimSpace(tagName)
@@ -846,6 +848,8 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 			keep_media_ids[*m.ID] = true
 		}
 	}
+
+	// deletes the old media for the pitch
 	for _, m := range old_media {
 		if m.ID != nil && !keep_media_ids[*m.ID] {
 			utils.DeleteFileFromS3(m.URL)
@@ -853,6 +857,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// deals with the media for the pitch
 	var media_files []frontend.PitchMedia
 	if strings.HasPrefix(contentType, "multipart/form-data") {
 		files := r.MultipartForm.File["media"]
@@ -876,6 +881,8 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 			media_files = append(media_files, entry)
 		}
 	}
+
+	// deals with the new media for the pitch
 	for i, m := range new_pitch.Media {
 		if m.ID != nil && keep_media_ids[*m.ID] {
 			media_files = append(media_files, m)
@@ -921,6 +928,7 @@ func update_pitch_route(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// updates the pitch status for the user
 func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -933,6 +941,7 @@ func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// parses the payload
 	var payload struct {
 		Status string `json:"status"`
 	}
@@ -940,17 +949,21 @@ func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
+
+	// checks if the status is required
 	if payload.Status == "" {
 		http.Error(w, "Status is required", http.StatusBadRequest)
 		return
 	}
 
+	// gets the user id from the context
 	userID, ok := utils.UserIDFromCtx(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
+	// checks if the user has the business role
 	if ok, _ := utilsdb.CheckUserRole(w, userID, "business"); !ok {
 		return
 	}
@@ -959,6 +972,7 @@ func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
 		"status": payload.Status,
 	}
 
+	// updates the pitch status for the user
 	_, err := utils.UpdateByID("pitch", pitchIDStr, updateData)
 	if err != nil {
 		http.Error(w, "Failed to update status", http.StatusInternalServerError)
@@ -971,6 +985,7 @@ func update_pitch_status_route(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// deletes the pitch tags for the pitch
 func DeletePitchTags(pitchID int64) error {
 	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
 	url := fmt.Sprintf("%s/rest/v1/pitch_tags?%s", os.Getenv("SUPABASE_URL"), query)
@@ -994,6 +1009,7 @@ func DeletePitchTags(pitchID int64) error {
 	return nil
 }
 
+// sorts the pitches by field
 func sortPitchesByField(pitches []frontend.Pitch, field string, descending bool) {
 	sort.Slice(pitches, func(i, j int) bool {
 		var result bool

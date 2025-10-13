@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// gets the CORS allowlist
 func CORSAllowlist() map[string]bool {
 	allowlist := make(map[string]bool)
 	if origins := os.Getenv("CORS_ALLOWLIST"); origins != "" {
@@ -18,12 +19,14 @@ func CORSAllowlist() map[string]bool {
 	return allowlist
 }
 
+// writes an error to the response
 func WriteError(w http.ResponseWriter, err error, code int64) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(int(code))
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
 
+// gets the bearer token from the request
 func BearerFromRequest(r *http.Request) (string, error) {
 	h := r.Header.Get("Authorization")
 	if !strings.HasPrefix(h, "Bearer ") {

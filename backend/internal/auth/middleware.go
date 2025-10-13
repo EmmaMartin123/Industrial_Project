@@ -11,6 +11,7 @@ type MiddlewareFunc func(http.Handler) http.Handler
 
 type Chain struct{ mws []MiddlewareFunc }
 
+// creates a chain of middleware functions
 func NewChain(mws ...MiddlewareFunc) Chain { return Chain{mws: mws} }
 
 func (c Chain) Then(handler http.Handler) http.Handler {
@@ -20,6 +21,7 @@ func (c Chain) Then(handler http.Handler) http.Handler {
 	return handler
 }
 
+// logs the request method and uri
 func LoggingMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handler.ServeHTTP(w, r)
@@ -27,6 +29,7 @@ func LoggingMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
+// handles CORS requests
 func CORSMiddleware(handler http.Handler) http.Handler {
 	allowlist := utils.CORSAllowlist()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -48,6 +51,7 @@ func CORSMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
+// authenticates the user
 func AuthMiddleWare(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tok, err := utils.BearerFromRequest(r)

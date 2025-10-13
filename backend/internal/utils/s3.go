@@ -17,6 +17,7 @@ const (
 	bucketName = "pitch_files"
 )
 
+// uploads a file to S3
 func UploadFileToS3(file multipart.File, fileName string, mediaType string) (string, error) {
 	storageURL := strings.TrimSuffix(os.Getenv("SUPABASE_S3_URL"), "/")
 	projectURL := strings.TrimSuffix(os.Getenv("SUPABASE_URL"), "/")
@@ -73,6 +74,7 @@ func UploadFileToS3(file multipart.File, fileName string, mediaType string) (str
 	return fmt.Sprintf("%s/storage/v1/object/public/%s/%s", projectURL, bucketName, fileName), nil
 }
 
+// deletes a file from S3
 func DeleteFileFromS3(fileURL string) error {
 	storageURL := strings.TrimSuffix(os.Getenv("SUPABASE_S3_URL"), "/")
 	serviceKey := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -118,6 +120,7 @@ func DeleteFileFromS3(fileURL string) error {
 	return nil
 }
 
+// generates a unique file name
 func GenerateUniqueFileName(prefix, extension string) string {
 	return fmt.Sprintf("%s_%d%s", prefix, time.Now().UTC().UnixNano(), extension)
 }

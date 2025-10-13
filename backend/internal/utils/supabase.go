@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+// inserts data into a table
 func InsertData(data any, table string) (string, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -45,6 +46,7 @@ func InsertData(data any, table string) (string, error) {
 	return string(body), err
 }
 
+// gets all data from a table
 func GetAllData(table string) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -75,6 +77,7 @@ func GetAllData(table string) ([]byte, error) {
 	return body, nil
 }
 
+// gets data by ID from a table
 func GetDataByID(table string, id string) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -105,6 +108,7 @@ func GetDataByID(table string, id string) ([]byte, error) {
 	return body, nil
 }
 
+// deletes data by ID from a table
 func DeleteByID(table string, id string) error {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -135,6 +139,7 @@ func DeleteByID(table string, id string) error {
 	return nil
 }
 
+// gets data by query from a table
 func GetDataByQuery(table string, query string) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -166,6 +171,7 @@ func GetDataByQuery(table string, query string) ([]byte, error) {
 	return body, nil
 }
 
+// updates data by ID from a table
 func UpdateByID(table string, id string, data any) ([]byte, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -207,6 +213,7 @@ type AuthUser struct {
 	Email string `json:"email"`
 }
 
+// gets the auth user email
 func GetAuthUserEmail(userID string) (string, error) {
 	SUPABASE_URL := os.Getenv("SUPABASE_URL")
 	SUPABASE_KEY := os.Getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -249,6 +256,7 @@ func GetAuthUserEmail(userID string) (string, error) {
 	return user.Email, nil
 }
 
+// deletes pitch tags
 func DeletePitchTags(pitchID int64) error {
 	query := fmt.Sprintf("pitch_id=eq.%d", pitchID)
 	url := fmt.Sprintf("%s/rest/v1/pitch_tags?%s", os.Getenv("SUPABASE_URL"), query)
